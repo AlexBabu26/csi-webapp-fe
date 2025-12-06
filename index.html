@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSI Kalamela App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: '#007faf',
+              'primary-hover': '#18aefa',
+              secondary: '#757575',
+              success: '#7bb13c',
+              warning: '#ffbc34',
+              danger: '#e84646',
+              info: '#009efb',
+              light: '#f7f7fa',
+              dark: '#333333',
+              'bg-alt': '#f7f7fa',
+              'border-color': '#ececf5',
+            },
+            fontFamily: {
+              sans: ['Poppins', 'sans-serif'],
+            },
+            boxShadow: {
+              'card': '0 1px 3px 0 rgba(0, 0, 0, 0.03)',
+              'card-hover': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            },
+            keyframes: {
+              'slide-in': {
+                '0%': { transform: 'translateY(10px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' },
+              },
+              'fade-in': {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              }
+            },
+            animation: {
+              'slide-in': 'slide-in 0.4s ease-out forwards',
+              'fade-in': 'fade-in 0.3s ease-in forwards',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #f7f7fa;
+        color: #333333;
+        font-family: 'Poppins', sans-serif;
+      }
+      /* Print styles */
+      @media print {
+        .no-print { display: none !important; }
+        body { background-color: white; color: black; }
+        .page-break { page-break-before: always; }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.10.1",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
