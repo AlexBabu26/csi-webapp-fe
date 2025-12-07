@@ -11,8 +11,6 @@ import {
   ColumnFiltersState,
   VisibilityState,
   RowSelectionState,
-  FilterFn,
-  rankItem,
 } from '@tanstack/react-table';
 import { 
   ChevronLeft, 
@@ -25,22 +23,6 @@ import {
   ChevronsUpDown,
   X
 } from 'lucide-react';
-
-// Custom fuzzy filter function for global search
-const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-  // Get the value from the row
-  const itemValue = row.getValue(columnId);
-  
-  if (itemValue == null) return false;
-  
-  const searchValue = String(value).toLowerCase();
-  const cellValue = String(itemValue).toLowerCase();
-  
-  // Simple includes check for now
-  const passed = cellValue.includes(searchValue);
-  
-  return passed;
-};
 
 interface DataTableProps<TData> {
   data: TData[];
@@ -75,6 +57,20 @@ export function DataTable<TData>({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
+  // Pre-filter data based on global search
+  const filteredData = useMemo(() => {
+    if (!globalFilter.trim()) return data;
+    
+    const searchLower = globalFilter.toLowerCase().trim();
+    return data.filter((row) => {
+      const rowData = row as Record<string, any>;
+      return Object.values(rowData).some((value) => {
+        if (value == null) return false;
+        return String(value).toLowerCase().includes(searchLower);
+      });
+    });
+  }, [data, globalFilter]);
+
   // Add selection column if enabled
   const tableColumns = useMemo(() => {
     if (!showRowSelection) return columns;
@@ -108,25 +104,19 @@ export function DataTable<TData>({
   }, [columns, showRowSelection]);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns: tableColumns,
-    filterFns: {
-      fuzzy: fuzzyFilter,
-    },
     state: {
       sorting,
       columnFilters,
-      globalFilter,
       columnVisibility,
       rowSelection,
     },
     enableRowSelection: showRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    globalFilterFn: fuzzyFilter,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -272,7 +262,7 @@ export function DataTable<TData>({
       </div>
 
       {/* Pagination */}
-      {showPagination && !isLoading && data.length > 0 && (
+      {showPagination && !isLoading && filteredData.length > 0 && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4">
           <div className="flex items-center gap-2 text-sm text-textMuted">
             <span>Rows per page:</span>
@@ -291,8 +281,8 @@ export function DataTable<TData>({
 
           <div className="flex items-center gap-2">
             <span className="text-sm text-textMuted">
-              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-              {' '}({table.getFilteredRowModel().rows.length} total)
+              Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
+              {' '}({filteredData.length}{globalFilter ? ` of ${data.length}` : ''} records)
             </span>
             
             <div className="flex items-center gap-1">

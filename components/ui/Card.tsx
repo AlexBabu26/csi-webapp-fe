@@ -9,7 +9,7 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ children, className = '', noPadding = false, title }) => {
   return (
-    <div className={`bg-white rounded-[6px] border border-borderColor shadow-sm overflow-hidden ${className}`}>
+    <div className={`bg-white rounded-md border border-borderColor shadow-sm overflow-hidden ${className}`}>
       {title && (
         <div className="px-6 py-4 border-b border-borderColor">
           <h3 className="text-lg font-semibold text-textDark">{title}</h3>
@@ -21,4 +21,3 @@ export const Card: React.FC<CardProps> = ({ children, className = '', noPadding 
     </div>
   );
 };
-
