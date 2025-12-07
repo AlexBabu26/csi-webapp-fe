@@ -35,6 +35,7 @@ export interface EventItem {
 
 export interface ScoreEntry {
   chestNumber: string;
+  name: string;
   judge1: number;
   judge2: number;
   judge3: number;

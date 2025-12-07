@@ -4,31 +4,49 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CSI Kalamela App</title>
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
             colors: {
-              primary: '#007faf',
-              'primary-hover': '#18aefa',
-              secondary: '#757575',
+              primary: {
+                DEFAULT: '#007faf',
+                hover: '#18aefa',
+              },
+              secondary: '#18aefa',
               success: '#7bb13c',
-              warning: '#ffbc34',
               danger: '#e84646',
+              warning: '#ffbc34',
               info: '#009efb',
-              light: '#f7f7fa',
-              dark: '#333333',
-              'bg-alt': '#f7f7fa',
-              'border-color': '#ececf5',
+              textDark: '#333333',
+              textMuted: '#757575',
+              bgLight: '#f7f7fa',
+              borderColor: '#ececf5',
+              footerBlack: '#000000',
             },
             fontFamily: {
               sans: ['Poppins', 'sans-serif'],
             },
+            borderRadius: {
+              'card': '6px',
+            },
             boxShadow: {
-              'card': '0 1px 3px 0 rgba(0, 0, 0, 0.03)',
-              'card-hover': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+              'card': '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+              'card-hover': '0 4px 12px 0 rgba(0, 0, 0, 0.1)',
+            },
+            animation: {
+              'slide-in': 'slide-in 0.4s ease-out forwards',
+              'fade-in': 'fade-in 0.3s ease-in forwards',
+              'fade-in-up': 'fade-in-up 0.3s ease-out forwards',
+              'marquee': 'marquee 20s linear infinite',
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             },
             keyframes: {
               'slide-in': {
@@ -38,43 +56,68 @@
               'fade-in': {
                 '0%': { opacity: '0' },
                 '100%': { opacity: '1' },
-              }
+              },
+              'fade-in-up': {
+                '0%': { opacity: '0', transform: 'translateY(20px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              'marquee': {
+                '0%': { transform: 'translateX(100%)' },
+                '100%': { transform: 'translateX(-100%)' },
+              },
             },
-            animation: {
-              'slide-in': 'slide-in 0.4s ease-out forwards',
-              'fade-in': 'fade-in 0.3s ease-in forwards',
-            }
           }
         }
       }
     </script>
     <style>
       body {
+        font-family: 'Poppins', sans-serif;
         background-color: #f7f7fa;
         color: #333333;
-        font-family: 'Poppins', sans-serif;
       }
+      
+      /* Custom Marquee Animation */
+      .animate-marquee {
+        display: inline-block;
+        white-space: nowrap;
+        animation: marquee 20s linear infinite;
+      }
+      
+      @keyframes marquee {
+        0% { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+      }
+      
+      /* Hide scrollbar for clean UI */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      
+      /* Focus visible for accessibility */
+      :focus-visible {
+        outline: 2px solid #007faf;
+        outline-offset: 2px;
+      }
+      
+      /* Smooth transitions */
+      * {
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      
       /* Print styles */
       @media print {
         .no-print { display: none !important; }
-        body { background-color: white; color: black; }
-        .page-break { page-break-before: always; }
+        body { background-color: white; }
       }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.10.1",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.1"
-  }
-}
-</script>
 </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

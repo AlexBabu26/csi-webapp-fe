@@ -1,15 +1,18 @@
 
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout, AuthLayout } from './components/Layout';
 import { ToastProvider } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Skeleton } from './components/ui';
+import { UserRole } from './types';
 
 // Lazy Load Pages
+const PublicHome = lazy(() => import('./pages/PublicHome').then(module => ({ default: module.PublicHome })));
 const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
 const KalamelaPublic = lazy(() => import('./pages/KalamelaPublic').then(module => ({ default: module.KalamelaPublic })));
+const Conference = lazy(() => import('./pages/Conference').then(module => ({ default: module.Conference })));
 const ScoreEntry = lazy(() => import('./pages/ScoreEntry').then(module => ({ default: module.ScoreEntry })));
 
 // Loading Fallback
@@ -36,14 +39,26 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const App: React.FC = () => {
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+
+  const handleLogin = (role: UserRole) => {
+    setUserRole(role);
+  };
+
   return (
     <ErrorBoundary>
       <ToastProvider>
         <Router>
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* Public Routes */}
-              <Route path="/public" element={<KalamelaPublic />} />
+              {/* Homepage with Login */}
+              <Route path="/" element={<PublicHome onLogin={handleLogin} />} />
+              
+              {/* Kalamela Public Portal */}
+              <Route path="/kalamela" element={<KalamelaPublic />} />
+              
+              {/* Conference Public Portal */}
+              <Route path="/conference" element={<Conference />} />
               
               {/* Auth Routes */}
               <Route path="/login" element={
@@ -74,9 +89,8 @@ const App: React.FC = () => {
                 </AdminRoute>
               } />
 
-              {/* Default Redirects */}
-              <Route path="/" element={<Navigate to="/public" replace />} />
-              <Route path="*" element={<Navigate to="/public" replace />} />
+              {/* Default Redirect */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
         </Router>
