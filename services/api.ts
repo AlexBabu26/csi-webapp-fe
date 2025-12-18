@@ -1123,30 +1123,45 @@ class ApiService {
     return { data, status: 200 };
   }
 
-  // PUT /admin/units/transfer-request/{request_id}/approve
+  // Helper to map request type to API endpoint path
+  private getRequestEndpointPath(type: string): string {
+    const typeMap: Record<string, string> = {
+      'Transfer': 'transfer-requests',
+      'Member Info Change': 'member-change-requests',
+      'Officials Change': 'officials-change-requests',
+      'Councilor Change': 'councilor-change-requests',
+      'Member Add': 'member-add-requests',
+    };
+    return typeMap[type] || type.toLowerCase().replace(/\s+/g, '-') + 's';
+  }
+
+  // POST /admin/units/{type}/{request_id}/approve
   async approveRequest(requestId: number, type: string, remarks?: string): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const endpoint = `/admin/units/${type}-request/${requestId}/approve`;
-    await httpPut<any>(endpoint, remarks ? { remarks } : {}, { token });
+    const endpointPath = this.getRequestEndpointPath(type);
+    const endpoint = `/admin/units/${endpointPath}/${requestId}/approve`;
+    await httpPost<any>(endpoint, remarks ? { remarks } : {}, { token });
     return { data: true, message: `${type} request approved successfully`, status: 200 };
   }
 
-  // PUT /admin/units/{type}-request/{request_id}/reject
+  // POST /admin/units/{type}/{request_id}/reject
   async rejectRequest(requestId: number, type: string, remarks?: string): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const endpoint = `/admin/units/${type}-request/${requestId}/reject`;
-    await httpPut<any>(endpoint, remarks ? { remarks } : {}, { token });
+    const endpointPath = this.getRequestEndpointPath(type);
+    const endpoint = `/admin/units/${endpointPath}/${requestId}/reject`;
+    await httpPost<any>(endpoint, remarks ? { remarks } : {}, { token });
     return { data: true, message: `${type} request rejected${remarks ? ' with remarks' : ''}`, status: 200 };
   }
 
-  // PUT /admin/units/{type}-request/{request_id}/revert
+  // POST /admin/units/{type}/{request_id}/revert
   async revertRequest(requestId: number, type: string, remarks?: string): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const endpoint = `/admin/units/${type}-request/${requestId}/revert`;
-    await httpPut<any>(endpoint, remarks ? { remarks } : {}, { token });
+    const endpointPath = this.getRequestEndpointPath(type);
+    const endpoint = `/admin/units/${endpointPath}/${requestId}/revert`;
+    await httpPost<any>(endpoint, remarks ? { remarks } : {}, { token });
     return { data: true, message: `${type} request reverted`, status: 200 };
   }
 
