@@ -1,7 +1,7 @@
 const DEFAULT_BASE_URL =
   (typeof process !== 'undefined' && (process as any).env?.API_BASE_URL) ||
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) ||
-  'http://localhost:7000/api';
+  'https://csi-project-be.vercel.app/api';
 
 interface HttpOptions extends RequestInit {
   token?: string;
