@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, Badge } from '../../components/ui';
 import { RequestStatusBadge } from '../../components/RequestStatusBadge';
 import { FileText, ArrowRightLeft, Users, Shield, UserCheck, UserPlus } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
+import { getCurrentUnitId } from '../../services/auth';
 
 interface MyRequestsData {
   transfers: any[];
@@ -15,6 +17,7 @@ interface MyRequestsData {
 
 export const ViewMyRequests: React.FC = () => {
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<MyRequestsData>({
     transfers: [],
     memberInfoChanges: [],
@@ -25,14 +28,21 @@ export const ViewMyRequests: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
-  // Mock unit ID - in real app, get from auth context
-  const unitId = 1;
+  // Get current unit ID from authenticated user
+  const unitId = getCurrentUnitId();
 
   useEffect(() => {
+    if (!unitId) {
+      addToast("Please login to access this page", "error");
+      navigate('/');
+      return;
+    }
     loadRequests();
-  }, []);
+  }, [unitId]);
 
   const loadRequests = async () => {
+    if (!unitId) return;
+    
     try {
       setLoading(true);
       const response = await api.getMyRequests(unitId);

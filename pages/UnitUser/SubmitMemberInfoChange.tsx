@@ -5,6 +5,7 @@ import { FileUpload } from '../../components/FileUpload';
 import { ArrowLeft, Send } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
+import { getCurrentUnitId } from '../../services/auth';
 import { UnitMember } from '../../types';
 
 export const SubmitMemberInfoChange: React.FC = () => {
@@ -24,11 +25,17 @@ export const SubmitMemberInfoChange: React.FC = () => {
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
 
-  // Mock current unit ID
-  const currentUnitId = 1;
+  // Get current unit ID from authenticated user
+  const currentUnitId = getCurrentUnitId();
 
   useEffect(() => {
     const loadMembers = async () => {
+      if (!currentUnitId) {
+        addToast("Please login to access this page", "error");
+        navigate('/');
+        return;
+      }
+      
       try {
         const response = await api.getUnitMembers(currentUnitId);
         setMembers(response.data);
@@ -37,7 +44,7 @@ export const SubmitMemberInfoChange: React.FC = () => {
       }
     };
     loadMembers();
-  }, [addToast]);
+  }, [addToast, currentUnitId, navigate]);
 
   useEffect(() => {
     // Auto-fill form with selected member's current data

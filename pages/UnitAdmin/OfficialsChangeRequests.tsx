@@ -91,8 +91,8 @@ export const OfficialsChangeRequests: React.FC = () => {
         id: 'changes',
         header: 'Requested Changes',
         cell: ({ row }) => {
-          const changes = row.original.requestedChanges;
-          const changeList = [];
+          const changes = row.original.requestedChanges || {};
+          const changeList: string[] = [];
           if (changes.presidentDesignation) changeList.push(`President Designation: ${changes.presidentDesignation}`);
           if (changes.presidentName) changeList.push(`President Name: ${changes.presidentName}`);
           if (changes.presidentPhone) changeList.push(`President Phone: ${changes.presidentPhone}`);

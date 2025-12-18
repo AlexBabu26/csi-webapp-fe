@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
 import { ArrowLeft, Send, UserPlus } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
+import { getCurrentUnitId } from '../../services/auth';
 
 export const SubmitMemberAdd: React.FC = () => {
   const { addToast } = useToast();
@@ -22,11 +23,23 @@ export const SubmitMemberAdd: React.FC = () => {
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
 
-  // Mock current unit ID
-  const currentUnitId = 1;
+  // Get current unit ID from authenticated user
+  const currentUnitId = getCurrentUnitId();
+
+  useEffect(() => {
+    if (!currentUnitId) {
+      addToast("Please login to access this page", "error");
+      navigate('/');
+    }
+  }, [currentUnitId, addToast, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!currentUnitId) {
+      addToast("Please login to submit request", "error");
+      return;
+    }
     
     if (!formData.name.trim()) {
       addToast("Please enter member name", "warning");

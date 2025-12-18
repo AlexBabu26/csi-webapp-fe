@@ -5,6 +5,7 @@ import { FileUpload } from '../../components/FileUpload';
 import { ArrowLeft, Send } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
+import { getCurrentUnitId } from '../../services/auth';
 import { UnitCouncilor, UnitMember } from '../../types';
 
 export const SubmitCouncilorChange: React.FC = () => {
@@ -19,11 +20,17 @@ export const SubmitCouncilorChange: React.FC = () => {
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
 
-  // Mock current unit ID
-  const currentUnitId = 1;
+  // Get current unit ID from authenticated user
+  const currentUnitId = getCurrentUnitId();
 
   useEffect(() => {
     const loadData = async () => {
+      if (!currentUnitId) {
+        addToast("Please login to access this page", "error");
+        navigate('/');
+        return;
+      }
+      
       try {
         const [councilorsRes, membersRes] = await Promise.all([
           api.getUnitCouncilors(currentUnitId),
@@ -36,7 +43,7 @@ export const SubmitCouncilorChange: React.FC = () => {
       }
     };
     loadData();
-  }, [addToast]);
+  }, [addToast, currentUnitId, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

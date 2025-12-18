@@ -5,6 +5,7 @@ import { FileUpload } from '../../components/FileUpload';
 import { ArrowLeft, Send, Shield } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
+import { getCurrentUnitId } from '../../services/auth';
 import { UnitOfficial } from '../../types';
 
 export const SubmitOfficialsChange: React.FC = () => {
@@ -29,11 +30,17 @@ export const SubmitOfficialsChange: React.FC = () => {
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
 
-  // Mock current unit ID
-  const currentUnitId = 1;
+  // Get current unit ID from authenticated user
+  const currentUnitId = getCurrentUnitId();
 
   useEffect(() => {
     const loadOfficial = async () => {
+      if (!currentUnitId) {
+        addToast("Please login to access this page", "error");
+        navigate('/');
+        return;
+      }
+      
       try {
         const response = await api.getUnitOfficials(currentUnitId);
         if (response.data.length > 0) {
@@ -58,7 +65,7 @@ export const SubmitOfficialsChange: React.FC = () => {
       }
     };
     loadOfficial();
-  }, [addToast]);
+  }, [addToast, currentUnitId, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,6 +107,11 @@ export const SubmitOfficialsChange: React.FC = () => {
       }
 
       try {
+        if (!currentUnitId) {
+          addToast("Please login to submit request", "error");
+          return;
+        }
+        
         setLoading(true);
         await api.submitOfficialsChange({
           unitId: currentUnitId,

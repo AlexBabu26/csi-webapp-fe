@@ -51,7 +51,7 @@ export const ViewAllUnits: React.FC = () => {
             {row.original.unitNumber}
           </span>
         ),
-        size: 120,
+        size: 160,
       },
       {
         accessorKey: 'name',
@@ -66,22 +66,7 @@ export const ViewAllUnits: React.FC = () => {
         cell: ({ row }) => (
           <Badge variant="light">{row.original.clergyDistrict}</Badge>
         ),
-      },
-      {
-        accessorKey: 'registrationYear',
-        header: 'Reg. Year',
-        cell: ({ row }) => (
-          <span className="text-textMuted">{row.original.registrationYear}</span>
-        ),
-        size: 100,
-      },
-      {
-        accessorKey: 'membersCount',
-        header: 'Members',
-        cell: ({ row }) => (
-          <span className="text-textMuted font-medium">{row.original.membersCount}</span>
-        ),
-        size: 80,
+        size: 140,
       },
       {
         accessorKey: 'status',
@@ -92,7 +77,7 @@ export const ViewAllUnits: React.FC = () => {
           return <Badge variant={variant}>{status}</Badge>;
         },
         enableSorting: false,
-        size: 120,
+        size: 140,
       },
       {
         id: 'actions',

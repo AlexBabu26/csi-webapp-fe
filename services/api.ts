@@ -432,8 +432,45 @@ class ApiService {
   async getUnits(): Promise<ApiResponse<Unit[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<Unit[]>('/admin/units', { token });
+    
+    // API returns: { id, user_id, username, unit_name, status }
+    interface ApiUnit {
+      id: number;
+      user_id: number;
+      username: string;
+      unit_name: string;
+      status: string;
+    }
+    
+    const rawData = await httpGet<ApiUnit[]>('/admin/units', { token });
+    
+    // Transform API response to match Unit interface
+    const data: Unit[] = rawData.map(unit => ({
+      id: unit.id,
+      unitNumber: unit.username,
+      name: unit.unit_name,
+      clergyDistrict: this.extractClergyDistrict(unit.username),
+      registrationYear: new Date().getFullYear(), // Default to current year since API doesn't provide it
+      status: this.mapUnitStatus(unit.status),
+      membersCount: 0, // API doesn't provide this
+      officialsCount: 0, // API doesn't provide this
+      councilorsCount: 0, // API doesn't provide this
+    }));
+    
     return { data, status: 200 };
+  }
+  
+  // Helper to extract clergy district code from username (e.g., "MKDYM/MAV/002" -> "MAV")
+  private extractClergyDistrict(username: string): string {
+    const parts = username.split('/');
+    return parts.length >= 2 ? parts[1] : 'Unknown';
+  }
+  
+  // Helper to map API status to Unit status
+  private mapUnitStatus(apiStatus: string): 'Completed' | 'Pending' | 'Not Registered' {
+    if (apiStatus === 'Registration Completed') return 'Completed';
+    if (apiStatus.includes('Started') || apiStatus.includes('Completed') || apiStatus.includes('Accepted')) return 'Pending';
+    return 'Not Registered';
   }
 
   // GET /admin/units/{unit_id} - Get unit by ID
@@ -459,10 +496,49 @@ class ApiService {
   async getUnitOfficials(unitId?: number): Promise<ApiResponse<UnitOfficial[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<UnitOfficial[]>('/admin/units/officials', { 
+    
+    // API returns snake_case fields
+    interface ApiUnitOfficial {
+      id: number;
+      registered_user_id: number;
+      unit_name: string;
+      district: string;
+      president_designation: string;
+      president_name: string;
+      president_phone: string;
+      vice_president_name: string;
+      vice_president_phone: string;
+      secretary_name: string;
+      secretary_phone: string;
+      joint_secretary_name: string;
+      joint_secretary_phone: string;
+      treasurer_name: string;
+      treasurer_phone: string;
+    }
+    
+    const rawData = await httpGet<ApiUnitOfficial[]>('/admin/units/officials', { 
       token,
       query: unitId ? { unit_id: unitId } : undefined 
     });
+    
+    // Transform API response to match UnitOfficial interface
+    const data: UnitOfficial[] = rawData.map(official => ({
+      id: official.id,
+      unitId: official.registered_user_id,
+      unitName: official.unit_name,
+      presidentDesignation: official.president_designation,
+      presidentName: official.president_name,
+      presidentPhone: official.president_phone,
+      vicePresidentName: official.vice_president_name,
+      vicePresidentPhone: official.vice_president_phone,
+      secretaryName: official.secretary_name,
+      secretaryPhone: official.secretary_phone,
+      jointSecretaryName: official.joint_secretary_name,
+      jointSecretaryPhone: official.joint_secretary_phone,
+      treasurerName: official.treasurer_name,
+      treasurerPhone: official.treasurer_phone,
+    }));
+    
     return { data, status: 200 };
   }
 
@@ -470,10 +546,37 @@ class ApiService {
   async getUnitCouncilors(unitId?: number): Promise<ApiResponse<UnitCouncilor[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<UnitCouncilor[]>('/admin/units/councilors', { 
+    
+    // API returns snake_case fields
+    interface ApiUnitCouncilor {
+      id: number;
+      registered_user_id: number;
+      unit_name: string;
+      district: string;
+      unit_member_id: number;
+      member_name: string;
+      member_gender: string;
+      member_phone: string;
+    }
+    
+    const rawData = await httpGet<ApiUnitCouncilor[]>('/admin/units/councilors', { 
       token,
       query: unitId ? { unit_id: unitId } : undefined 
     });
+    
+    // Transform API response to match UnitCouncilor interface
+    const data: UnitCouncilor[] = rawData.map(councilor => ({
+      id: councilor.id,
+      unitId: councilor.registered_user_id,
+      unitName: councilor.unit_name,
+      memberId: councilor.unit_member_id,
+      memberName: councilor.member_name,
+      memberPhone: councilor.member_phone,
+      memberGender: councilor.member_gender,
+      memberDob: '', // API doesn't provide this
+      memberQualification: undefined, // API doesn't provide this
+    }));
+    
     return { data, status: 200 };
   }
 
@@ -481,7 +584,41 @@ class ApiService {
   async getTransferRequests(): Promise<ApiResponse<TransferRequest[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<TransferRequest[]>('/admin/units/transfer-requests', { token });
+    
+    // API returns snake_case fields
+    interface ApiTransferRequest {
+      id: number;
+      unit_member_id: number;
+      destination_unit_id: number;
+      reason: string;
+      current_unit_id: number;
+      original_registered_user_id: number | null;
+      proof?: string;
+      status: string;
+      created_at: string;
+      updated_at: string;
+      member_name?: string;
+      current_unit_name?: string;
+      destination_unit_name?: string;
+    }
+    
+    const rawData = await httpGet<ApiTransferRequest[]>('/admin/units/transfer-requests', { token });
+    
+    // Transform API response to match TransferRequest interface
+    const data: TransferRequest[] = rawData.map(request => ({
+      id: request.id,
+      createdAt: request.created_at,
+      memberId: request.unit_member_id,
+      memberName: request.member_name || `Member #${request.unit_member_id}`,
+      currentUnitId: request.current_unit_id,
+      currentUnitName: request.current_unit_name || `Unit #${request.current_unit_id}`,
+      destinationUnitId: request.destination_unit_id,
+      destinationUnitName: request.destination_unit_name || `Unit #${request.destination_unit_id}`,
+      reason: request.reason,
+      status: request.status as RequestStatus,
+      proof: request.proof,
+    }));
+    
     return { data, status: 200 };
   }
 
@@ -489,7 +626,50 @@ class ApiService {
   async getMemberInfoChangeRequests(): Promise<ApiResponse<MemberInfoChangeRequest[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<MemberInfoChangeRequest[]>('/admin/units/member-change-requests', { token });
+    
+    // API returns snake_case fields with original values and requested changes
+    interface ApiMemberInfoChangeRequest {
+      id: number;
+      unit_member_id: number;
+      reason: string;
+      name: string | null;
+      gender: string | null;
+      dob: string | null;
+      blood_group: string | null;
+      qualification: string | null;
+      original_name: string;
+      original_gender: string;
+      original_dob: string;
+      original_blood_group: string;
+      original_qualification: string;
+      proof?: string;
+      status: string;
+      created_at: string;
+      updated_at: string;
+      unit_name?: string;
+    }
+    
+    const rawData = await httpGet<ApiMemberInfoChangeRequest[]>('/admin/units/member-change-requests', { token });
+    
+    // Transform API response to match MemberInfoChangeRequest interface
+    const data: MemberInfoChangeRequest[] = rawData.map(request => ({
+      id: request.id,
+      createdAt: request.created_at,
+      memberId: request.unit_member_id,
+      memberName: request.original_name,
+      unitName: request.unit_name || '',
+      changes: {
+        name: request.name || undefined,
+        gender: request.gender || undefined,
+        dob: request.dob || undefined,
+        bloodGroup: request.blood_group || undefined,
+        qualification: request.qualification || undefined,
+      },
+      reason: request.reason,
+      status: request.status as RequestStatus,
+      proof: request.proof,
+    }));
+    
     return { data, status: 200 };
   }
 
@@ -497,7 +677,82 @@ class ApiService {
   async getOfficialsChangeRequests(): Promise<ApiResponse<OfficialsChangeRequest[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<OfficialsChangeRequest[]>('/admin/units/officials-change-requests', { token });
+    
+    // API returns flat snake_case fields with original_ prefix for current values
+    interface ApiOfficialsChangeRequest {
+      id: number;
+      unit_official_id: number;
+      reason: string;
+      // Requested changes (null if not changing)
+      president_designation: string | null;
+      president_name: string | null;
+      president_phone: string | null;
+      vice_president_name: string | null;
+      vice_president_phone: string | null;
+      secretary_name: string | null;
+      secretary_phone: string | null;
+      joint_secretary_name: string | null;
+      joint_secretary_phone: string | null;
+      treasurer_name: string | null;
+      treasurer_phone: string | null;
+      // Original values
+      original_president_designation: string;
+      original_president_name: string;
+      original_president_phone: string;
+      original_vice_president_name: string;
+      original_vice_president_phone: string;
+      original_secretary_name: string;
+      original_secretary_phone: string;
+      original_joint_secretary_name: string;
+      original_joint_secretary_phone: string;
+      original_treasurer_name: string;
+      original_treasurer_phone: string;
+      proof?: string;
+      status: string;
+      created_at: string;
+      updated_at: string;
+      unit_name?: string;
+    }
+    
+    const rawData = await httpGet<ApiOfficialsChangeRequest[]>('/admin/units/officials-change-requests', { token });
+    
+    // Transform API response to match OfficialsChangeRequest interface
+    const data: OfficialsChangeRequest[] = rawData.map(request => ({
+      id: request.id,
+      createdAt: request.created_at,
+      unitId: request.unit_official_id,
+      unitName: request.unit_name || '',
+      originalOfficials: {
+        presidentDesignation: request.original_president_designation || undefined,
+        presidentName: request.original_president_name,
+        presidentPhone: request.original_president_phone,
+        vicePresidentName: request.original_vice_president_name,
+        vicePresidentPhone: request.original_vice_president_phone,
+        secretaryName: request.original_secretary_name,
+        secretaryPhone: request.original_secretary_phone,
+        jointSecretaryName: request.original_joint_secretary_name,
+        jointSecretaryPhone: request.original_joint_secretary_phone,
+        treasurerName: request.original_treasurer_name,
+        treasurerPhone: request.original_treasurer_phone,
+      },
+      requestedChanges: {
+        presidentDesignation: request.president_designation || undefined,
+        presidentName: request.president_name || undefined,
+        presidentPhone: request.president_phone || undefined,
+        vicePresidentName: request.vice_president_name || undefined,
+        vicePresidentPhone: request.vice_president_phone || undefined,
+        secretaryName: request.secretary_name || undefined,
+        secretaryPhone: request.secretary_phone || undefined,
+        jointSecretaryName: request.joint_secretary_name || undefined,
+        jointSecretaryPhone: request.joint_secretary_phone || undefined,
+        treasurerName: request.treasurer_name || undefined,
+        treasurerPhone: request.treasurer_phone || undefined,
+      },
+      reason: request.reason,
+      status: request.status as RequestStatus,
+      proof: request.proof,
+    }));
+    
     return { data, status: 200 };
   }
 
@@ -505,7 +760,42 @@ class ApiService {
   async getCouncilorChangeRequests(): Promise<ApiResponse<CouncilorChangeRequest[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<CouncilorChangeRequest[]>('/admin/units/councilor-change-requests', { token });
+    
+    // API returns snake_case fields
+    interface ApiCouncilorChangeRequest {
+      id: number;
+      unit_councilor_id: number;
+      reason: string;
+      unit_member_id: number; // New member ID
+      original_unit_member_id: number;
+      proof?: string;
+      status: string;
+      created_at: string;
+      updated_at: string;
+      unit_id?: number;
+      unit_name?: string;
+      new_member_name?: string;
+      original_member_name?: string;
+    }
+    
+    const rawData = await httpGet<ApiCouncilorChangeRequest[]>('/admin/units/councilor-change-requests', { token });
+    
+    // Transform API response to match CouncilorChangeRequest interface
+    const data: CouncilorChangeRequest[] = rawData.map(request => ({
+      id: request.id,
+      createdAt: request.created_at,
+      unitId: request.unit_id || 0,
+      unitName: request.unit_name || '',
+      councilorId: request.unit_councilor_id,
+      originalMemberId: request.original_unit_member_id,
+      originalMemberName: request.original_member_name || `Member #${request.original_unit_member_id}`,
+      newMemberId: request.unit_member_id,
+      newMemberName: request.new_member_name || `Member #${request.unit_member_id}`,
+      reason: request.reason,
+      status: request.status as RequestStatus,
+      proof: request.proof,
+    }));
+    
     return { data, status: 200 };
   }
 
@@ -513,7 +803,44 @@ class ApiService {
   async getMemberAddRequests(): Promise<ApiResponse<MemberAddRequest[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<MemberAddRequest[]>('/admin/units/member-add-requests', { token });
+    
+    // API returns snake_case fields
+    interface ApiMemberAddRequest {
+      id: number;
+      registered_user_id: number;
+      name: string;
+      gender: string;
+      dob: string;
+      number: string;
+      qualification?: string;
+      blood_group?: string;
+      reason: string;
+      proof?: string;
+      status: string;
+      created_at: string;
+      updated_at: string;
+      unit_name?: string;
+    }
+    
+    const rawData = await httpGet<ApiMemberAddRequest[]>('/admin/units/member-add-requests', { token });
+    
+    // Transform API response to match MemberAddRequest interface
+    const data: MemberAddRequest[] = rawData.map(request => ({
+      id: request.id,
+      createdAt: request.created_at,
+      unitId: request.registered_user_id,
+      unitName: request.unit_name || '',
+      name: request.name,
+      gender: request.gender as 'M' | 'F',
+      number: request.number,
+      dob: request.dob,
+      qualification: request.qualification || undefined,
+      bloodGroup: request.blood_group || undefined,
+      reason: request.reason,
+      status: request.status as RequestStatus,
+      proof: request.proof || undefined,
+    }));
+    
     return { data, status: 200 };
   }
 
@@ -631,10 +958,47 @@ class ApiService {
   async getArchivedMembers(unitId?: number): Promise<ApiResponse<ArchivedMember[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<ArchivedMember[]>('/admin/units/archived-members', { 
+    
+    // API returns snake_case fields
+    interface ApiArchivedMember {
+      id: number;
+      registered_user_id: number;
+      name: string;
+      gender: string;
+      dob: string;
+      age: number;
+      number: string;
+      qualification?: string;
+      blood_group?: string;
+      archived_at: string;
+      archived_by?: string;
+      archive_reason?: string;
+      unit_name?: string;
+    }
+    
+    const rawData = await httpGet<ApiArchivedMember[]>('/admin/units/archived-members', { 
       token,
       query: unitId ? { unit_id: unitId } : undefined 
     });
+    
+    // Transform API response to match ArchivedMember interface
+    const data: ArchivedMember[] = rawData.map(member => ({
+      id: member.id,
+      name: member.name,
+      gender: member.gender as 'M' | 'F' | 'Male' | 'Female',
+      number: member.number,
+      dob: member.dob,
+      age: member.age,
+      qualification: member.qualification,
+      bloodGroup: member.blood_group,
+      unitId: member.registered_user_id,
+      unitName: member.unit_name || '',
+      isArchived: true,
+      archivedAt: member.archived_at,
+      archivedBy: member.archived_by || 'System',
+      archiveReason: member.archive_reason,
+    }));
+    
     return { data, status: 200 };
   }
 
@@ -923,23 +1287,67 @@ class ApiService {
   }>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<any>('/kalamela/admin/home', { token });
-    return { data, status: 200 };
+    
+    // API returns snake_case fields
+    interface ApiIndividualEvent {
+      id: number;
+      name: string;
+      category?: string;
+      description?: string;
+      created_at?: string;
+    }
+    
+    interface ApiGroupEvent {
+      id: number;
+      name: string;
+      description?: string;
+      min_allowed_limit: number;
+      max_allowed_limit: number;
+      per_unit_allowed_limit?: number;
+      created_at?: string;
+    }
+    
+    const rawData = await httpGet<{
+      individual_events: ApiIndividualEvent[];
+      group_events: ApiGroupEvent[];
+    }>('/kalamela/admin/home', { token });
+    
+    // Transform API response to match frontend interfaces
+    const individual_events: IndividualEvent[] = (rawData.individual_events || []).map(event => ({
+      id: event.id,
+      name: event.name,
+      description: event.description || '',
+      category: event.category,
+      registrationFee: 50, // Default Rs.50 for individual events
+      createdAt: event.created_at || new Date().toISOString(),
+    }));
+    
+    const group_events: GroupEvent[] = (rawData.group_events || []).map(event => ({
+      id: event.id,
+      name: event.name,
+      description: event.description || '',
+      minAllowedLimit: event.min_allowed_limit,
+      maxAllowedLimit: event.max_allowed_limit,
+      registrationFee: 100, // Default Rs.100 for group events
+      createdAt: event.created_at || new Date().toISOString(),
+    }));
+    
+    return { data: { individual_events, group_events }, status: 200 };
   }
 
   // Kalamela Events Management
   async getIndividualEvents(): Promise<ApiResponse<IndividualEvent[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<any>('/kalamela/admin/home', { token });
-    return { data: data.individual_events || [], status: 200 };
+    const response = await this.getKalamelaAdminHome();
+    return { data: response.data.individual_events || [], status: 200 };
   }
 
   async getGroupEvents(): Promise<ApiResponse<GroupEvent[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<any>('/kalamela/admin/home', { token });
-    return { data: data.group_events || [], status: 200 };
+    const response = await this.getKalamelaAdminHome();
+    return { data: response.data.group_events || [], status: 200 };
   }
 
   // POST /kalamela/admin/events/individual - Create individual event

@@ -3,7 +3,7 @@ import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { setAuthToken } from '../services/auth';
+import { setAuthToken, setAuthUser } from '../services/auth';
 import { UserRole } from '../types';
 
 interface LoginProps {
@@ -54,6 +54,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         // Fetch profile to derive role and route accordingly
         try {
           const me = await api.me(tokens.access_token);
+          
+          // Store user profile for use throughout the app
+          setAuthUser(me);
           
           // Store user_type for role-based navigation
           localStorage.setItem('user_type', me.user_type);

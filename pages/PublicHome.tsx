@@ -8,6 +8,7 @@ import { UserRole, SiteSettings, Notice } from '../types';
 import { Footer } from '../components/Footer';
 import { api } from '../services/api';
 import { getMediaUrl } from '../services/http';
+import { setAuthUser } from '../services/auth';
 
 interface PublicHomeProps {
   onLogin: (role: UserRole) => void;
@@ -103,6 +104,9 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
       // Fetch user profile to determine role
       const me = await api.me(tokens.access_token);
       console.log('[PublicHome] User profile fetched, user_type:', me.user_type);
+      
+      // Store user profile for use throughout the app
+      setAuthUser(me);
       
       // Store user_type for role-based navigation
       localStorage.setItem('user_type', me.user_type);

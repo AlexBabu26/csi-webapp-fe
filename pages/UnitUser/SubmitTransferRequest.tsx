@@ -5,6 +5,7 @@ import { FileUpload } from '../../components/FileUpload';
 import { ArrowLeft, Send } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
+import { getCurrentUnitId } from '../../services/auth';
 import { UnitMember, Unit } from '../../types';
 
 export const SubmitTransferRequest: React.FC = () => {
@@ -19,11 +20,17 @@ export const SubmitTransferRequest: React.FC = () => {
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
 
-  // Mock current unit ID - in real app, get from auth context
-  const currentUnitId = 1;
+  // Get current unit ID from authenticated user
+  const currentUnitId = getCurrentUnitId();
 
   useEffect(() => {
     const loadData = async () => {
+      if (!currentUnitId) {
+        addToast("Please login to access this page", "error");
+        navigate('/');
+        return;
+      }
+      
       try {
         const [membersRes, unitsRes] = await Promise.all([
           api.getUnitMembers(currentUnitId),
@@ -36,7 +43,7 @@ export const SubmitTransferRequest: React.FC = () => {
       }
     };
     loadData();
-  }, [addToast]);
+  }, [addToast, currentUnitId, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

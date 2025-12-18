@@ -135,8 +135,8 @@ export const MemberInfoChangeRequests: React.FC = () => {
         id: 'changes',
         header: 'Requested Changes',
         cell: ({ row }) => {
-          const changes = row.original.changes;
-          const changeList = [];
+          const changes = row.original.changes || {};
+          const changeList: string[] = [];
           if (changes.name) changeList.push(`Name: ${changes.name}`);
           if (changes.gender) changeList.push(`Gender: ${changes.gender}`);
           if (changes.dob) changeList.push(`DOB: ${changes.dob}`);

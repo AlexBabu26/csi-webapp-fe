@@ -2,16 +2,34 @@ import React, { useState } from 'react';
 import { Search, Trophy, ChevronRight, AlertCircle, FileText, ArrowLeft, Calendar, MapPin } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
 import { api } from '../services/api';
-import { getAuthToken } from '../services/auth';
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '../components/Footer';
-import { Participant } from '../types';
+
+// Interface for participant search result with event scores
+interface ParticipantResult {
+    id: number;
+    name: string;
+    chestNumber: string;
+    unit: string;
+    district: string;
+    category: string;
+    eventResults: EventResult[];
+}
+
+interface EventResult {
+    eventName: string;
+    eventType: 'INDIVIDUAL' | 'GROUP';
+    marks: number | null;
+    grade: string | null;
+    position: number | null;
+    status: 'SCORED' | 'PENDING';
+}
 
 export const KalamelaPublic: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
     const [searching, setSearching] = useState(false);
-    const [result, setResult] = useState<Participant | null>(null);
+    const [result, setResult] = useState<ParticipantResult | null>(null);
     const navigate = useNavigate();
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -20,15 +38,56 @@ export const KalamelaPublic: React.FC = () => {
         setSearching(true);
         
         try {
-            const token = getAuthToken();
-            const response = await api.searchParticipant(searchTerm, token);
-            setResult(response.data);
+            const response = await api.findParticipantByChestNumber(searchTerm);
+            // Transform API response to our interface
+            const data = response.data;
+            if (data) {
+                const participantResult: ParticipantResult = {
+                    id: data.id || data.participant_id,
+                    name: data.name || data.member_name || `Participant ${data.id}`,
+                    chestNumber: data.chest_number || searchTerm,
+                    unit: data.unit_name || data.unit || 'N/A',
+                    district: data.district_name || data.district || 'N/A',
+                    category: data.seniority_category || data.category || 'N/A',
+                    eventResults: (data.event_results || data.scores || []).map((score: any) => ({
+                        eventName: score.event_name || score.eventName || 'Unknown Event',
+                        eventType: score.event_type || score.eventType || 'INDIVIDUAL',
+                        marks: score.marks ?? score.awarded_marks ?? null,
+                        grade: score.grade || null,
+                        position: score.position || null,
+                        status: (score.marks !== undefined && score.marks !== null) || 
+                                (score.awarded_marks !== undefined && score.awarded_marks !== null) 
+                                ? 'SCORED' : 'PENDING',
+                    })),
+                };
+                setResult(participantResult);
+            } else {
+                setResult(null);
+            }
         } catch (err) {
             console.error('Search failed', err);
             setResult(null);
         } finally {
             setSearching(false);
         }
+    };
+
+    // Helper to get grade badge variant
+    const getGradeBadgeVariant = (grade: string | null): 'success' | 'warning' | 'danger' | 'light' => {
+        if (!grade) return 'light';
+        switch (grade.toUpperCase()) {
+            case 'A': return 'success';
+            case 'B': return 'warning';
+            case 'C': return 'danger';
+            default: return 'light';
+        }
+    };
+
+    // Helper to format position
+    const formatPosition = (position: number | null): string => {
+        if (!position) return '-';
+        const suffix = position === 1 ? 'st' : position === 2 ? 'nd' : position === 3 ? 'rd' : 'th';
+        return `${position}${suffix}`;
     };
 
     return (
@@ -235,33 +294,43 @@ export const KalamelaPublic: React.FC = () => {
 
                                 <h3 className="text-lg font-medium text-textDark mb-4">Event Results</h3>
                                 <div className="space-y-4">
-                                    {/* Mock Result Items */}
-                                    <div className="bg-bgLight rounded-lg p-4 border border-borderColor">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <h4 className="text-md font-bold text-textDark">Light Music (Malayalam)</h4>
-                                                <p className="text-sm text-textMuted">Stage 2 • 10:30 AM</p>
+                                    {result.eventResults && result.eventResults.length > 0 ? (
+                                        result.eventResults.map((event, index) => (
+                                            <div key={index} className="bg-bgLight rounded-lg p-4 border border-borderColor">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <h4 className="text-md font-bold text-textDark">{event.eventName}</h4>
+                                                        <p className="text-sm text-textMuted">{event.eventType === 'GROUP' ? 'Group Event' : 'Individual Event'}</p>
+                                                    </div>
+                                                    {event.status === 'SCORED' ? (
+                                                        <Badge variant={getGradeBadgeVariant(event.grade)}>
+                                                            {event.grade ? `${event.grade} Grade` : 'Scored'}
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="warning">Pending</Badge>
+                                                    )}
+                                                </div>
+                                                {event.status === 'SCORED' ? (
+                                                    <div className="mt-3 flex items-center justify-between text-sm">
+                                                        <span className="text-textMuted">
+                                                            Score: <span className="font-semibold text-textDark">{event.marks ?? '-'}/100</span>
+                                                        </span>
+                                                        <span className="text-textMuted">
+                                                            Rank: <span className="font-semibold text-textDark">{formatPosition(event.position)}</span>
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="mt-3 text-sm text-textMuted italic">
+                                                        Results will be published shortly.
+                                                    </div>
+                                                )}
                                             </div>
-                                            <Badge variant="success">A Grade</Badge>
+                                        ))
+                                    ) : (
+                                        <div className="bg-bgLight rounded-lg p-4 border border-borderColor text-center">
+                                            <p className="text-textMuted">No event participations found for this chest number.</p>
                                         </div>
-                                        <div className="mt-3 flex items-center justify-between text-sm">
-                                            <span className="text-textMuted">Score: <span className="font-semibold text-textDark">88/100</span></span>
-                                            <span className="text-textMuted">Rank: <span className="font-semibold text-textDark">2nd</span></span>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-bgLight rounded-lg p-4 border border-borderColor">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <h4 className="text-md font-bold text-textDark">Elocution</h4>
-                                                <p className="text-sm text-textMuted">Stage 4 • 02:00 PM</p>
-                                            </div>
-                                            <Badge variant="warning">Pending</Badge>
-                                        </div>
-                                        <div className="mt-3 text-sm text-textMuted italic">
-                                            Results will be published shortly.
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </Card>
                             
