@@ -1,0 +1,205 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, Button } from '../../components/ui';
+import { FileUpload } from '../../components/FileUpload';
+import { ArrowLeft, Send } from 'lucide-react';
+import { useToast } from '../../components/Toast';
+import { api } from '../../services/api';
+import { UnitMember, Unit } from '../../types';
+
+export const SubmitTransferRequest: React.FC = () => {
+  const { addToast } = useToast();
+  const navigate = useNavigate();
+  
+  const [members, setMembers] = useState<UnitMember[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState<number>(0);
+  const [destinationUnitId, setDestinationUnitId] = useState<number>(0);
+  const [reason, setReason] = useState('');
+  const [proofFile, setProofFile] = useState<File | null>(null);
+
+  // Mock current unit ID - in real app, get from auth context
+  const currentUnitId = 1;
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [membersRes, unitsRes] = await Promise.all([
+          api.getUnitMembers(currentUnitId),
+          api.getUnits()
+        ]);
+        setMembers(membersRes.data);
+        setUnits(unitsRes.data.filter(u => u.id !== currentUnitId));
+      } catch (err) {
+        addToast("Failed to load data", "error");
+      }
+    };
+    loadData();
+  }, [addToast]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedMemberId) {
+      addToast("Please select a member", "warning");
+      return;
+    }
+    
+    if (!destinationUnitId) {
+      addToast("Please select a destination unit", "warning");
+      return;
+    }
+    
+    if (!reason.trim()) {
+      addToast("Please provide a reason", "warning");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.submitTransferRequest({
+        memberId: selectedMemberId,
+        destinationUnitId,
+        reason,
+        proof: proofFile || undefined,
+      });
+      addToast("Transfer request submitted successfully", "success");
+      navigate('/unit/my-requests');
+    } catch (err) {
+      addToast("Failed to submit request", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectedMember = members.find(m => m.id === selectedMemberId);
+
+  return (
+    <div className="space-y-6 animate-slide-in">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => navigate('/unit/my-requests')}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-textDark">Submit Unit Transfer Request</h1>
+          <p className="mt-1 text-sm text-textMuted">Request to transfer a member to another unit</p>
+        </div>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit}>
+        <Card>
+          <h3 className="text-lg font-bold text-textDark mb-4">Transfer Details</h3>
+          
+          <div className="space-y-4">
+            {/* Select Member */}
+            <div>
+              <label className="block text-sm font-medium text-textDark mb-2">
+                Select Member <span className="text-danger">*</span>
+              </label>
+              <select
+                value={selectedMemberId}
+                onChange={(e) => setSelectedMemberId(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                required
+              >
+                <option value={0}>-- Select a Member --</option>
+                {members.map(member => (
+                  <option key={member.id} value={member.id}>
+                    {member.name} - +91 {member.number}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Display selected member details */}
+            {selectedMember && (
+              <Card className="bg-blue-50 border-l-4 border-l-primary">
+                <h4 className="text-sm font-semibold text-textDark mb-2">Selected Member Details</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><span className="text-textMuted">Gender:</span> <span className="font-medium">{selectedMember.gender === 'M' ? 'Male' : 'Female'}</span></div>
+                  <div><span className="text-textMuted">Age:</span> <span className="font-medium">{selectedMember.age} years</span></div>
+                  <div><span className="text-textMuted">Phone:</span> <span className="font-medium">+91 {selectedMember.number}</span></div>
+                  <div><span className="text-textMuted">DOB:</span> <span className="font-medium">{new Date(selectedMember.dob).toLocaleDateString()}</span></div>
+                </div>
+              </Card>
+            )}
+
+            {/* Destination Unit */}
+            <div>
+              <label className="block text-sm font-medium text-textDark mb-2">
+                Destination Unit <span className="text-danger">*</span>
+              </label>
+              <select
+                value={destinationUnitId}
+                onChange={(e) => setDestinationUnitId(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                required
+              >
+                <option value={0}>-- Select Destination Unit --</option>
+                {units.map(unit => (
+                  <option key={unit.id} value={unit.id}>
+                    {unit.name} - {unit.clergyDistrict}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Reason */}
+            <div>
+              <label className="block text-sm font-medium text-textDark mb-2">
+                Transfer Reason <span className="text-danger">*</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Enter the reason for transfer (e.g., family relocation, job transfer, marriage, higher studies)..."
+                className="w-full px-3 py-2 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                rows={4}
+                required
+              />
+            </div>
+
+            {/* Proof Upload */}
+            <FileUpload
+              label="Upload Proof (Optional)"
+              helperText="Supported formats: PDF, PNG, JPG (max 5MB)"
+              onFileSelect={setProofFile}
+              accept=".pdf,.png,.jpg,.jpeg"
+              maxSize={5}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-borderColor">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/unit/my-requests')}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={loading}
+            >
+              <Send className="w-4 h-4 mr-2" />
+              {loading ? 'Submitting...' : 'Submit Request'}
+            </Button>
+          </div>
+        </Card>
+      </form>
+    </div>
+  );
+};
+
+

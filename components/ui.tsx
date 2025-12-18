@@ -1,6 +1,73 @@
 
 import React, { memo, useState } from 'react';
 
+// --- Icon Button with Tooltip ---
+interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  icon: React.ReactNode;
+  tooltip: string;
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
+  size?: 'sm' | 'md' | 'lg';
+}
+
+const iconButtonVariants = {
+  default: 'text-slate-500 hover:text-slate-700 hover:bg-slate-100',
+  primary: 'text-slate-500 hover:text-cyan-600 hover:bg-cyan-50',
+  success: 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50',
+  warning: 'text-slate-500 hover:text-amber-600 hover:bg-amber-50',
+  danger: 'text-slate-500 hover:text-red-600 hover:bg-red-50',
+  info: 'text-slate-500 hover:text-blue-600 hover:bg-blue-50',
+};
+
+const iconButtonSizes = {
+  sm: 'p-1.5',
+  md: 'p-2',
+  lg: 'p-2.5',
+};
+
+export const IconButton: React.FC<IconButtonProps> = memo(({
+  icon,
+  tooltip,
+  variant = 'default',
+  size = 'md',
+  className = '',
+  disabled,
+  ...props
+}) => {
+  return (
+    <button
+      className={`
+        relative group rounded-lg transition-all duration-150
+        ${iconButtonVariants[variant]}
+        ${iconButtonSizes[size]}
+        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        ${className}
+      `}
+      disabled={disabled}
+      title={tooltip}
+      {...props}
+    >
+      {icon}
+      {/* Tooltip */}
+      <span className="
+        absolute -top-9 left-1/2 -translate-x-1/2 
+        bg-slate-900 text-white text-xs font-medium
+        px-2.5 py-1.5 rounded-md
+        opacity-0 group-hover:opacity-100 
+        transition-opacity duration-150
+        whitespace-nowrap pointer-events-none
+        z-50 shadow-lg
+        before:content-[''] before:absolute before:top-full before:left-1/2 
+        before:-translate-x-1/2 before:border-4 before:border-transparent 
+        before:border-t-slate-900
+      ">
+        {tooltip}
+      </span>
+    </button>
+  );
+});
+
+IconButton.displayName = 'IconButton';
+
 // --- Loading Skeleton ---
 export const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
     <div className={`animate-pulse bg-gray-200 rounded ${className}`}></div>

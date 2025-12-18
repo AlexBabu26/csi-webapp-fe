@@ -44,12 +44,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ addToast, removeToast }}>
       {children}
-      <div className="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none sm:top-24 sm:right-6">
+      <div className="fixed top-20 right-4 z-50 flex flex-col gap-2 pointer-events-none sm:top-24 sm:right-6 max-w-[calc(100vw-2rem)]">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             className={`
-              pointer-events-auto w-full max-w-sm overflow-hidden rounded-[6px] shadow-lg border-l-4 
+              pointer-events-auto w-full max-w-sm overflow-hidden rounded-lg shadow-lg border-l-4 
               bg-white animate-slide-in flex ring-1 ring-black ring-opacity-5
               ${toast.type === 'success' ? 'border-success' : 
                 toast.type === 'error' ? 'border-danger' : 
@@ -57,17 +57,17 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             `}
             role="alert"
           >
-            <div className="p-4 flex items-start">
+            <div className="p-4 flex items-start w-full">
               <div className="flex-shrink-0">
                 {toast.type === 'success' && <CheckCircle className="h-5 w-5 text-success" />}
                 {toast.type === 'error' && <AlertCircle className="h-5 w-5 text-danger" />}
                 {toast.type === 'warning' && <AlertCircle className="h-5 w-5 text-warning" />}
                 {toast.type === 'info' && <Info className="h-5 w-5 text-info" />}
               </div>
-              <div className="ml-3 w-0 flex-1 pt-0.5">
-                <p className="text-sm font-medium text-gray-900">{toast.message}</p>
+              <div className="ml-3 flex-1 pt-0.5 min-w-0">
+                <p className="text-sm font-medium text-gray-900 break-words">{toast.message}</p>
               </div>
-              <div className="ml-4 flex flex-shrink-0">
+              <div className="ml-4 flex-shrink-0">
                 <button
                   type="button"
                   className="inline-flex rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"

@@ -1,23 +1,34 @@
 import React, { useState } from 'react';
 import { Search, Trophy, ChevronRight, AlertCircle, FileText, ArrowLeft, Calendar, MapPin } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
-import { RECENT_REGISTRATIONS } from '../constants';
+import { api } from '../services/api';
+import { getAuthToken } from '../services/auth';
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '../components/Footer';
+import { Participant } from '../types';
 
 export const KalamelaPublic: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [hasSearched, setHasSearched] = useState(false);
+    const [searching, setSearching] = useState(false);
+    const [result, setResult] = useState<Participant | null>(null);
     const navigate = useNavigate();
 
-    // Mock search logic
-    const result = hasSearched 
-        ? RECENT_REGISTRATIONS.find(p => p.chestNumber === searchTerm || p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        : null;
-
-    const handleSearch = (e: React.FormEvent) => {
+    const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         setHasSearched(true);
+        setSearching(true);
+        
+        try {
+            const token = getAuthToken();
+            const response = await api.searchParticipant(searchTerm, token);
+            setResult(response.data);
+        } catch (err) {
+            console.error('Search failed', err);
+            setResult(null);
+        } finally {
+            setSearching(false);
+        }
     };
 
     return (
@@ -58,17 +69,31 @@ export const KalamelaPublic: React.FC = () => {
                         <form onSubmit={handleSearch} className="flex shadow-lg rounded-md overflow-hidden">
                             <input 
                                 type="text" 
-                                placeholder="Enter Chest Number (e.g., 101)"
+                                placeholder="Enter Chest Number (e.g., S001-01-001)"
                                 className="flex-1 min-w-0 block w-full px-4 py-4 bg-white text-textDark placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white/50"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
+                                disabled={searching}
                             />
                             <button 
                                 type="submit" 
-                                className="inline-flex items-center px-6 py-4 border border-transparent text-base font-medium text-primary bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary focus:ring-white transition-colors"
+                                disabled={searching}
+                                className="inline-flex items-center px-6 py-4 border border-transparent text-base font-medium text-primary bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary focus:ring-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <Search className="w-5 h-5 mr-2" />
-                                Search
+                                {searching ? (
+                                    <>
+                                        <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Searching...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Search className="w-5 h-5 mr-2" />
+                                        Search
+                                    </>
+                                )}
                             </button>
                         </form>
                     </div>
@@ -241,7 +266,7 @@ export const KalamelaPublic: React.FC = () => {
                             </Card>
                             
                             <div className="flex justify-center">
-                                <Button variant="outline" onClick={() => { setHasSearched(false); setSearchTerm(''); }}>
+                                <Button variant="outline" onClick={() => { setHasSearched(false); setSearchTerm(''); setResult(null); }}>
                                     Search Another
                                 </Button>
                             </div>

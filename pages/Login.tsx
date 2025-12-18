@@ -2,14 +2,22 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
+import { setAuthToken } from '../services/auth';
+import { UserRole } from '../types';
 
-export const Login: React.FC = () => {
+interface LoginProps {
+  onLogin?: (role: UserRole) => void;
+}
+
+export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{email?: string; password?: string}>({});
   const navigate = useNavigate();
+  const [formError, setFormError] = useState('');
 
   const validateForm = (): boolean => {
     const newErrors: {email?: string; password?: string} = {};
@@ -36,15 +44,46 @@ export const Login: React.FC = () => {
     if (!validateForm()) return;
     
     setLoading(true);
-    // Simulate login delay
-    setTimeout(() => {
-      setLoading(false);
-      if (email === 'admin' || email === 'admin@csimkd.org') {
-        navigate('/admin/dashboard');
-      } else {
-        setErrors({ email: 'Invalid credentials. Try admin / password' });
+    setFormError('');
+
+    const doLogin = async () => {
+      try {
+        const tokens = await api.login({ username: email, password });
+        setAuthToken(tokens.access_token);
+
+        // Fetch profile to derive role and route accordingly
+        try {
+          const me = await api.me(tokens.access_token);
+          
+          // Store user_type for role-based navigation
+          localStorage.setItem('user_type', me.user_type);
+          
+          const role = me.user_type === '1' ? UserRole.ADMIN : me.user_type === '2' || me.user_type === '3' ? UserRole.OFFICIAL : UserRole.PUBLIC;
+          onLogin?.(role);
+
+          // Route based on user role
+          if (me.user_type === '1') {
+            navigate('/admin/dashboard');
+          } else if (me.user_type === '2' || me.user_type === '3') {
+            // OFFICIAL or DISTRICT_OFFICIAL - redirect to Kalamela official portal
+            navigate('/kalamela/official');
+          } else {
+            // Fallback for other roles
+            navigate('/');
+          }
+        } catch (profileErr) {
+          // If profile fetch fails, default to public home
+          onLogin?.(UserRole.PUBLIC);
+          navigate('/');
+        }
+      } catch (err: any) {
+        setFormError(err?.message || 'Login failed. Please try again.');
+      } finally {
+        setLoading(false);
       }
-    }, 1000);
+    };
+
+    doLogin();
   };
 
   return (
@@ -148,6 +187,13 @@ export const Login: React.FC = () => {
           {loading ? 'Signing in...' : 'Sign in'}
         </Button>
       </div>
+
+      {formError && (
+        <div className="bg-danger/10 border border-danger/30 text-danger text-sm rounded-md p-3 flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 mt-0.5" />
+          <span>{formError}</span>
+        </div>
+      )}
 
       {/* Demo Credentials Hint */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-center">

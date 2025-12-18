@@ -1,20 +1,191 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, X, Bell, LayoutDashboard, Users, Award, FileText, Settings, LogOut, ChevronDown, User } from 'lucide-react';
+import { 
+  Menu, 
+  X, 
+  Bell, 
+  LayoutDashboard, 
+  Users, 
+  UserCheck,
+  Building,
+  Download,
+  FileText, 
+  Settings, 
+  LogOut, 
+  ChevronDown,
+  ChevronRight,
+  User,
+  ArrowRightLeft,
+  UserPlus,
+  Shield,
+  Calendar,
+  Trophy,
+  Star,
+  CreditCard,
+  MessageSquare,
+  BarChart3
+} from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '../constants';
-import { NavItem } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={18} /> },
-  { label: 'Registrations', path: '/admin/registrations', icon: <Users size={18} /> },
-  { label: 'Events & Scores', path: '/admin/events', icon: <Award size={18} /> },
-  { label: 'Reports', path: '/admin/reports', icon: <FileText size={18} /> },
-  { label: 'Settings', path: '/admin/settings', icon: <Settings size={18} /> },
+interface NavItemType {
+  label: string;
+  path: string;
+  icon: React.ReactNode;
+}
+
+type UserRoleType = 'admin' | 'official' | 'public';
+
+interface NavGroup {
+  label: string;
+  items: NavItemType[];
+  defaultOpen?: boolean;
+  roles?: UserRoleType[]; // Which roles can see this group
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Overview',
+    defaultOpen: true,
+    roles: ['admin'],
+    items: [
+      { label: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={18} /> },
+    ]
+  },
+  {
+    label: 'Units Management',
+    defaultOpen: true,
+    roles: ['admin'],
+    items: [
+      { label: 'All Units', path: '/admin/units', icon: <Building size={18} /> },
+      { label: 'Officials', path: '/admin/officials', icon: <Shield size={18} /> },
+      { label: 'Councilors', path: '/admin/councilors', icon: <UserCheck size={18} /> },
+      { label: 'Members', path: '/admin/members', icon: <Users size={18} /> },
+      { label: 'Archived Members', path: '/admin/archived-members', icon: <Users size={18} /> },
+    ]
+  },
+  {
+    label: 'Change Requests',
+    defaultOpen: false,
+    roles: ['admin'],
+    items: [
+      { label: 'Transfer Requests', path: '/admin/requests/transfers', icon: <ArrowRightLeft size={18} /> },
+      { label: 'Info Changes', path: '/admin/requests/member-info', icon: <FileText size={18} /> },
+      { label: 'Official Changes', path: '/admin/requests/officials', icon: <Shield size={18} /> },
+      { label: 'Councilor Changes', path: '/admin/requests/councilors', icon: <UserCheck size={18} /> },
+      { label: 'Member Add Requests', path: '/admin/requests/member-add', icon: <UserPlus size={18} /> },
+    ]
+  },
+  {
+    label: 'Data & Reports',
+    defaultOpen: false,
+    roles: ['admin'],
+    items: [
+      { label: 'Export Data', path: '/admin/export', icon: <Download size={18} /> },
+    ]
+  },
+  {
+    label: 'Site Management',
+    defaultOpen: false,
+    roles: ['admin'],
+    items: [
+      { label: 'Site Settings', path: '/admin/site-settings', icon: <Settings size={18} /> },
+    ]
+  },
+  {
+    label: 'Kalamela Admin',
+    defaultOpen: false,
+    roles: ['admin'],
+    items: [
+      { label: 'Events Management', path: '/kalamela/admin/events', icon: <Calendar size={18} /> },
+      { label: 'Score Entry', path: '/kalamela/admin/scores', icon: <Star size={18} /> },
+      { label: 'Results', path: '/kalamela/admin/results', icon: <Trophy size={18} /> },
+      { label: 'Payments', path: '/kalamela/admin/payments', icon: <CreditCard size={18} /> },
+      { label: 'Appeals', path: '/kalamela/admin/appeals', icon: <MessageSquare size={18} /> },
+    ]
+  },
+  {
+    label: 'Kalamela Public',
+    defaultOpen: false,
+    roles: ['admin'],
+    items: [
+      { label: 'Public Results', path: '/kalamela/results', icon: <BarChart3 size={18} /> },
+      { label: 'Top Performers', path: '/kalamela/top-performers', icon: <Trophy size={18} /> },
+    ]
+  },
+  {
+    label: 'Kalamela Registration',
+    defaultOpen: true,
+    roles: ['official'], // Only for officials who login through Kalamela
+    items: [
+      { label: 'Registration', path: '/kalamela/official/home', icon: <Calendar size={18} /> },
+      { label: 'View Participants', path: '/kalamela/official/participants', icon: <Users size={18} /> },
+      { label: 'Payment', path: '/kalamela/official/preview', icon: <CreditCard size={18} /> },
+    ]
+  },
 ];
+
+// Helper function to get user role from localStorage
+const getUserRole = (): UserRoleType => {
+  const userType = localStorage.getItem('user_type');
+  if (userType === '1') return 'admin';
+  if (userType === '2' || userType === '3') return 'official';
+  return 'public';
+};
+
+// Collapsible Nav Group Component
+const NavGroupComponent: React.FC<{ group: NavGroup }> = ({ group }) => {
+  const [isOpen, setIsOpen] = useState(group.defaultOpen ?? false);
+  const location = useLocation();
+
+  // Auto-expand if any item in group is active
+  useEffect(() => {
+    const hasActiveItem = group.items.some(item => location.pathname.startsWith(item.path));
+    if (hasActiveItem) {
+      setIsOpen(true);
+    }
+  }, [location.pathname, group.items]);
+
+  return (
+    <div className="mb-2">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-textMuted uppercase tracking-wider hover:text-textDark transition-colors"
+      >
+        <span>{group.label}</span>
+        <ChevronRight 
+          size={14} 
+          className={`transition-transform ${isOpen ? 'rotate-90' : ''}`} 
+        />
+      </button>
+      
+      {isOpen && (
+        <div className="space-y-0.5 mt-1">
+          {group.items.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) => `
+                group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all
+                ${isActive 
+                  ? 'bg-primary/10 text-primary' 
+                  : 'text-textMuted hover:bg-bgLight hover:text-textDark'}
+              `}
+            >
+              <span className={`mr-3 ${location.pathname.startsWith(item.path) ? 'text-primary' : 'text-textMuted group-hover:text-textDark'}`}>
+                {item.icon}
+              </span>
+              {item.label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // User Dropdown Component
 const UserDropdown: React.FC = () => {
@@ -100,6 +271,12 @@ const UserDropdown: React.FC = () => {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  
+  // Get current user role and filter navigation groups
+  const userRole = getUserRole();
+  const filteredNavGroups = NAV_GROUPS.filter(group => 
+    !group.roles || group.roles.includes(userRole)
+  );
 
   // Close sidebar on route change on mobile
   useEffect(() => {
@@ -169,24 +346,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           aria-label="Sidebar navigation"
         >
           <div className="h-full flex flex-col justify-between pt-16 lg:pt-6 pb-6">
-            <nav className="px-4 space-y-1" role="navigation">
-              {NAV_ITEMS.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) => `
-                    group flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-all
-                    ${isActive 
-                      ? 'bg-primary/10 text-primary' 
-                      : 'text-textMuted hover:bg-bgLight hover:text-textDark'}
-                  `}
-                  aria-current={location.pathname.startsWith(item.path) ? 'page' : undefined}
-                >
-                  <span className={`mr-3 ${location.pathname.startsWith(item.path) ? 'text-primary' : 'text-textMuted group-hover:text-textDark'}`}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </NavLink>
+            <nav className="px-4 overflow-y-auto flex-1" role="navigation">
+              {filteredNavGroups.map((group, index) => (
+                <NavGroupComponent key={index} group={group} />
               ))}
             </nav>
             

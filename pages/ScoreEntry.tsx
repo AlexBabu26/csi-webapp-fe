@@ -4,6 +4,7 @@ import { Card, Badge, Select, Skeleton } from '../components/ui';
 import { Button } from '../components/ui/Button';
 import { DataTable, ColumnDef } from '../components/DataTable';
 import { api } from '../services/api';
+import { getAuthToken } from '../services/auth';
 import { Save, RefreshCw, ChevronLeft, RotateCcw, AlertTriangle, Award } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
@@ -101,8 +102,9 @@ export const ScoreEntry: React.FC = () => {
     // Fetch Events on mount
     useEffect(() => {
         const fetchEvents = async () => {
+            const token = getAuthToken();
             try {
-                const response = await api.getEvents();
+                const response = await api.getEvents(token);
                 setEvents(response.data);
                 if (response.data.length > 0) {
                     setSelectedEventId(response.data[0].id);
@@ -121,9 +123,10 @@ export const ScoreEntry: React.FC = () => {
         if (!selectedEventId) return;
 
         const fetchScores = async () => {
+            const token = getAuthToken();
             setLoadingScores(true);
             try {
-                const response = await api.getScores(selectedEventId);
+                const response = await api.getScores(selectedEventId, token);
                 setScores(response.data);
                 setOriginalScores(JSON.parse(JSON.stringify(response.data)));
                 setHasChanges(false);
@@ -182,9 +185,10 @@ export const ScoreEntry: React.FC = () => {
             return;
         }
 
+        const token = getAuthToken();
         setIsSubmitting(true);
         try {
-            await api.saveScores(selectedEventId, scores);
+            await api.saveScores(selectedEventId, scores, token);
             addToast("Scores saved successfully!", "success");
             setOriginalScores(JSON.parse(JSON.stringify(scores)));
             setHasChanges(false);
