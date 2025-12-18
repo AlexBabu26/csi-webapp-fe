@@ -100,6 +100,152 @@ export interface ConferenceItem {
   created_on: string;
 }
 
+// Extended Conference Types
+export interface Conference {
+  id: number;
+  title: string;
+  description?: string;
+  venue?: string;
+  start_date: string;
+  end_date: string;
+  registration_start_date?: string;
+  registration_end_date?: string;
+  registration_fee: number;
+  early_bird_fee?: number;
+  early_bird_deadline?: string;
+  max_delegates?: number;
+  status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConferenceCreate {
+  title: string;
+  description?: string;
+  venue?: string;
+  start_date: string;
+  end_date: string;
+  registration_start_date?: string;
+  registration_end_date?: string;
+  registration_fee: number;
+  early_bird_fee?: number;
+  early_bird_deadline?: string;
+  max_delegates?: number;
+}
+
+export interface ConferenceUpdate extends Partial<ConferenceCreate> {
+  status?: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+  is_active?: boolean;
+}
+
+export interface ConferenceDelegate {
+  id: number;
+  conference_id: number;
+  unit_id: number;
+  unit_name?: string;
+  member_id: number;
+  member_name: string;
+  member_phone?: string;
+  member_gender?: string;
+  food_preference?: 'veg' | 'non-veg';
+  accommodation_required: boolean;
+  registration_date: string;
+  status: 'registered' | 'confirmed' | 'cancelled';
+}
+
+export interface ConferenceDelegateCreate {
+  member_id: number;
+  food_preference?: 'veg' | 'non-veg';
+  accommodation_required?: boolean;
+}
+
+export interface ConferencePayment {
+  id: number;
+  conference_id: number;
+  unit_id: number;
+  unit_name?: string;
+  amount: number;
+  payment_reference?: string;
+  payment_proof_url?: string;
+  status: 'pending' | 'submitted' | 'verified' | 'rejected';
+  submitted_at?: string;
+  verified_at?: string;
+  verified_by?: string;
+  remarks?: string;
+  created_at: string;
+}
+
+export interface ConferencePaymentSubmit {
+  amount: number;
+  payment_reference?: string;
+}
+
+export interface ConferenceFoodPreference {
+  member_id: number;
+  preference: 'veg' | 'non-veg';
+}
+
+export interface ConferenceInfo {
+  conference: Conference;
+  total_delegates: number;
+  total_units: number;
+  total_amount_collected: number;
+  delegates_by_district: Array<{
+    district_id: number;
+    district_name: string;
+    delegate_count: number;
+  }>;
+}
+
+export interface ConferencePaymentInfo {
+  conference_id: number;
+  total_units: number;
+  total_amount: number;
+  paid_amount: number;
+  pending_amount: number;
+  payments: ConferencePayment[];
+}
+
+export interface DistrictOfficial {
+  id: number;
+  district_id: number;
+  district_name?: string;
+  user_id: number;
+  name: string;
+  designation: string;
+  phone?: string;
+  email?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DistrictOfficialCreate {
+  district_id: number;
+  user_id: number;
+  name: string;
+  designation: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface DistrictOfficialUpdate extends Partial<DistrictOfficialCreate> {
+  is_active?: boolean;
+}
+
+export interface ConferenceOfficialView {
+  conference: Conference;
+  unit_delegates: ConferenceDelegate[];
+  unit_payment?: ConferencePayment;
+  registration_open: boolean;
+  available_members: Array<{
+    id: number;
+    name: string;
+    gender: string;
+    phone?: string;
+  }>;
+}
+
 export type PaymentStatus = 'Pending' | 'Proof Uploaded' | 'Paid' | 'Declined';
 
 export interface PaymentRecord {

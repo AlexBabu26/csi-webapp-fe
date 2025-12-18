@@ -64,66 +64,94 @@ export const Conference: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero Section with Background Pattern */}
-      <div className="relative bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 pb-20 pt-16 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+      {/* Hero Section with Enhanced Background */}
+      <div className="relative pb-16 pt-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        {/* Multi-layer Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-500 via-orange-600 to-red-500" />
+        
+        {/* Animated Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/20 via-transparent to-red-600/30" />
+        
+        {/* Decorative Circles - contained within bounds */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-400/20 rounded-full blur-3xl translate-x-1/3 -translate-y-1/3" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-red-600/30 rounded-full blur-3xl -translate-x-1/3 translate-y-1/3" />
+        
+        {/* Geometric Pattern */}
+        <div className="absolute inset-0 opacity-[0.07]">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.5"/>
+              <pattern id="conference-pattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+                <circle cx="30" cy="30" r="1.5" fill="white"/>
+                <circle cx="0" cy="0" r="1.5" fill="white"/>
+                <circle cx="60" cy="0" r="1.5" fill="white"/>
+                <circle cx="0" cy="60" r="1.5" fill="white"/>
+                <circle cx="60" cy="60" r="1.5" fill="white"/>
               </pattern>
             </defs>
-            <rect width="100" height="100" fill="url(#grid)" />
+            <rect width="100%" height="100%" fill="url(#conference-pattern)" />
           </svg>
         </div>
         
-        <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-block bg-white/20 backdrop-blur-sm rounded-full px-4 py-1 text-white text-sm font-medium mb-6">
+        <div className="relative max-w-4xl mx-auto text-center z-10">
+          {/* Badge */}
+          <div className="inline-flex items-center bg-white/15 backdrop-blur-md rounded-full px-5 py-2 text-white text-sm font-medium mb-6 border border-white/20 shadow-lg">
+            <span className="w-2 h-2 bg-yellow-300 rounded-full mr-2 animate-pulse" />
             CSI MKD Youth Movement Presents
           </div>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
+          
+          {/* Title with Text Shadow */}
+          <h2 className="text-4xl md:text-6xl font-extrabold text-white mb-4 drop-shadow-lg">
             Youth Conference 2025
           </h2>
-          <p className="text-xl text-orange-100 mb-8 max-w-2xl mx-auto">
-            "Arise, Shine, for your light has come" - Isaiah 60:1
+          
+          {/* Quote with Better Styling */}
+          <p className="text-lg md:text-xl text-white/90 mb-6 max-w-2xl mx-auto font-light italic">
+            "Arise, Shine, for your light has come" 
+            <span className="block text-sm mt-1 text-orange-200 not-italic font-medium">— Isaiah 60:1</span>
           </p>
 
-          {/* Countdown Timer */}
-          <div className="grid grid-cols-4 gap-3 max-w-md mx-auto mb-8">
+          {/* Enhanced Countdown Timer */}
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 max-w-md mx-auto mb-6">
             {[
               { value: timeLeft.days, label: 'Days' },
               { value: timeLeft.hours, label: 'Hours' },
               { value: timeLeft.minutes, label: 'Minutes' },
               { value: timeLeft.seconds, label: 'Seconds' },
             ].map((item, idx) => (
-              <div key={idx} className="bg-white/20 backdrop-blur-sm rounded-lg p-3">
-                <div className="text-3xl md:text-4xl font-bold text-white">{String(item.value).padStart(2, '0')}</div>
-                <div className="text-xs text-orange-100 uppercase tracking-wider">{item.label}</div>
+              <div 
+                key={idx} 
+                className="bg-white/10 backdrop-blur-md rounded-xl p-3 sm:p-4 border border-white/20 shadow-xl hover:bg-white/15 transition-all duration-300"
+              >
+                <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-white drop-shadow-md">
+                  {String(item.value).padStart(2, '0')}
+                </div>
+                <div className="text-[10px] sm:text-xs text-orange-100 uppercase tracking-widest mt-1 font-semibold">
+                  {item.label}
+                </div>
               </div>
             ))}
           </div>
 
-          {/* Event Details */}
-          <div className="flex flex-wrap justify-center gap-6 text-white">
-            <div className="flex items-center">
-              <Calendar className="w-5 h-5 mr-2" />
-              <span>February 14-16, 2025</span>
+          {/* Event Details Pills */}
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
+            <div className="flex items-center bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 text-white border border-white/10">
+              <Calendar className="w-4 h-4 mr-2 text-yellow-300" />
+              <span className="text-sm font-medium">February 14-16, 2025</span>
             </div>
-            <div className="flex items-center">
-              <MapPin className="w-5 h-5 mr-2" />
-              <span>CSI Convention Centre, Kottayam</span>
+            <div className="flex items-center bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 text-white border border-white/10">
+              <MapPin className="w-4 h-4 mr-2 text-yellow-300" />
+              <span className="text-sm font-medium">CSI Convention Centre, Kottayam</span>
             </div>
-            <div className="flex items-center">
-              <Users className="w-5 h-5 mr-2" />
-              <span>500+ Expected Delegates</span>
+            <div className="flex items-center bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 text-white border border-white/10">
+              <Users className="w-4 h-4 mr-2 text-yellow-300" />
+              <span className="text-sm font-medium">500+ Expected Delegates</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 -mt-10 px-4 sm:px-6 lg:px-8 pb-12">
+      <main className="flex-1 px-4 sm:px-6 lg:px-8 py-12 bg-bgLight">
         <div className="max-w-4xl mx-auto">
           {/* Registration Card */}
           <div className="bg-white rounded-lg shadow-lg border border-borderColor p-6 mb-8">
