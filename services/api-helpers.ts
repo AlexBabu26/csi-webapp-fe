@@ -1,5 +1,13 @@
 // Helper functions for API calculations and utilities
 
+// Re-export auth functions for backward compatibility
+// Use the centralized auth.ts for all token operations
+export { 
+  getAuthToken as getToken, 
+  setAuthToken as setToken, 
+  clearAuth as removeToken 
+} from './auth';
+
 export const calculateGrade = (marks: number): 'A' | 'B' | 'C' | 'No Grade' => {
   const percentage = marks / 100;
   if (percentage >= 0.6) return 'A';
@@ -67,18 +75,3 @@ export const calculateAge = (dob: string): number => {
   }
   return age;
 };
-
-export const getToken = (): string | null => {
-  return localStorage.getItem('access_token');
-};
-
-export const setToken = (token: string): void => {
-  localStorage.setItem('access_token', token);
-};
-
-export const removeToken = (): void => {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-};
-
-

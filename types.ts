@@ -80,7 +80,11 @@ export interface UnitName {
 
 export interface AuthTokens {
   access_token: string;
+  refresh_token?: string;
   token_type: string;
+  expires_in?: number;
+  user_type?: string;
+  redirect_url?: string;
 }
 
 export interface DashboardCounts {

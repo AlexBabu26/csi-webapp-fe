@@ -8,7 +8,7 @@ import { UserRole, SiteSettings, Notice } from '../types';
 import { Footer } from '../components/Footer';
 import { api } from '../services/api';
 import { getMediaUrl } from '../services/http';
-import { setAuthUser } from '../services/auth';
+import { setAuthUser, setAuthTokens } from '../services/auth';
 
 interface PublicHomeProps {
   onLogin: (role: UserRole) => void;
@@ -127,10 +127,10 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
       
       // Real API call to backend
       const tokens = await api.login({ username, password });
-      console.log('[PublicHome] Login successful, storing token');
+      console.log('[PublicHome] Login successful, storing tokens');
       
-      // Store the real JWT token
-      localStorage.setItem('auth_token', tokens.access_token);
+      // Store both access and refresh tokens
+      setAuthTokens(tokens.access_token, tokens.refresh_token || '');
       
       // Fetch user profile to determine role
       const me = await api.me(tokens.access_token);

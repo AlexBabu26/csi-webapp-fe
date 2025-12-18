@@ -3,7 +3,7 @@ import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { setAuthToken, setAuthUser } from '../services/auth';
+import { setAuthTokens, setAuthUser } from '../services/auth';
 import { UserRole } from '../types';
 
 interface LoginProps {
@@ -59,35 +59,57 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const doLogin = async () => {
       try {
         const tokens = await api.login({ username: email, password });
-        setAuthToken(tokens.access_token);
+        
+        // Store both access and refresh tokens
+        setAuthTokens(tokens.access_token, tokens.refresh_token || '');
+        
+        // Store user_type from login response
+        if (tokens.user_type) {
+          localStorage.setItem('user_type', tokens.user_type);
+        }
 
-        // Fetch profile to derive role and route accordingly
+        // Fetch profile to derive role and store user info
         try {
           const me = await api.me(tokens.access_token);
           
           // Store user profile for use throughout the app
           setAuthUser(me);
           
-          // Store user_type for role-based navigation
-          localStorage.setItem('user_type', me.user_type);
+          // Update user_type from profile if available
+          if (me.user_type) {
+            localStorage.setItem('user_type', me.user_type);
+          }
           
-          const role = me.user_type === '1' ? UserRole.ADMIN : me.user_type === '2' || me.user_type === '3' ? UserRole.OFFICIAL : UserRole.PUBLIC;
+          const userType = me.user_type || tokens.user_type;
+          const role = userType === '1' ? UserRole.ADMIN : userType === '2' || userType === '3' ? UserRole.OFFICIAL : UserRole.PUBLIC;
           onLogin?.(role);
 
-          // Route based on user role
-          if (me.user_type === '1') {
+          // Use redirect_url from login response if available, otherwise route based on user role
+          if (tokens.redirect_url) {
+            navigate(tokens.redirect_url);
+          } else if (userType === '1') {
             navigate('/admin/dashboard');
-          } else if (me.user_type === '2' || me.user_type === '3') {
-            // OFFICIAL or DISTRICT_OFFICIAL - redirect to Kalamela official portal
+          } else if (userType === '2') {
+            // OFFICIAL - redirect to Kalamela official portal
             navigate('/kalamela/official');
+          } else if (userType === '3') {
+            // DISTRICT_OFFICIAL / Conference Official - redirect to conference official portal
+            navigate('/conference/official/home');
           } else {
             // Fallback for other roles
             navigate('/');
           }
         } catch (profileErr) {
-          // If profile fetch fails, default to public home
-          onLogin?.(UserRole.PUBLIC);
-          navigate('/');
+          // If profile fetch fails, use redirect_url from login response or default to home
+          const userType = tokens.user_type;
+          const role = userType === '1' ? UserRole.ADMIN : userType === '2' || userType === '3' ? UserRole.OFFICIAL : UserRole.PUBLIC;
+          onLogin?.(role);
+          
+          if (tokens.redirect_url) {
+            navigate(tokens.redirect_url);
+          } else {
+            navigate('/');
+          }
         }
       } catch (err: any) {
         setFormError(err?.message || 'Login failed. Please try again.');

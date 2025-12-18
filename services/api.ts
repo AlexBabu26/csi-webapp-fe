@@ -93,6 +93,11 @@ class ApiService {
     return token;
   }
 
+  // Helper to get refresh token from localStorage
+  private getRefreshToken(): string | null {
+    return localStorage.getItem('refresh_token');
+  }
+
   // -------------------------
   // Auth
   // -------------------------
@@ -149,6 +154,39 @@ class ApiService {
 
   forgotPasswordConfirm(payload: { token: string; new_password: string }) {
     return httpPost<{ message: string }>('/auth/forgot-password/confirm', payload);
+  }
+
+  /**
+   * Refresh the access token using the refresh token
+   * Returns new access and refresh tokens
+   */
+  async refreshToken(): Promise<AuthTokens> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+    
+    try {
+      console.log('[API] refreshToken: Attempting to refresh access token...');
+      const result = await httpPost<AuthTokens>('/auth/refresh', { 
+        refresh_token: refreshToken 
+      });
+      console.log('[API] refreshToken: Success, new tokens received');
+      
+      // Store new tokens
+      localStorage.setItem('auth_token', result.access_token);
+      if (result.refresh_token) {
+        localStorage.setItem('refresh_token', result.refresh_token);
+      }
+      
+      return result;
+    } catch (err) {
+      console.error('[API] refreshToken: Failed:', err);
+      // Clear tokens on refresh failure - user needs to re-login
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      throw err;
+    }
   }
 
   // -------------------------
