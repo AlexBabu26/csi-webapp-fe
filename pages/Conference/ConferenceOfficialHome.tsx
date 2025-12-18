@@ -3,15 +3,13 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { 
   Users, 
   CreditCard, 
-  Calendar, 
   MapPin, 
-  Clock, 
   CheckCircle,
   AlertCircle,
   ArrowRight,
-  IndianRupee,
   UserPlus,
-  FileText
+  Target,
+  TrendingUp
 } from 'lucide-react';
 import { Card, Button, Badge, Skeleton } from '../../components/ui';
 import { api } from '../../services/api';
@@ -55,7 +53,8 @@ export const ConferenceOfficialHome: React.FC = () => {
     return (
       <div className="space-y-6">
         <Skeleton className="h-48 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Skeleton className="h-32" />
           <Skeleton className="h-32" />
           <Skeleton className="h-32" />
           <Skeleton className="h-32" />
@@ -74,58 +73,65 @@ export const ConferenceOfficialHome: React.FC = () => {
     );
   }
 
-  const { conference, unit_delegates, unit_payment, registration_open, available_members } = localData;
-  
-  const totalDelegates = unit_delegates?.length || 0;
-  const confirmedDelegates = unit_delegates?.filter(d => d.status === 'confirmed').length || 0;
-  const totalAmount = totalDelegates * (conference?.registration_fee || 0);
-  const paidAmount = unit_payment?.status === 'verified' ? unit_payment.amount : 0;
-  const pendingAmount = totalAmount - paidAmount;
+  const { 
+    conference, 
+    registration_open, 
+    available_members,
+    rem_count,
+    max_count,
+    allowed_count,
+    member_count,
+    district
+  } = localData;
 
-  const getPaymentStatusBadge = () => {
-    if (!unit_payment) return <Badge variant="warning">No Payment</Badge>;
-    switch (unit_payment.status) {
-      case 'verified': return <Badge variant="success">Verified</Badge>;
-      case 'submitted': return <Badge variant="info">Under Review</Badge>;
-      case 'rejected': return <Badge variant="danger">Rejected</Badge>;
-      default: return <Badge variant="warning">Pending</Badge>;
-    }
-  };
+  // Parse conference details for venue/date info
+  const conferenceDetails = conference.details || '';
 
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">{conference.title}</h1>
-        <p className="text-orange-100 mb-4">{conference.description}</p>
-        
-        <div className="flex flex-wrap gap-4 text-sm">
-          <div className="flex items-center bg-white/20 rounded-full px-3 py-1">
-            <Calendar className="w-4 h-4 mr-2" />
-            {new Date(conference.start_date).toLocaleDateString()} - {new Date(conference.end_date).toLocaleDateString()}
+        <div className="flex items-start justify-between">
+          <div>
+            <Badge variant="default" className="bg-white/20 text-white border-0 mb-3">
+              {district} District
+            </Badge>
+            <h1 className="text-2xl font-bold mb-2">{conference.title}</h1>
+            <p className="text-orange-100 mb-4">{conferenceDetails}</p>
           </div>
-          {conference.venue && (
-            <div className="flex items-center bg-white/20 rounded-full px-3 py-1">
-              <MapPin className="w-4 h-4 mr-2" />
-              {conference.venue}
-            </div>
-          )}
+          <Badge 
+            variant={conference.status === 'Active' ? 'success' : 'warning'} 
+            className="bg-white/20 text-white border-0"
+          >
+            {conference.status}
+          </Badge>
+        </div>
+        
+        <div className="flex flex-wrap gap-4 text-sm mt-4">
           <div className="flex items-center bg-white/20 rounded-full px-3 py-1">
-            <IndianRupee className="w-4 h-4 mr-2" />
-            ₹{conference.registration_fee} per delegate
+            <Target className="w-4 h-4 mr-2" />
+            Allowed: {allowed_count} delegates
+          </div>
+          <div className="flex items-center bg-white/20 rounded-full px-3 py-1">
+            <Users className="w-4 h-4 mr-2" />
+            Registered: {member_count} / {max_count}
+          </div>
+          <div className="flex items-center bg-white/20 rounded-full px-3 py-1">
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Remaining Slots: {rem_count}
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Registered Delegates</p>
-              <p className="text-3xl font-bold text-gray-800">{totalDelegates}</p>
+              <p className="text-sm text-gray-500 mb-1">Registered</p>
+              <p className="text-3xl font-bold text-gray-800">{member_count}</p>
               <p className="text-xs text-gray-400 mt-1">
-                {confirmedDelegates} confirmed
+                of {allowed_count} allowed
               </p>
             </div>
             <div className="p-3 bg-blue-100 rounded-xl">
@@ -137,14 +143,14 @@ export const ConferenceOfficialHome: React.FC = () => {
         <Card className="p-5">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Available Members</p>
-              <p className="text-3xl font-bold text-gray-800">{available_members?.length || 0}</p>
+              <p className="text-sm text-gray-500 mb-1">Remaining Slots</p>
+              <p className="text-3xl font-bold text-gray-800">{rem_count}</p>
               <p className="text-xs text-gray-400 mt-1">
-                Can be added as delegates
+                Can still add
               </p>
             </div>
             <div className="p-3 bg-green-100 rounded-xl">
-              <UserPlus className="w-6 h-6 text-green-600" />
+              <Target className="w-6 h-6 text-green-600" />
             </div>
           </div>
         </Card>
@@ -152,18 +158,52 @@ export const ConferenceOfficialHome: React.FC = () => {
         <Card className="p-5">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Payment Status</p>
-              <div className="mt-1 mb-2">{getPaymentStatusBadge()}</div>
-              <p className="text-xs text-gray-400">
-                ₹{paidAmount} / ₹{totalAmount}
+              <p className="text-sm text-gray-500 mb-1">Available Members</p>
+              <p className="text-3xl font-bold text-gray-800">{available_members?.length || 0}</p>
+              <p className="text-xs text-gray-400 mt-1">
+                In your district
+              </p>
+            </div>
+            <div className="p-3 bg-purple-100 rounded-xl">
+              <UserPlus className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Max Capacity</p>
+              <p className="text-3xl font-bold text-gray-800">{max_count}</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Total conference limit
               </p>
             </div>
             <div className="p-3 bg-orange-100 rounded-xl">
-              <CreditCard className="w-6 h-6 text-orange-600" />
+              <TrendingUp className="w-6 h-6 text-orange-600" />
             </div>
           </div>
         </Card>
       </div>
+
+      {/* Progress Bar */}
+      <Card className="p-5">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-gray-800">Registration Progress</h3>
+          <span className="text-sm text-gray-500">{member_count} / {allowed_count}</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-3">
+          <div 
+            className="bg-gradient-to-r from-orange-500 to-red-500 h-3 rounded-full transition-all duration-500"
+            style={{ width: `${Math.min((member_count / allowed_count) * 100, 100)}%` }}
+          />
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          {allowed_count - member_count > 0 
+            ? `You can add ${allowed_count - member_count} more delegate(s)`
+            : 'You have reached your delegate limit'}
+        </p>
+      </Card>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -175,7 +215,7 @@ export const ConferenceOfficialHome: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-semibold text-gray-800">Manage Delegates</h3>
-                <p className="text-sm text-gray-500">Add or remove delegates from your district</p>
+                <p className="text-sm text-gray-500">Add delegates from {available_members?.length || 0} available members</p>
               </div>
             </div>
             <ArrowRight className="w-5 h-5 text-gray-400" />
@@ -198,49 +238,6 @@ export const ConferenceOfficialHome: React.FC = () => {
         </Card>
       </div>
 
-      {/* Recent Delegates */}
-      {unit_delegates && unit_delegates.length > 0 && (
-        <Card>
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-800">Recent Delegates</h3>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/conference/official/delegates')}>
-              View All
-            </Button>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {unit_delegates.slice(0, 5).map((delegate) => (
-              <div key={delegate.id} className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-gray-600">
-                      {delegate.member_name?.charAt(0) || '?'}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-800">{delegate.member_name}</p>
-                    <p className="text-xs text-gray-500">{delegate.member_phone || 'No phone'}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {delegate.food_preference && (
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      delegate.food_preference === 'veg' 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {delegate.food_preference === 'veg' ? '🥬 Veg' : '🍖 Non-Veg'}
-                    </span>
-                  )}
-                  <Badge variant={delegate.status === 'confirmed' ? 'success' : 'warning'}>
-                    {delegate.status}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
       {/* Registration Status Alert */}
       {!registration_open && (
         <Card className="p-4 bg-yellow-50 border-yellow-200">
@@ -249,7 +246,23 @@ export const ConferenceOfficialHome: React.FC = () => {
             <div>
               <h4 className="font-medium text-yellow-800">Registration Closed</h4>
               <p className="text-sm text-yellow-700 mt-1">
-                The registration period for this conference has ended. You can still view your delegates and payment status.
+                {rem_count === 0 
+                  ? 'All delegate slots have been filled.'
+                  : 'The registration period for this conference has ended.'}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {registration_open && rem_count > 0 && (
+        <Card className="p-4 bg-green-50 border-green-200">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-green-800">Registration Open</h4>
+              <p className="text-sm text-green-700 mt-1">
+                You can add up to {rem_count} more delegate(s) for this conference.
               </p>
             </div>
           </div>

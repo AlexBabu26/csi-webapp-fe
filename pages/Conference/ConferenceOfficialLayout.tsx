@@ -9,8 +9,8 @@ import {
   Menu, 
   X, 
   ChevronRight,
-  Calendar,
-  MapPin
+  MapPin,
+  Target
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { clearAuthToken, clearAuthUser, getAuthUser } from '../../services/auth';
@@ -99,16 +99,16 @@ export const ConferenceOfficialLayout: React.FC = () => {
         {conferenceData?.conference && (
           <div className="px-6 py-4 bg-white/10">
             <h3 className="font-semibold text-sm truncate">{conferenceData.conference.title}</h3>
-            <div className="flex items-center text-orange-100 text-xs mt-2">
-              <Calendar className="w-3 h-3 mr-1" />
-              <span>{new Date(conferenceData.conference.start_date).toLocaleDateString()}</span>
-            </div>
-            {conferenceData.conference.venue && (
-              <div className="flex items-center text-orange-100 text-xs mt-1">
+            {conferenceData.district && (
+              <div className="flex items-center text-orange-100 text-xs mt-2">
                 <MapPin className="w-3 h-3 mr-1" />
-                <span className="truncate">{conferenceData.conference.venue}</span>
+                <span>{conferenceData.district} District</span>
               </div>
             )}
+            <div className="flex items-center text-orange-100 text-xs mt-1">
+              <Target className="w-3 h-3 mr-1" />
+              <span>{conferenceData.member_count} / {conferenceData.allowed_count} delegates</span>
+            </div>
           </div>
         )}
 
@@ -194,11 +194,5 @@ export const ConferenceOfficialLayout: React.FC = () => {
       </div>
     </div>
   );
-};
-
-// Hook to access conference context in child components
-export const useConferenceContext = () => {
-  // This will be used by child components
-  return null;
 };
 

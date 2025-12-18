@@ -38,6 +38,15 @@ export const ConferencePayment: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Delegates info for payment
+  const [delegatesInfo, setDelegatesInfo] = useState<{
+    delegates_count: number;
+    max_count: number;
+    payment_status: string;
+    amount_to_pay: number;
+    food_preference: { veg_count: number; non_veg_count: number };
+  } | null>(null);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -47,6 +56,20 @@ export const ConferencePayment: React.FC = () => {
       const data = await api.getConferenceOfficialView();
       setConferenceData(data);
       setPayment(data.unit_payment || null);
+      
+      // Also load delegates info for payment details
+      try {
+        const delegatesData = await api.getConferenceDelegatesOfficial();
+        setDelegatesInfo({
+          delegates_count: delegatesData.delegates_count,
+          max_count: delegatesData.max_count,
+          payment_status: delegatesData.payment_status,
+          amount_to_pay: delegatesData.amount_to_pay,
+          food_preference: delegatesData.food_preference,
+        });
+      } catch (err) {
+        console.log('Could not fetch delegates info:', err);
+      }
     } catch (error: any) {
       addToast(error.message || 'Failed to load data', 'error');
     } finally {
@@ -125,26 +148,33 @@ export const ConferencePayment: React.FC = () => {
     );
   }
 
-  const totalDelegates = conferenceData?.unit_delegates?.length || 0;
+  const totalDelegates = delegatesInfo?.delegates_count || conferenceData?.unit_delegates?.length || 0;
   const registrationFee = conferenceData?.conference?.registration_fee || 0;
-  const totalAmount = totalDelegates * registrationFee;
+  const totalAmount = delegatesInfo?.amount_to_pay || (totalDelegates * registrationFee);
+  const paymentStatus = delegatesInfo?.payment_status || payment?.status || 'PENDING';
 
   const getStatusIcon = () => {
-    if (!payment) return <Clock className="w-6 h-6 text-gray-400" />;
-    switch (payment.status) {
-      case 'verified': return <CheckCircle className="w-6 h-6 text-green-500" />;
-      case 'submitted': return <Clock className="w-6 h-6 text-blue-500" />;
-      case 'rejected': return <AlertCircle className="w-6 h-6 text-red-500" />;
+    const status = paymentStatus?.toUpperCase();
+    switch (status) {
+      case 'PAID':
+      case 'VERIFIED': return <CheckCircle className="w-6 h-6 text-green-500" />;
+      case 'SUBMITTED': return <Clock className="w-6 h-6 text-blue-500" />;
+      case 'INVALID':
+      case 'REJECTED': return <AlertCircle className="w-6 h-6 text-red-500" />;
+      case 'PENDING':
       default: return <Clock className="w-6 h-6 text-yellow-500" />;
     }
   };
 
   const getStatusBadge = () => {
-    if (!payment) return <Badge variant="default">Not Submitted</Badge>;
-    switch (payment.status) {
-      case 'verified': return <Badge variant="success">Verified</Badge>;
-      case 'submitted': return <Badge variant="info">Under Review</Badge>;
-      case 'rejected': return <Badge variant="danger">Rejected</Badge>;
+    const status = paymentStatus?.toUpperCase();
+    switch (status) {
+      case 'PAID': return <Badge variant="success">Paid</Badge>;
+      case 'VERIFIED': return <Badge variant="success">Verified</Badge>;
+      case 'SUBMITTED': return <Badge variant="info">Under Review</Badge>;
+      case 'INVALID': return <Badge variant="danger">Invalid</Badge>;
+      case 'REJECTED': return <Badge variant="danger">Rejected</Badge>;
+      case 'PENDING':
       default: return <Badge variant="warning">Pending</Badge>;
     }
   };

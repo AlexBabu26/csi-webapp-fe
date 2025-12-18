@@ -237,8 +237,63 @@ export interface DistrictOfficialUpdate extends Partial<DistrictOfficialCreate> 
   is_active?: boolean;
 }
 
+// Actual API response structure for /conference/official/view
+export interface ConferenceOfficialViewApi {
+  conference: {
+    id: number;
+    title: string;
+    details?: string;
+    status: string;
+  };
+  rem_count: number;      // Remaining slots
+  max_count: number;      // Maximum allowed delegates
+  allowed_count: number;  // Allowed count for this district
+  member_count: number;   // Currently registered delegates
+  district: string;       // District name
+  unit_members: Array<{   // Available members to add as delegates
+    id: number;
+    name: string;
+    number: string;       // Phone number
+    gender: string;
+  }>;
+}
+
+// API response structure for /conference/official/delegates
+export interface ConferenceDelegatesResponse {
+  delegate_members: Array<{
+    id: number;
+    name: string;
+    number: string;
+    gender: string;
+  }>;
+  delegate_officials: Array<{
+    id: number;
+    name: string;
+    phone: string;
+  }>;
+  delegates_count: number;
+  max_count: number;
+  payment_status: string;
+  amount_to_pay: number;
+  food_preference: {
+    veg_count: number;
+    non_veg_count: number;
+  };
+}
+
+// Transformed structure for frontend use
 export interface ConferenceOfficialView {
-  conference: Conference;
+  conference: {
+    id: number;
+    title: string;
+    details?: string;
+    status: string;
+    description?: string;
+    venue?: string;
+    start_date?: string;
+    end_date?: string;
+    registration_fee?: number;
+  };
   unit_delegates: ConferenceDelegate[];
   unit_payment?: ConferencePayment;
   registration_open: boolean;
@@ -248,6 +303,12 @@ export interface ConferenceOfficialView {
     gender: string;
     phone?: string;
   }>;
+  // Additional fields from actual API
+  rem_count: number;
+  max_count: number;
+  allowed_count: number;
+  member_count: number;
+  district: string;
 }
 
 export type PaymentStatus = 'Pending' | 'Proof Uploaded' | 'Paid' | 'Declined';

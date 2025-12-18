@@ -233,10 +233,40 @@ class ApiService {
   // -------------------------
 
   // GET /conference/official/view - View conference details for current user's unit
-  getConferenceOfficialView() {
+  async getConferenceOfficialView(): Promise<ConferenceOfficialView> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<ConferenceOfficialView>('/conference/official/view', { token });
+    
+    const rawData = await httpGet<any>('/conference/official/view', { token });
+    
+    // Transform API response to frontend format
+    return {
+      conference: {
+        id: rawData.conference?.id || 0,
+        title: rawData.conference?.title || '',
+        details: rawData.conference?.details || '',
+        status: rawData.conference?.status || 'Active',
+        description: rawData.conference?.details || '',
+        venue: '', // Not in API response
+        start_date: '', // Not in API response
+        end_date: '', // Not in API response
+        registration_fee: 0, // Not in API response
+      },
+      unit_delegates: [], // Will be fetched separately via getConferenceDelegatesOfficial
+      unit_payment: undefined, // Will be fetched separately
+      registration_open: rawData.conference?.status === 'Active' && rawData.rem_count > 0,
+      available_members: (rawData.unit_members || []).map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        gender: m.gender,
+        phone: m.number,
+      })),
+      rem_count: rawData.rem_count || 0,
+      max_count: rawData.max_count || 0,
+      allowed_count: rawData.allowed_count || 0,
+      member_count: rawData.member_count || 0,
+      district: rawData.district || '',
+    };
   }
 
   // POST /conference/official/delegates/{member_id} - Add a delegate from unit
@@ -247,10 +277,22 @@ class ApiService {
   }
 
   // GET /conference/official/delegates - Get delegates list for current unit
-  getConferenceDelegatesOfficial() {
+  async getConferenceDelegatesOfficial() {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<ConferenceDelegate[]>('/conference/official/delegates', { token });
+    
+    const rawData = await httpGet<any>('/conference/official/delegates', { token });
+    
+    // Return the full response structure for the delegates page to use
+    return {
+      delegate_members: rawData.delegate_members || [],
+      delegate_officials: rawData.delegate_officials || [],
+      delegates_count: rawData.delegates_count || 0,
+      max_count: rawData.max_count || 0,
+      payment_status: rawData.payment_status || 'PENDING',
+      amount_to_pay: rawData.amount_to_pay || 0,
+      food_preference: rawData.food_preference || { veg_count: 0, non_veg_count: 0 },
+    };
   }
 
   // DELETE /conference/official/delegates/members/{member_id} - Remove a delegate
