@@ -1135,33 +1135,33 @@ class ApiService {
     return typeMap[type] || type.toLowerCase().replace(/\s+/g, '-') + 's';
   }
 
-  // POST /admin/units/{type}/{request_id}/approve
+  // PUT /admin/units/{type}/{request_id}/approve
   async approveRequest(requestId: number, type: string, remarks?: string): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     const endpointPath = this.getRequestEndpointPath(type);
     const endpoint = `/admin/units/${endpointPath}/${requestId}/approve`;
-    await httpPost<any>(endpoint, remarks ? { remarks } : {}, { token });
+    await httpPut<any>(endpoint, remarks ? { remarks } : {}, { token });
     return { data: true, message: `${type} request approved successfully`, status: 200 };
   }
 
-  // POST /admin/units/{type}/{request_id}/reject
+  // PUT /admin/units/{type}/{request_id}/reject
   async rejectRequest(requestId: number, type: string, remarks?: string): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     const endpointPath = this.getRequestEndpointPath(type);
     const endpoint = `/admin/units/${endpointPath}/${requestId}/reject`;
-    await httpPost<any>(endpoint, remarks ? { remarks } : {}, { token });
+    await httpPut<any>(endpoint, remarks ? { remarks } : {}, { token });
     return { data: true, message: `${type} request rejected${remarks ? ' with remarks' : ''}`, status: 200 };
   }
 
-  // POST /admin/units/{type}/{request_id}/revert
+  // PUT /admin/units/{type}/{request_id}/revert
   async revertRequest(requestId: number, type: string, remarks?: string): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     const endpointPath = this.getRequestEndpointPath(type);
     const endpoint = `/admin/units/${endpointPath}/${requestId}/revert`;
-    await httpPost<any>(endpoint, remarks ? { remarks } : {}, { token });
+    await httpPut<any>(endpoint, remarks ? { remarks } : {}, { token });
     return { data: true, message: `${type} request reverted`, status: 200 };
   }
 
