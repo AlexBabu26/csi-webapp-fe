@@ -632,7 +632,8 @@ class ApiService {
   // ==================== ADMIN UNITS ENDPOINTS ====================
 
   // GET /admin/units/dashboard - Units Admin Dashboard Stats
-  async getUnitStats(): Promise<ApiResponse<UnitStats>> {
+  // Supports ?refresh=true to bypass cache and fetch fresh data
+  async getUnitStats(options?: { refresh?: boolean }): Promise<ApiResponse<UnitStats>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     
@@ -652,7 +653,8 @@ class ApiService {
       pending_requests?: number;
     }
     
-    const rawData = await httpGet<ApiUnitStats>('/admin/units/dashboard', { token });
+    const endpoint = options?.refresh ? '/admin/units/dashboard?refresh=true' : '/admin/units/dashboard';
+    const rawData = await httpGet<ApiUnitStats>(endpoint, { token });
     
     // Transform API response to match UnitStats interface
     const data: UnitStats = {
@@ -736,6 +738,7 @@ class ApiService {
   }
 
   // GET /admin/units/officials - Get all officials (optionally filtered by unit)
+  // API uses pagination: ?page=1&page_size=50
   async getUnitOfficials(unitId?: number): Promise<ApiResponse<UnitOfficial[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
@@ -759,10 +762,26 @@ class ApiService {
       treasurer_phone: string;
     }
     
-    const rawData = await httpGet<ApiUnitOfficial[]>('/admin/units/officials', { 
+    // API may return paginated response or direct array
+    interface PaginatedResponse {
+      items: ApiUnitOfficial[];
+      total: number;
+      page: number;
+      page_size: number;
+    }
+    
+    const query: Record<string, any> = unitId ? { unit_id: unitId } : {};
+    // Request large page size to get all records
+    query.page = 1;
+    query.page_size = 1000;
+    
+    const rawResponse = await httpGet<ApiUnitOfficial[] | PaginatedResponse>('/admin/units/officials', { 
       token,
-      query: unitId ? { unit_id: unitId } : undefined 
+      query 
     });
+    
+    // Handle both array and paginated response formats
+    const rawData: ApiUnitOfficial[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.items || []);
     
     // Transform API response to match UnitOfficial interface
     const data: UnitOfficial[] = rawData.map(official => ({
@@ -786,6 +805,7 @@ class ApiService {
   }
 
   // GET /admin/units/councilors - Get all councilors (optionally filtered by unit)
+  // API uses pagination: ?page=1&page_size=50
   async getUnitCouncilors(unitId?: number): Promise<ApiResponse<UnitCouncilor[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
@@ -802,10 +822,26 @@ class ApiService {
       member_phone: string;
     }
     
-    const rawData = await httpGet<ApiUnitCouncilor[]>('/admin/units/councilors', { 
+    // API may return paginated response or direct array
+    interface PaginatedResponse {
+      items: ApiUnitCouncilor[];
+      total: number;
+      page: number;
+      page_size: number;
+    }
+    
+    const query: Record<string, any> = unitId ? { unit_id: unitId } : {};
+    // Request large page size to get all records
+    query.page = 1;
+    query.page_size = 1000;
+    
+    const rawResponse = await httpGet<ApiUnitCouncilor[] | PaginatedResponse>('/admin/units/councilors', { 
       token,
-      query: unitId ? { unit_id: unitId } : undefined 
+      query 
     });
+    
+    // Handle both array and paginated response formats
+    const rawData: ApiUnitCouncilor[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.items || []);
     
     // Transform API response to match UnitCouncilor interface
     const data: UnitCouncilor[] = rawData.map(councilor => ({
@@ -1144,7 +1180,9 @@ class ApiService {
     return { data: blob, message: 'Data exported successfully', status: 200 };
   }
 
-  async getDistrictWiseData(): Promise<ApiResponse<DistrictWiseData[]>> {
+  // GET /admin/district-wise-data - District-wise member data
+  // Supports ?refresh=true to bypass cache and fetch fresh data
+  async getDistrictWiseData(options?: { refresh?: boolean }): Promise<ApiResponse<DistrictWiseData[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     
@@ -1160,7 +1198,8 @@ class ApiService {
       female_members: number;
     }
     
-    const rawData = await httpGet<ApiDistrictData[]>('/admin/district-wise-data', { token });
+    const endpoint = options?.refresh ? '/admin/district-wise-data?refresh=true' : '/admin/district-wise-data';
+    const rawData = await httpGet<ApiDistrictData[]>(endpoint, { token });
     
     // Transform to match DistrictWiseData interface (name + participants for the bar chart)
     const data: DistrictWiseData[] = rawData.map(district => ({

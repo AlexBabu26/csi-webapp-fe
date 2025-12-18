@@ -345,7 +345,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
       </div>
 
       {/* Footer */}
-      <Footer />
+      <Footer siteSettings={siteSettings} />
 
       {/* Login Modal */}
       {showLoginModal && (

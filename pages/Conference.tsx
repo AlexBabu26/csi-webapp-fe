@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Users, Clock, CheckCircle, ExternalLink } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Footer } from '../components/Footer';
+import { api } from '../services/api';
+import { SiteSettings } from '../types';
 
 // Conference dates
 const CONFERENCE_DATE = new Date('2025-02-14T09:00:00');
@@ -25,6 +27,7 @@ const calculateTimeLeft = () => {
 export const Conference: React.FC = () => {
   const navigate = useNavigate();
   const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -32,6 +35,19 @@ export const Conference: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
+  }, []);
+
+  // Load site settings for footer
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await api.getSiteSettings();
+        setSiteSettings(settings);
+      } catch (error) {
+        console.error('Failed to load site settings:', error);
+      }
+    };
+    loadSettings();
   }, []);
 
   const scheduleItems = [
@@ -243,7 +259,7 @@ export const Conference: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer siteSettings={siteSettings} />
     </div>
   );
 };
