@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '../constants';
+import { getAuthUser, clearAuthToken, clearAuthUser } from '../services/auth';
+import { AuthUser } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -190,8 +192,15 @@ const NavGroupComponent: React.FC<{ group: NavGroup }> = ({ group }) => {
 // User Dropdown Component
 const UserDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // Load user data on mount
+  useEffect(() => {
+    const authUser = getAuthUser();
+    setUser(authUser);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -206,8 +215,36 @@ const UserDropdown: React.FC = () => {
   }, []);
 
   const handleLogout = () => {
+    // Clear auth data
+    clearAuthToken();
+    clearAuthUser();
+    localStorage.removeItem('user_type');
     navigate('/');
     setIsOpen(false);
+  };
+
+  // Get display name from user data
+  const getDisplayName = () => {
+    if (!user) return 'User';
+    if (user.first_name || user.last_name) {
+      return `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    }
+    return user.username || 'User';
+  };
+
+  // Get initials for avatar
+  const getInitials = () => {
+    const name = getDisplayName();
+    const parts = name.split(' ').filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // Get user email
+  const getUserEmail = () => {
+    return user?.email || '';
   };
 
   return (
@@ -220,9 +257,9 @@ const UserDropdown: React.FC = () => {
         aria-label="User menu"
       >
         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-sm">
-          JD
+          {getInitials()}
         </div>
-        <span className="text-sm font-medium text-textDark hidden md:block">John Doe</span>
+        <span className="text-sm font-medium text-textDark hidden md:block">{getDisplayName()}</span>
         <ChevronDown className={`w-4 h-4 text-textMuted transition-transform hidden md:block ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
@@ -230,8 +267,8 @@ const UserDropdown: React.FC = () => {
         <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-borderColor py-1 z-50 animate-fade-in">
           {/* User Info */}
           <div className="px-4 py-3 border-b border-borderColor">
-            <p className="text-sm font-medium text-textDark">John Doe</p>
-            <p className="text-xs text-textMuted">admin@csimkd.org</p>
+            <p className="text-sm font-medium text-textDark">{getDisplayName()}</p>
+            <p className="text-xs text-textMuted">{getUserEmail()}</p>
           </div>
 
           {/* Menu Items */}

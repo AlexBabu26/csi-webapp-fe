@@ -424,7 +424,39 @@ class ApiService {
   async getUnitStats(): Promise<ApiResponse<UnitStats>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<UnitStats>('/admin/units/dashboard', { token });
+    
+    // API returns snake_case fields
+    interface ApiUnitStats {
+      total_dist_count: number;
+      total_units_count: number;
+      completed_dist_count: number;
+      completed_units_count: number;
+      completed_dists_percent: string;
+      completed_units_percent: string;
+      total_unit_members: number;
+      total_male_members: number;
+      total_female_members: number;
+      max_member_unit: string;
+      max_member_unit_count: number;
+      pending_requests?: number;
+    }
+    
+    const rawData = await httpGet<ApiUnitStats>('/admin/units/dashboard', { token });
+    
+    // Transform API response to match UnitStats interface
+    const data: UnitStats = {
+      totalDistricts: rawData.total_dist_count,
+      completedDistricts: rawData.completed_dist_count,
+      totalUnits: rawData.total_units_count,
+      completedUnits: rawData.completed_units_count,
+      totalMembers: rawData.total_unit_members,
+      maleMembers: rawData.total_male_members,
+      femaleMembers: rawData.total_female_members,
+      pendingRequests: rawData.pending_requests || 0,
+      maxMemberUnit: rawData.max_member_unit,
+      maxMemberCount: rawData.max_member_unit_count,
+    };
+    
     return { data, status: 200 };
   }
 
@@ -904,7 +936,27 @@ class ApiService {
   async getDistrictWiseData(): Promise<ApiResponse<DistrictWiseData[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<DistrictWiseData[]>('/admin/district-wise-data', { token });
+    
+    // API returns detailed district data
+    interface ApiDistrictData {
+      id: number;
+      name: string;
+      total_units: number;
+      registered_units: number;
+      completed_units: number;
+      total_members: number;
+      male_members: number;
+      female_members: number;
+    }
+    
+    const rawData = await httpGet<ApiDistrictData[]>('/admin/district-wise-data', { token });
+    
+    // Transform to match DistrictWiseData interface (name + participants for the bar chart)
+    const data: DistrictWiseData[] = rawData.map(district => ({
+      name: district.name,
+      participants: district.total_members,
+    }));
+    
     return { data, status: 200 };
   }
 
