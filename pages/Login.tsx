@@ -19,13 +19,23 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const navigate = useNavigate();
   const [formError, setFormError] = useState('');
 
+  // Check if input is a valid 10-digit phone number
+  const isValidPhone = (value: string): boolean => {
+    return /^\d{10}$/.test(value);
+  };
+
+  // Check if input is a valid email
+  const isValidEmail = (value: string): boolean => {
+    return /\S+@\S+\.\S+/.test(value);
+  };
+
   const validateForm = (): boolean => {
     const newErrors: {email?: string; password?: string} = {};
     
     if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email) && email !== 'admin') {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = 'Email or phone number is required';
+    } else if (!isValidEmail(email) && !isValidPhone(email) && email !== 'admin') {
+      newErrors.email = 'Please enter a valid email or 10-digit phone number';
     }
     
     if (!password) {
@@ -93,7 +103,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <form className="space-y-6" onSubmit={handleSubmit}>
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-textDark">
-          Email address
+          Email or Phone Number
         </label>
         <div className="mt-1 relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -112,7 +122,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             className={`block w-full pl-10 pr-3 py-2.5 bg-white border rounded-md shadow-sm focus:ring-2 focus:ring-primary/20 focus:border-primary sm:text-sm transition-all ${
               errors.email ? 'border-danger' : 'border-borderColor'
             }`}
-            placeholder="you@example.com"
+            placeholder="Email or 10-digit phone number"
           />
         </div>
         {errors.email && (

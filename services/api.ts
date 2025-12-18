@@ -687,7 +687,22 @@ class ApiService {
       status: string;
     }
     
-    const rawData = await httpGet<ApiUnit[]>('/admin/units', { token });
+    // API may return paginated response or direct array
+    interface PaginatedResponse {
+      data?: ApiUnit[];
+      items?: ApiUnit[];
+      total?: number;
+      page?: number;
+      page_size?: number;
+    }
+    
+    const rawResponse = await httpGet<ApiUnit[] | PaginatedResponse>('/admin/units', { 
+      token,
+      query: { page: 1, page_size: 1000 }
+    });
+    
+    // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
+    const rawData: ApiUnit[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
     
     // Transform API response to match Unit interface
     const data: Unit[] = rawData.map(unit => ({
@@ -764,10 +779,11 @@ class ApiService {
     
     // API may return paginated response or direct array
     interface PaginatedResponse {
-      items: ApiUnitOfficial[];
-      total: number;
-      page: number;
-      page_size: number;
+      data?: ApiUnitOfficial[];
+      items?: ApiUnitOfficial[];
+      total?: number;
+      page?: number;
+      page_size?: number;
     }
     
     const query: Record<string, any> = unitId ? { unit_id: unitId } : {};
@@ -780,8 +796,8 @@ class ApiService {
       query 
     });
     
-    // Handle both array and paginated response formats
-    const rawData: ApiUnitOfficial[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.items || []);
+    // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
+    const rawData: ApiUnitOfficial[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
     
     // Transform API response to match UnitOfficial interface
     const data: UnitOfficial[] = rawData.map(official => ({
@@ -824,10 +840,11 @@ class ApiService {
     
     // API may return paginated response or direct array
     interface PaginatedResponse {
-      items: ApiUnitCouncilor[];
-      total: number;
-      page: number;
-      page_size: number;
+      data?: ApiUnitCouncilor[];
+      items?: ApiUnitCouncilor[];
+      total?: number;
+      page?: number;
+      page_size?: number;
     }
     
     const query: Record<string, any> = unitId ? { unit_id: unitId } : {};
@@ -840,8 +857,8 @@ class ApiService {
       query 
     });
     
-    // Handle both array and paginated response formats
-    const rawData: ApiUnitCouncilor[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.items || []);
+    // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
+    const rawData: ApiUnitCouncilor[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
     
     // Transform API response to match UnitCouncilor interface
     const data: UnitCouncilor[] = rawData.map(councilor => ({
@@ -881,7 +898,22 @@ class ApiService {
       destination_unit_name?: string;
     }
     
-    const rawData = await httpGet<ApiTransferRequest[]>('/admin/units/transfer-requests', { token });
+    // API may return paginated response or direct array
+    interface PaginatedResponse {
+      data?: ApiTransferRequest[];
+      items?: ApiTransferRequest[];
+      total?: number;
+      page?: number;
+      page_size?: number;
+    }
+    
+    const rawResponse = await httpGet<ApiTransferRequest[] | PaginatedResponse>('/admin/units/transfer-requests', { 
+      token,
+      query: { page: 1, page_size: 1000 }
+    });
+    
+    // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
+    const rawData: ApiTransferRequest[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
     
     // Transform API response to match TransferRequest interface
     const data: TransferRequest[] = rawData.map(request => ({
@@ -928,7 +960,22 @@ class ApiService {
       unit_name?: string;
     }
     
-    const rawData = await httpGet<ApiMemberInfoChangeRequest[]>('/admin/units/member-change-requests', { token });
+    // API may return paginated response or direct array
+    interface PaginatedResponse {
+      data?: ApiMemberInfoChangeRequest[];
+      items?: ApiMemberInfoChangeRequest[];
+      total?: number;
+      page?: number;
+      page_size?: number;
+    }
+    
+    const rawResponse = await httpGet<ApiMemberInfoChangeRequest[] | PaginatedResponse>('/admin/units/member-change-requests', { 
+      token,
+      query: { page: 1, page_size: 1000 }
+    });
+    
+    // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
+    const rawData: ApiMemberInfoChangeRequest[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
     
     // Transform API response to match MemberInfoChangeRequest interface
     const data: MemberInfoChangeRequest[] = rawData.map(request => ({
@@ -993,7 +1040,22 @@ class ApiService {
       unit_name?: string;
     }
     
-    const rawData = await httpGet<ApiOfficialsChangeRequest[]>('/admin/units/officials-change-requests', { token });
+    // API may return paginated response or direct array
+    interface PaginatedResponse {
+      data?: ApiOfficialsChangeRequest[];
+      items?: ApiOfficialsChangeRequest[];
+      total?: number;
+      page?: number;
+      page_size?: number;
+    }
+    
+    const rawResponse = await httpGet<ApiOfficialsChangeRequest[] | PaginatedResponse>('/admin/units/officials-change-requests', { 
+      token,
+      query: { page: 1, page_size: 1000 }
+    });
+    
+    // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
+    const rawData: ApiOfficialsChangeRequest[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
     
     // Transform API response to match OfficialsChangeRequest interface
     const data: OfficialsChangeRequest[] = rawData.map(request => ({
@@ -1057,7 +1119,22 @@ class ApiService {
       original_member_name?: string;
     }
     
-    const rawData = await httpGet<ApiCouncilorChangeRequest[]>('/admin/units/councilor-change-requests', { token });
+    // API may return paginated response or direct array
+    interface PaginatedResponse {
+      data?: ApiCouncilorChangeRequest[];
+      items?: ApiCouncilorChangeRequest[];
+      total?: number;
+      page?: number;
+      page_size?: number;
+    }
+    
+    const rawResponse = await httpGet<ApiCouncilorChangeRequest[] | PaginatedResponse>('/admin/units/councilor-change-requests', { 
+      token,
+      query: { page: 1, page_size: 1000 }
+    });
+    
+    // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
+    const rawData: ApiCouncilorChangeRequest[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
     
     // Transform API response to match CouncilorChangeRequest interface
     const data: CouncilorChangeRequest[] = rawData.map(request => ({
@@ -1101,7 +1178,22 @@ class ApiService {
       unit_name?: string;
     }
     
-    const rawData = await httpGet<ApiMemberAddRequest[]>('/admin/units/member-add-requests', { token });
+    // API may return paginated response or direct array
+    interface PaginatedResponse {
+      data?: ApiMemberAddRequest[];
+      items?: ApiMemberAddRequest[];
+      total?: number;
+      page?: number;
+      page_size?: number;
+    }
+    
+    const rawResponse = await httpGet<ApiMemberAddRequest[] | PaginatedResponse>('/admin/units/member-add-requests', { 
+      token,
+      query: { page: 1, page_size: 1000 }
+    });
+    
+    // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
+    const rawData: ApiMemberAddRequest[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
     
     // Transform API response to match MemberAddRequest interface
     const data: MemberAddRequest[] = rawData.map(request => ({
@@ -1213,8 +1305,27 @@ class ApiService {
       female_members: number;
     }
     
-    const endpoint = options?.refresh ? '/admin/district-wise-data?refresh=true' : '/admin/district-wise-data';
-    const rawData = await httpGet<ApiDistrictData[]>(endpoint, { token });
+    // API may return paginated response or direct array
+    interface PaginatedResponse {
+      data?: ApiDistrictData[];
+      items?: ApiDistrictData[];
+      total?: number;
+      page?: number;
+      page_size?: number;
+    }
+    
+    const query: Record<string, any> = { page: 1, page_size: 1000 };
+    if (options?.refresh) {
+      query.refresh = 'true';
+    }
+    
+    const rawResponse = await httpGet<ApiDistrictData[] | PaginatedResponse>('/admin/district-wise-data', { 
+      token,
+      query
+    });
+    
+    // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
+    const rawData: ApiDistrictData[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
     
     // Transform to match DistrictWiseData interface (name + participants for the bar chart)
     const data: DistrictWiseData[] = rawData.map(district => ({
@@ -1272,6 +1383,8 @@ class ApiService {
     return { data: response, message: 'User created successfully', status: 200 };
   }
 
+  // GET /admin/units/archived-members - Get archived members
+  // API uses pagination: ?page=1&page_size=50
   async getArchivedMembers(unitId?: number): Promise<ApiResponse<ArchivedMember[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
@@ -1293,10 +1406,27 @@ class ApiService {
       unit_name?: string;
     }
     
-    const rawData = await httpGet<ApiArchivedMember[]>('/admin/units/archived-members', { 
+    // API may return paginated response or direct array
+    interface PaginatedResponse {
+      data?: ApiArchivedMember[];
+      items?: ApiArchivedMember[];
+      total?: number;
+      page?: number;
+      page_size?: number;
+    }
+    
+    const query: Record<string, any> = unitId ? { unit_id: unitId } : {};
+    // Request large page size to get all records
+    query.page = 1;
+    query.page_size = 1000;
+    
+    const rawResponse = await httpGet<ApiArchivedMember[] | PaginatedResponse>('/admin/units/archived-members', { 
       token,
-      query: unitId ? { unit_id: unitId } : undefined 
+      query 
     });
+    
+    // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
+    const rawData: ApiArchivedMember[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
     
     // Transform API response to match ArchivedMember interface
     const data: ArchivedMember[] = rawData.map(member => ({
