@@ -46,6 +46,37 @@ const CSLogo: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+// Logo Image component with fallback support
+const LogoImage: React.FC<{ src: string | null | undefined; fallback: React.ReactNode }> = ({ src, fallback }) => {
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const imageUrl = src ? getMediaUrl(src) : null;
+  
+  // Reset error state when src changes
+  useEffect(() => {
+    setHasError(false);
+    setIsLoading(true);
+  }, [src]);
+  
+  if (!imageUrl || hasError) {
+    return <>{fallback}</>;
+  }
+  
+  return (
+    <>
+      <img 
+        src={imageUrl} 
+        alt="" 
+        className={`w-full h-full object-contain rounded-full ${isLoading ? 'hidden' : ''}`}
+        onLoad={() => setIsLoading(false)}
+        onError={() => { setHasError(true); setIsLoading(false); }}
+      />
+      {isLoading && fallback}
+    </>
+  );
+};
+
 export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
   const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -189,27 +220,24 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
                 <div className="flex justify-center items-end space-x-4">
                   {/* Primary Logo */}
                   <div className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center p-2 overflow-hidden ring-2 ring-white hover:ring-primary/30 transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                    {siteSettings?.logo_primary_url ? (
-                      <img src={getMediaUrl(siteSettings.logo_primary_url)} alt="Primary Logo" className="w-full h-full object-contain rounded-full" />
-                    ) : (
-                      <ChurchLogo className="w-full h-full" />
-                    )}
+                    <LogoImage 
+                      src={siteSettings?.logo_primary_url} 
+                      fallback={<ChurchLogo className="w-full h-full" />} 
+                    />
                   </div>
                   {/* Secondary Logo (largest, center) */}
                   <div className="w-28 h-28 bg-white rounded-full shadow-2xl flex items-center justify-center p-2.5 z-10 overflow-hidden ring-4 ring-white hover:ring-primary/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl">
-                    {siteSettings?.logo_secondary_url ? (
-                      <img src={getMediaUrl(siteSettings.logo_secondary_url)} alt="Secondary Logo" className="w-full h-full object-contain rounded-full" />
-                    ) : (
-                      <YouthLogo className="w-full h-full" />
-                    )}
+                    <LogoImage 
+                      src={siteSettings?.logo_secondary_url} 
+                      fallback={<YouthLogo className="w-full h-full" />} 
+                    />
                   </div>
                   {/* Tertiary Logo */}
                   <div className="w-20 h-20 bg-white rounded-full shadow-lg flex items-center justify-center p-2 overflow-hidden ring-2 ring-white hover:ring-primary/30 transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                    {siteSettings?.logo_tertiary_url ? (
-                      <img src={getMediaUrl(siteSettings.logo_tertiary_url)} alt="Tertiary Logo" className="w-full h-full object-contain rounded-full" />
-                    ) : (
-                      <CSLogo className="w-full h-full" />
-                    )}
+                    <LogoImage 
+                      src={siteSettings?.logo_tertiary_url} 
+                      fallback={<CSLogo className="w-full h-full" />} 
+                    />
                   </div>
                 </div>
                 
