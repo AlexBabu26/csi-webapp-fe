@@ -58,6 +58,14 @@ const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
+    label: 'Site Management',
+    defaultOpen: false,
+    roles: ['admin'],
+    items: [
+      { label: 'Site Settings', path: '/admin/site-settings', icon: <Settings size={18} /> },
+    ]
+  },
+  {
     label: 'Units Management',
     defaultOpen: true,
     roles: ['admin'],
@@ -87,14 +95,6 @@ const NAV_GROUPS: NavGroup[] = [
     roles: ['admin'],
     items: [
       { label: 'Export Data', path: '/admin/export', icon: <Download size={18} /> },
-    ]
-  },
-  {
-    label: 'Site Management',
-    defaultOpen: false,
-    roles: ['admin'],
-    items: [
-      { label: 'Site Settings', path: '/admin/site-settings', icon: <Settings size={18} /> },
     ]
   },
   {
