@@ -14,6 +14,13 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(module =
 const KalamelaPublic = lazy(() => import('./pages/KalamelaPublic').then(module => ({ default: module.KalamelaPublic })));
 const KalamelaOfficial = lazy(() => import('./pages/KalamelaOfficial').then(module => ({ default: module.KalamelaOfficial })));
 const Conference = lazy(() => import('./pages/Conference').then(module => ({ default: module.Conference })));
+
+// Conference Official Pages
+const ConferenceOfficialLayout = lazy(() => import('./pages/Conference/ConferenceOfficialLayout').then(module => ({ default: module.ConferenceOfficialLayout })));
+const ConferenceOfficialHome = lazy(() => import('./pages/Conference/ConferenceOfficialHome').then(module => ({ default: module.ConferenceOfficialHome })));
+const ConferenceDelegates = lazy(() => import('./pages/Conference/ConferenceDelegates').then(module => ({ default: module.ConferenceDelegates })));
+const ConferencePayment = lazy(() => import('./pages/Conference/ConferencePayment').then(module => ({ default: module.ConferencePayment })));
+const ConferenceExport = lazy(() => import('./pages/Conference/ConferenceExport').then(module => ({ default: module.ConferenceExport })));
 const ScoreEntry = lazy(() => import('./pages/ScoreEntry').then(module => ({ default: module.ScoreEntry })));
 
 // Unit Admin Pages
@@ -106,6 +113,15 @@ const App: React.FC = () => {
               
               {/* Conference Public Portal */}
               <Route path="/conference" element={<Conference />} />
+              
+              {/* Conference Official Portal */}
+              <Route path="/conference/official" element={<ConferenceOfficialLayout />}>
+                <Route path="home" element={<ConferenceOfficialHome />} />
+                <Route path="delegates" element={<ConferenceDelegates />} />
+                <Route path="payment" element={<ConferencePayment />} />
+                <Route path="export" element={<ConferenceExport />} />
+                <Route index element={<ConferenceOfficialHome />} />
+              </Route>
               
               {/* Auth Routes */}
               <Route path="/login" element={
