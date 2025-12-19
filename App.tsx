@@ -21,6 +21,12 @@ const ConferenceOfficialHome = lazy(() => import('./pages/Conference/ConferenceO
 const ConferenceDelegates = lazy(() => import('./pages/Conference/ConferenceDelegates').then(module => ({ default: module.ConferenceDelegates })));
 const ConferencePayment = lazy(() => import('./pages/Conference/ConferencePayment').then(module => ({ default: module.ConferencePayment })));
 const ConferenceExport = lazy(() => import('./pages/Conference/ConferenceExport').then(module => ({ default: module.ConferenceExport })));
+
+// Conference Admin Pages
+const ConferenceAdminHome = lazy(() => import('./pages/Conference/ConferenceAdminHome').then(module => ({ default: module.ConferenceAdminHome })));
+const ConferenceAdminOfficials = lazy(() => import('./pages/Conference/ConferenceAdminOfficials').then(module => ({ default: module.ConferenceAdminOfficials })));
+const ConferenceAdminInfo = lazy(() => import('./pages/Conference/ConferenceAdminInfo').then(module => ({ default: module.ConferenceAdminInfo })));
+const ConferenceAdminPayments = lazy(() => import('./pages/Conference/ConferenceAdminPayments').then(module => ({ default: module.ConferenceAdminPayments })));
 const ScoreEntry = lazy(() => import('./pages/ScoreEntry').then(module => ({ default: module.ScoreEntry })));
 
 // Unit Admin Pages
@@ -216,6 +222,31 @@ const App: React.FC = () => {
               <Route path="/admin/site-settings" element={
                 <AdminRoute>
                   <SiteSettings />
+                </AdminRoute>
+              } />
+
+              {/* Conference Admin Routes */}
+              <Route path="/admin/conference/home" element={
+                <AdminRoute>
+                  <ConferenceAdminHome />
+                </AdminRoute>
+              } />
+
+              <Route path="/admin/conference/officials" element={
+                <AdminRoute>
+                  <ConferenceAdminOfficials />
+                </AdminRoute>
+              } />
+
+              <Route path="/admin/conference/info" element={
+                <AdminRoute>
+                  <ConferenceAdminInfo />
+                </AdminRoute>
+              } />
+
+              <Route path="/admin/conference/payments" element={
+                <AdminRoute>
+                  <ConferenceAdminPayments />
                 </AdminRoute>
               } />
 

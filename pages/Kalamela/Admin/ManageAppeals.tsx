@@ -3,6 +3,7 @@ import { Card, Badge, Button } from '../../../components/ui';
 import { MessageSquare, AlertCircle } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
 import { api } from '../../../services/api';
+import { Portal } from '../../../components/Portal';
 
 export const ManageAppeals: React.FC = () => {
   const { addToast } = useToast();
@@ -213,11 +214,11 @@ export const ManageAppeals: React.FC = () => {
         </Card>
       )}
 
-      {/* Reply Dialog */}
+      {/* Reply Dialog - Using Portal to render at body level */}
       {showReplyDialog && selectedAppeal && (
-        <>
-          <div className="fixed inset-0 bg-textDark/50 backdrop-blur-sm z-50" onClick={() => setShowReplyDialog(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <Portal>
+          <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" onClick={() => setShowReplyDialog(false)} aria-hidden="true" />
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full pointer-events-auto animate-slide-in">
               <div className="p-6">
                 <h3 className="text-xl font-bold text-textDark mb-4">Reply to Appeal</h3>
@@ -301,7 +302,7 @@ export const ManageAppeals: React.FC = () => {
               </div>
             </div>
           </div>
-        </>
+        </Portal>
       )}
     </div>
   );

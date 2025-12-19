@@ -98,6 +98,17 @@ const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
+    label: 'Conference Admin',
+    defaultOpen: false,
+    roles: ['admin'],
+    items: [
+      { label: 'Conferences', path: '/admin/conference/home', icon: <Calendar size={18} /> },
+      { label: 'District Officials', path: '/admin/conference/officials', icon: <Shield size={18} /> },
+      { label: 'Delegate Info', path: '/admin/conference/info', icon: <FileText size={18} /> },
+      { label: 'Payment Info', path: '/admin/conference/payments', icon: <CreditCard size={18} /> },
+    ]
+  },
+  {
     label: 'Kalamela Admin',
     defaultOpen: false,
     roles: ['admin'],
@@ -404,7 +415,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Mobile Overlay */}
         {sidebarOpen && (
           <div 
-            className="fixed inset-0 z-10 bg-textDark/50 backdrop-blur-sm lg:hidden transition-opacity"
+            className="fixed inset-0 z-10 bg-black/35 backdrop-blur lg:hidden transition-opacity"
             onClick={() => setSidebarOpen(false)}
             aria-hidden="true"
           />

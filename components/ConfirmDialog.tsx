@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, AlertTriangle, Info, CheckCircle } from 'lucide-react';
 import { Button } from './ui';
+import { Portal } from './Portal';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -32,6 +33,18 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   isLoading = false,
 }) => {
   const [remarks, setRemarks] = useState('');
+
+  // Lock body scroll when dialog is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -77,50 +90,58 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const variantStyles = getVariantStyles();
 
   return (
-    <>
-      {/* Backdrop */}
+    <Portal>
+      {/* Backdrop - darker for better focus */}
       <div 
-        className="fixed inset-0 bg-textDark/50 backdrop-blur-sm z-50 transition-opacity animate-fade-in"
+        className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity animate-fade-in"
         onClick={handleClose}
+        aria-hidden="true"
       />
       
       {/* Dialog */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div 
+        className="fixed inset-0 z-[101] flex items-center justify-center p-4 overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+      >
         <div 
-          className="bg-white rounded-lg shadow-xl max-w-md w-full pointer-events-auto animate-slide-in"
+          className="bg-white rounded-xl shadow-2xl max-w-sm w-full pointer-events-auto animate-slide-in relative"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Close button */}
+          <button
+            onClick={handleClose}
+            className="absolute top-3 right-3 p-2 rounded-lg text-textMuted hover:text-textDark hover:bg-bgLight transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
           {/* Header */}
-          <div className="flex items-start p-6 pb-4">
-            <div className={`flex-shrink-0 ${variantStyles.iconBg} rounded-full p-3 mr-4`}>
+          <div className="flex items-start px-5 pt-5 pb-3">
+            <div className={`flex-shrink-0 ${variantStyles.iconBg} rounded-full p-2.5 mr-3`}>
               {variantStyles.icon}
             </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-textDark">{title}</h3>
-              <button
-                onClick={handleClose}
-                className="absolute top-4 right-4 p-1 rounded-md hover:bg-bgLight transition-colors"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5 text-textMuted" />
-              </button>
+            <div className="flex-1 pt-1">
+              <h3 id="confirm-dialog-title" className="text-base font-semibold text-textDark">{title}</h3>
             </div>
           </div>
 
           {/* Content */}
-          <div className="px-6 pb-4">
-            <p className="text-textMuted">{message}</p>
+          <div className="px-5 pb-4">
+            <p className="text-sm text-textMuted leading-relaxed">{message}</p>
             
             {showRemarksField && (
               <div className="mt-4">
-                <label className="block text-sm font-medium text-textDark mb-2">
+                <label className="block text-sm font-medium text-textDark mb-1.5">
                   {remarksLabel}
                 </label>
                 <textarea
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
                   placeholder={remarksPlaceholder}
-                  className="w-full px-3 py-2 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                  className="w-full px-3 py-2 bg-white text-textDark border border-borderColor rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none placeholder:text-textMuted"
                   rows={3}
                   disabled={isLoading}
                 />
@@ -129,7 +150,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 rounded-b-lg">
+          <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-borderColor">
             <Button
               variant="outline"
               size="sm"
@@ -149,7 +170,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </div>
         </div>
       </div>
-    </>
+    </Portal>
   );
 };
 

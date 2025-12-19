@@ -349,7 +349,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
 
       {/* Login Modal */}
       {showLoginModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
             <div className="bg-primary px-6 py-4 flex justify-between items-center">
               <h3 className="text-white font-semibold text-lg">Unit Login</h3>

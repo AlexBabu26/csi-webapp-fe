@@ -109,6 +109,26 @@
         transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
       }
       
+      /* Form input styles - ensure white background */
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="number"],
+      input[type="tel"],
+      input[type="date"],
+      input[type="search"],
+      textarea,
+      select {
+        background-color: white !important;
+        color: #333333 !important;
+      }
+      
+      input::placeholder,
+      textarea::placeholder {
+        color: #9ca3af !important;
+        opacity: 1 !important;
+      }
+      
       /* Print styles */
       @media print {
         .no-print { display: none !important; }

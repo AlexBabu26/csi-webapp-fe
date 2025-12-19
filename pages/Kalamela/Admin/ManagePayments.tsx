@@ -4,6 +4,7 @@ import { CheckCircle, XCircle, Eye, Download } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
 import { api } from '../../../services/api';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
+import { Portal } from '../../../components/Portal';
 
 export const ManagePayments: React.FC = () => {
   const { addToast } = useToast();
@@ -244,11 +245,11 @@ export const ManagePayments: React.FC = () => {
         </Card>
       )}
 
-      {/* Confirmation Dialog */}
+      {/* Confirmation Dialog - Using Portal to render at body level */}
       {showDialog && selectedPayment && (
-        <>
-          <div className="fixed inset-0 bg-textDark/50 backdrop-blur-sm z-50" onClick={() => setShowDialog(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <Portal>
+          <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" onClick={() => setShowDialog(false)} aria-hidden="true" />
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full pointer-events-auto animate-slide-in">
               <div className="p-6">
                 <h3 className="text-xl font-bold text-textDark mb-4">
@@ -298,7 +299,7 @@ export const ManagePayments: React.FC = () => {
               </div>
             </div>
           </div>
-        </>
+        </Portal>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import { Plus, Info, Edit2, Trash2, X } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { IndividualEvent, GroupEvent } from '../../types';
+import { Portal } from '../../components/Portal';
 
 type TabType = 'individual' | 'group';
 
@@ -212,11 +213,11 @@ export const EventsManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Modal - Using Portal to render at body level */}
       {showModal && (
-        <>
-          <div className="fixed inset-0 bg-textDark/50 backdrop-blur-sm z-50" onClick={closeModal} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <Portal>
+          <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" onClick={closeModal} aria-hidden="true" />
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full pointer-events-auto animate-slide-in" onClick={(e) => e.stopPropagation()}>
               {/* Modal Header */}
               <div className="flex items-center justify-between p-6 border-b border-borderColor">
@@ -350,7 +351,7 @@ export const EventsManagement: React.FC = () => {
               </div>
             </div>
           </div>
-        </>
+        </Portal>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { ArrowLeft, CreditCard, Upload, CheckCircle, XCircle, Printer } from 'lu
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { FileUpload } from '../../components/FileUpload';
+import { Portal } from '../../components/Portal';
 
 export const PaymentPreview: React.FC = () => {
   const navigate = useNavigate();
@@ -225,11 +226,11 @@ export const PaymentPreview: React.FC = () => {
         </Card>
       ) : null}
 
-      {/* Upload Dialog */}
+      {/* Upload Dialog - Using Portal to render at body level */}
       {showUploadDialog && (
-        <>
-          <div className="fixed inset-0 bg-textDark/50 backdrop-blur-sm z-50" onClick={() => setShowUploadDialog(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <Portal>
+          <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" onClick={() => setShowUploadDialog(false)} aria-hidden="true" />
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full pointer-events-auto animate-slide-in">
               <div className="p-6">
                 <h3 className="text-xl font-bold text-textDark mb-4">Upload Payment Proof</h3>
@@ -279,7 +280,7 @@ export const PaymentPreview: React.FC = () => {
               </div>
             </div>
           </div>
-        </>
+        </Portal>
       )}
     </div>
   );
