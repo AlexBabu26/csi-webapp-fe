@@ -3,8 +3,8 @@ import { getAuthToken, getRefreshToken, setAuthTokens, clearAuth, isTokenExpirin
 const DEFAULT_BASE_URL =
   (typeof process !== 'undefined' && (process as any).env?.API_BASE_URL) ||
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) ||
-  // 'https://csi-project-be.vercel.app/api';
-  'http://0.0.0.0:7000/api';
+  'https://csi-project-be.vercel.app/api';
+  // 'http://0.0.0.0:7000/api';
 
 interface HttpOptions extends RequestInit {
   token?: string;
