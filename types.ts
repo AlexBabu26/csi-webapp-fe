@@ -237,7 +237,41 @@ export interface DistrictOfficialUpdate extends Partial<DistrictOfficialCreate> 
   is_active?: boolean;
 }
 
-// Actual API response structure for /conference/official/view
+// ==================== CONFERENCE MODULE TYPES ====================
+
+// Unit Member (used in conference APIs)
+export interface ConferenceUnitMember {
+  id: number;
+  name: string;
+  number: string;
+  gender: 'M' | 'F';
+  dob?: string;
+}
+
+// Delegate Official
+export interface ConferenceDelegateOfficial {
+  id: number;
+  name: string;
+  phone: string;
+}
+
+// Food Preference
+export interface ConferenceFoodPref {
+  veg_count: number;
+  non_veg_count: number;
+}
+
+// Payment Record (from API)
+export interface ConferencePaymentRecord {
+  amount_to_pay: number;
+  uploaded_by: string;
+  date: string;
+  status: 'PENDING' | 'PROOF_UPLOADED' | 'PAID' | 'DECLINED';
+  proof_path: string | null;
+  payment_reference: string | null;
+}
+
+// API response structure for /conference/official/view
 export interface ConferenceOfficialViewApi {
   conference: {
     id: number;
@@ -250,38 +284,21 @@ export interface ConferenceOfficialViewApi {
   allowed_count: number;  // Allowed count for this district
   member_count: number;   // Currently registered delegates
   district: string;       // District name
-  unit_members: Array<{   // Available members to add as delegates
-    id: number;
-    name: string;
-    number: string;       // Phone number
-    gender: string;
-  }>;
+  unit_members: ConferenceUnitMember[];  // Available members to add as delegates
 }
 
 // API response structure for /conference/official/delegates
 export interface ConferenceDelegatesResponse {
-  delegate_members: Array<{
-    id: number;
-    name: string;
-    number: string;
-    gender: string;
-  }>;
-  delegate_officials: Array<{
-    id: number;
-    name: string;
-    phone: string;
-  }>;
+  delegate_members: ConferenceUnitMember[];
+  delegate_officials: ConferenceDelegateOfficial[];
   delegates_count: number;
   max_count: number;
-  payment_status: string;
+  payment_status: string | null;
   amount_to_pay: number;
-  food_preference: {
-    veg_count: number;
-    non_veg_count: number;
-  };
+  food_preference: ConferenceFoodPref | null;
 }
 
-// Transformed structure for frontend use
+// Transformed structure for frontend use (ConferenceOfficialView)
 export interface ConferenceOfficialView {
   conference: {
     id: number;
@@ -309,6 +326,97 @@ export interface ConferenceOfficialView {
   allowed_count: number;
   member_count: number;
   district: string;
+}
+
+// District Info for Admin Conference Info
+export interface ConferenceDistrictInfo {
+  officials: Array<{ id: number; name: string; phone: string; gender?: string }>;
+  members: Array<{ id: number; name: string; phone: string; gender: string }>;
+  payments: ConferencePaymentRecord[];
+  count_of_officials: number;
+  count_of_members: number;
+  count_of_male_members: number;
+  count_of_female_members: number;
+  count_of_male_officials: number;
+  count_of_female_officials: number;
+  count_of_total_male: number;
+  count_of_total_female: number;
+  total_count: number;
+  veg_count: number;
+  non_veg_count: number;
+}
+
+// Admin Conference Info Response
+export interface ConferenceAdminInfoResponse {
+  conference_id: number;
+  district_info: Record<string, ConferenceDistrictInfo>;
+}
+
+// Admin Conference Payment Info Response
+export interface ConferenceAdminPaymentInfoResponse {
+  conference_id: number;
+  district_info: Record<string, {
+    officials: Array<{ id: number; name: string; phone: string }>;
+    members: Array<{ id: number; name: string; phone: string }>;
+    payments: ConferencePaymentRecord[];
+    count_of_officials: number;
+    count_of_members: number;
+  }>;
+}
+
+// Admin District Official (from /api/admin/conference/officials)
+export interface ConferenceAdminDistrictOfficial {
+  id: number;
+  name: string;
+  phone: string;
+  district: string | null;
+  conference_id: number | null;
+  conference_official_count: number;
+  conference_member_count: number;
+}
+
+// Public Conference (from /api/conference/public/list)
+export interface ConferencePublic {
+  id: number;
+  title: string;
+  details: string;
+  added_on: string;
+  status: 'Active' | 'Inactive' | 'Completed';
+}
+
+// Food Preference Submit Request
+export interface ConferenceFoodPreferenceSubmit {
+  conference_id: number;
+  veg_count: number;
+  non_veg_count: number;
+}
+
+// Food Preference Response
+export interface ConferenceFoodPreferenceResponse {
+  id: number;
+  conference_id: number;
+  veg_count: number;
+  non_veg_count: number;
+  uploaded_by_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Export Data Response
+export interface ConferenceExportDataResponse {
+  message: string;
+  district: string;
+  data: {
+    officials: Array<{ id: number; name: string; phone: string; gender?: string }>;
+    members: Array<{ id: number; name: string; phone: string; gender: string }>;
+    payments: ConferencePaymentRecord[];
+    count_of_officials: number;
+    count_of_members: number;
+    count_of_male_members: number;
+    count_of_female_members: number;
+    veg_count: number;
+    non_veg_count: number;
+  };
 }
 
 export type PaymentStatus = 'Pending' | 'Proof Uploaded' | 'Paid' | 'Declined';

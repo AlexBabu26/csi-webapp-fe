@@ -220,12 +220,24 @@ class ApiService {
   
   // GET /conference/public/list - List all public conferences
   getPublicConferences() {
-    return httpGet<Conference[]>('/conference/public/list');
+    return httpGet<Array<{
+      id: number;
+      title: string;
+      details: string;
+      added_on: string;
+      status: 'Active' | 'Inactive' | 'Completed';
+    }>>('/conference/public/list');
   }
 
   // GET /conference/public/{conference_id} - Get public conference details
   getPublicConferenceDetails(conferenceId: number) {
-    return httpGet<Conference>(`/conference/public/${conferenceId}`);
+    return httpGet<{
+      id: number;
+      title: string;
+      details: string;
+      added_on: string;
+      status: 'Active' | 'Inactive' | 'Completed';
+    }>(`/conference/public/${conferenceId}`);
   }
 
   // -------------------------
@@ -303,58 +315,102 @@ class ApiService {
   }
 
   // POST /conference/official/payment - Submit payment for conference
-  submitConferencePaymentOfficial(data: ConferencePaymentSubmit) {
+  submitConferencePaymentOfficial(data: { amount_to_pay: number; payment_reference?: string }) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpPost<ConferencePayment>('/conference/official/payment', data, { token });
+    return httpPost<{ message: string; payment_id: number }>('/conference/official/payment', data, { token });
   }
 
-  // Upload payment proof for official conference payment
-  uploadConferencePaymentProofOfficial(file: File) {
+  // Upload payment proof for official conference payment (same endpoint, with file)
+  uploadConferencePaymentProofOfficial(file: File, paymentData?: { amount_to_pay: number; payment_reference?: string }) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     const formData = new FormData();
     formData.append('file', file);
-    return httpPostFormData<ConferencePayment>('/conference/official/payment/proof', formData, token);
+    if (paymentData) {
+      formData.append('amount_to_pay', String(paymentData.amount_to_pay));
+      if (paymentData.payment_reference) {
+        formData.append('payment_reference', paymentData.payment_reference);
+      }
+    }
+    return httpPostFormData<{ message: string; payment_id: number }>('/conference/official/payment', formData, token);
   }
 
-  // POST /conference/official/food-preference - Set food preference for delegate
-  setConferenceFoodPreference(data: ConferenceFoodPreference) {
+  // POST /conference/official/food-preference - Set food preference counts
+  setConferenceFoodPreference(data: { conference_id: number; veg_count: number; non_veg_count: number }) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpPost<ConferenceDelegate>('/conference/official/food-preference', data, { token });
+    return httpPost<{
+      id: number;
+      conference_id: number;
+      veg_count: number;
+      non_veg_count: number;
+      uploaded_by_id: number;
+      created_at: string;
+      updated_at: string;
+    }>('/conference/official/food-preference', data, { token });
   }
 
   // GET /conference/official/export-excel - Export unit's conference data to Excel
-  exportConferenceDataOfficial() {
+  async getConferenceExportData() {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<Blob>('/conference/official/export-excel', { token, asBlob: true });
+    return httpGet<{
+      message: string;
+      district: string;
+      data: {
+        officials: Array<{ id: number; name: string; phone: string; gender?: string }>;
+        members: Array<{ id: number; name: string; phone: string; gender: string }>;
+        payments: Array<{
+          amount_to_pay: number;
+          uploaded_by: string;
+          date: string;
+          status: string;
+          proof_path: string | null;
+          payment_reference: string | null;
+        }>;
+        count_of_officials: number;
+        count_of_members: number;
+        count_of_male_members: number;
+        count_of_female_members: number;
+        veg_count: number;
+        non_veg_count: number;
+      };
+    }>('/conference/official/export-excel', { token });
   }
 
   // -------------------------
   // Conference - Admin Endpoints
   // -------------------------
 
+  // Conference Public Type for API responses
+  private conferencePublicType = {} as {
+    id: number;
+    title: string;
+    details: string;
+    added_on: string;
+    status: 'Active' | 'Inactive' | 'Completed';
+  };
+
   // GET /admin/conference/home - List all conferences (admin)
   getConferencesAdmin() {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<Conference[]>('/admin/conference/home', { token });
+    return httpGet<Array<typeof this.conferencePublicType>>('/admin/conference/home', { token });
   }
 
   // POST /admin/conference - Create a new conference
-  createConferenceAdmin(data: ConferenceCreate) {
+  createConferenceAdmin(data: { title: string; details?: string }) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpPost<Conference>('/admin/conference', data, { token });
+    return httpPost<typeof this.conferencePublicType>('/admin/conference', data, { token });
   }
 
   // PUT /admin/conference/{conference_id} - Update a conference
-  updateConferenceAdmin(conferenceId: number, data: ConferenceUpdate) {
+  updateConferenceAdmin(conferenceId: number, data: { title?: string; details?: string; status?: string }) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpPut<Conference>(`/admin/conference/${conferenceId}`, data, { token });
+    return httpPut<typeof this.conferencePublicType>(`/admin/conference/${conferenceId}`, data, { token });
   }
 
   // DELETE /admin/conference/{conference_id} - Delete a conference
@@ -364,81 +420,154 @@ class ApiService {
     return httpDelete<{ message: string }>(`/admin/conference/${conferenceId}`, { token });
   }
 
-  // GET /admin/conference/{conference_id}/info - Get conference info with statistics
+  // GET /admin/conference/{conference_id}/info - Get conference info with district statistics
   getConferenceInfoAdmin(conferenceId: number) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<ConferenceInfo>(`/admin/conference/${conferenceId}/info`, { token });
+    return httpGet<{
+      conference_id: number;
+      district_info: Record<string, {
+        officials: Array<{ id: number; name: string; phone: string; gender?: string }>;
+        members: Array<{ id: number; name: string; phone: string; gender: string }>;
+        payments: Array<{
+          amount_to_pay: number;
+          uploaded_by: string;
+          date: string;
+          status: string;
+          proof_path: string | null;
+          payment_reference: string | null;
+        }>;
+        count_of_officials: number;
+        count_of_members: number;
+        count_of_male_members: number;
+        count_of_female_members: number;
+        count_of_male_officials: number;
+        count_of_female_officials: number;
+        count_of_total_male: number;
+        count_of_total_female: number;
+        total_count: number;
+        veg_count: number;
+        non_veg_count: number;
+      }>;
+    }>(`/admin/conference/${conferenceId}/info`, { token });
   }
 
   // POST /admin/conference/{conference_id}/info/export - Export conference info to Excel
   exportConferenceInfoAdmin(conferenceId: number) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpPost<Blob>(`/admin/conference/${conferenceId}/info/export`, {}, { token, asBlob: true });
+    return httpPost<{
+      message: string;
+      conference_id: number;
+      data: Record<string, any>;
+    }>(`/admin/conference/${conferenceId}/info/export`, {}, { token });
   }
 
   // GET /admin/conference/{conference_id}/payment-info - Get payment info for conference
   getConferencePaymentInfoAdmin(conferenceId: number) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<ConferencePaymentInfo>(`/admin/conference/${conferenceId}/payment-info`, { token });
+    return httpGet<{
+      conference_id: number;
+      district_info: Record<string, {
+        officials: Array<{ id: number; name: string; phone: string }>;
+        members: Array<{ id: number; name: string; phone: string }>;
+        payments: Array<{
+          amount_to_pay: number;
+          uploaded_by: string;
+          date: string;
+          status: string;
+          proof_path: string | null;
+          payment_reference: string | null;
+        }>;
+        count_of_officials: number;
+        count_of_members: number;
+      }>;
+    }>(`/admin/conference/${conferenceId}/payment-info`, { token });
   }
 
   // POST /admin/conference/{conference_id}/payment-info/export - Export payment info to Excel
   exportConferencePaymentInfoAdmin(conferenceId: number) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpPost<Blob>(`/admin/conference/${conferenceId}/payment-info/export`, {}, { token, asBlob: true });
+    return httpPost<{
+      message: string;
+      conference_id: number;
+      data: Record<string, any>;
+    }>(`/admin/conference/${conferenceId}/payment-info/export`, {}, { token });
   }
 
-  // Verify/Update conference payment status (admin)
-  updateConferencePaymentStatusAdmin(paymentId: number, status: string, remarks?: string) {
+  // GET /admin/conference/officials - Get all district officials
+  getConferenceOfficialsAdmin() {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpPut<ConferencePayment>(`/admin/conference/payments/${paymentId}`, { status, remarks }, { token });
+    return httpGet<Array<{
+      id: number;
+      name: string;
+      phone: string;
+      district: string | null;
+      conference_id: number | null;
+      conference_official_count: number;
+      conference_member_count: number;
+    }>>('/admin/conference/officials', { token });
   }
 
-  // GET /admin/conference/officials - List all district officials
-  getDistrictOfficialsAdmin() {
+  // POST /admin/conference/officials - Add a district official
+  addConferenceOfficialAdmin(data: { conference_id: number; member_id: number }) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<DistrictOfficial[]>('/admin/conference/officials', { token });
+    return httpPost<{
+      message: string;
+      official_id: number;
+      username: string;
+    }>('/admin/conference/officials', data, { token });
   }
 
-  // POST /admin/conference/officials - Create a district official
-  createDistrictOfficialAdmin(data: DistrictOfficialCreate) {
+  // PUT /admin/conference/officials/{official_id} - Update district official counts
+  updateConferenceOfficialAdmin(officialId: number, data: { conference_official_count?: number; conference_member_count?: number }) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpPost<DistrictOfficial>('/admin/conference/officials', data, { token });
-  }
-
-  // PUT /admin/conference/officials/{official_id} - Update a district official
-  updateDistrictOfficialAdmin(officialId: number, data: DistrictOfficialUpdate) {
-    const token = this.getToken();
-    if (!token) throw new Error('Authentication required');
-    return httpPut<DistrictOfficial>(`/admin/conference/officials/${officialId}`, data, { token });
+    return httpPut<{
+      message: string;
+      official_id: number;
+    }>(`/admin/conference/officials/${officialId}`, data, { token });
   }
 
   // DELETE /admin/conference/officials/{official_id} - Delete a district official
-  deleteDistrictOfficialAdmin(officialId: number) {
+  deleteConferenceOfficialAdmin(officialId: number) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     return httpDelete<{ message: string }>(`/admin/conference/officials/${officialId}`, { token });
   }
 
-  // GET /admin/conference/{conference_id}/districts/{district_id}/members - Get members by district
+  // GET /admin/conference/{conference_id}/districts/{district_id}/members - Get members for a district
   getConferenceDistrictMembersAdmin(conferenceId: number, districtId: number) {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<ConferenceDelegate[]>(`/admin/conference/${conferenceId}/districts/${districtId}/members`, { token });
+    return httpGet<Array<{
+      id: number;
+      name: string;
+      number: string;
+      gender: string;
+      dob: string;
+    }>>(`/admin/conference/${conferenceId}/districts/${districtId}/members`, { token });
   }
 
-  // GET /admin/conference/{conference_id}/delegates - Get all delegates for a conference
-  getConferenceDelegatesAdmin(conferenceId: number) {
-    const token = this.getToken();
-    if (!token) throw new Error('Authentication required');
-    return httpGet<ConferenceDelegate[]>(`/admin/conference/${conferenceId}/delegates`, { token });
+  // Legacy aliases for backward compatibility
+  getDistrictOfficialsAdmin() {
+    return this.getConferenceOfficialsAdmin();
+  }
+
+  createDistrictOfficialAdmin(data: { conference_id: number; member_id: number }) {
+    return this.addConferenceOfficialAdmin(data);
+  }
+
+  updateDistrictOfficialAdmin(officialId: number, data: { conference_official_count?: number; conference_member_count?: number }) {
+    return this.updateConferenceOfficialAdmin(officialId, data);
+  }
+
+  deleteDistrictOfficialAdmin(officialId: number) {
+    return this.deleteConferenceOfficialAdmin(officialId);
   }
 
   // -------------------------

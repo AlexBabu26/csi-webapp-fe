@@ -207,7 +207,13 @@ export const ConferenceOfficialHome: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/conference/official/delegates')}>
+        <div 
+          className="bg-white rounded-md border border-gray-200 shadow-sm p-5 hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => navigate('/conference/official/delegates')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/conference/official/delegates'); }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-100 rounded-xl">
@@ -220,9 +226,15 @@ export const ConferenceOfficialHome: React.FC = () => {
             </div>
             <ArrowRight className="w-5 h-5 text-gray-400" />
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-5 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/conference/official/payment')}>
+        <div 
+          className="bg-white rounded-md border border-gray-200 shadow-sm p-5 hover:shadow-lg transition-shadow cursor-pointer"
+          onClick={() => navigate('/conference/official/payment')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/conference/official/payment'); }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-green-100 rounded-xl">
@@ -235,7 +247,7 @@ export const ConferenceOfficialHome: React.FC = () => {
             </div>
             <ArrowRight className="w-5 h-5 text-gray-400" />
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Registration Status Alert */}
