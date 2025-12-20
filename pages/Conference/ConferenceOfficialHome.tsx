@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { 
   Users, 
@@ -12,9 +12,9 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { Card, Button, Badge, Skeleton } from '../../components/ui';
-import { api } from '../../services/api';
 import { ConferenceOfficialView } from '../../types';
 import { useToast } from '../../components/Toast';
+import { useConferenceOfficialView } from '../../hooks/queries';
 
 interface ConferenceContext {
   conferenceData: ConferenceOfficialView | null;
@@ -26,28 +26,13 @@ export const ConferenceOfficialHome: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const context = useOutletContext<ConferenceContext>();
-  const [localData, setLocalData] = useState<ConferenceOfficialView | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (context?.conferenceData) {
-      setLocalData(context.conferenceData);
-      setLoading(context.loading);
-    } else {
-      loadData();
-    }
-  }, [context]);
-
-  const loadData = async () => {
-    try {
-      const data = await api.getConferenceOfficialView();
-      setLocalData(data);
-    } catch (error: any) {
-      addToast(error.message || 'Failed to load conference data', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+  // Use TanStack Query (fallback if context not available)
+  const { data: queryData, isLoading: queryLoading } = useConferenceOfficialView();
+  
+  // Use context data if available, otherwise use query data
+  const localData = context?.conferenceData || queryData;
+  const loading = context?.loading ?? queryLoading;
 
   if (loading) {
     return (

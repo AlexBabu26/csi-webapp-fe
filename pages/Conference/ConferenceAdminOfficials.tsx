@@ -6,6 +6,13 @@ import { api } from '../../services/api';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { DataTable, Column } from '../../components/DataTable';
 import { Portal } from '../../components/Portal';
+import { 
+  useConferencesAdmin, 
+  useConferenceOfficialsAdmin, 
+  useAddConferenceOfficial, 
+  useUpdateConferenceOfficial, 
+  useDeleteConferenceOfficial 
+} from '../../hooks/queries';
 
 interface DistrictOfficial {
   id: number;
@@ -37,9 +44,15 @@ interface UnitMember {
 export const ConferenceAdminOfficials: React.FC = () => {
   const { addToast } = useToast();
   
-  const [officials, setOfficials] = useState<DistrictOfficial[]>([]);
-  const [conferences, setConferences] = useState<Conference[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use TanStack Query
+  const { data: officials = [], isLoading: officialsLoading } = useConferenceOfficialsAdmin();
+  const { data: conferences = [], isLoading: conferencesLoading } = useConferencesAdmin();
+  const addOfficialMutation = useAddConferenceOfficial();
+  const updateOfficialMutation = useUpdateConferenceOfficial();
+  const deleteOfficialMutation = useDeleteConferenceOfficial();
+  
+  const loading = officialsLoading || conferencesLoading;
+  
   const [searchTerm, setSearchTerm] = useState('');
   
   // Modal states
@@ -65,10 +78,6 @@ export const ConferenceAdminOfficials: React.FC = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState<UnitMember | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   // Lock body scroll when modal is open
   useEffect(() => {
     if (showModal || showDeleteConfirm) {
@@ -80,22 +89,6 @@ export const ConferenceAdminOfficials: React.FC = () => {
       document.body.style.overflow = '';
     };
   }, [showModal, showDeleteConfirm]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [officialsData, conferencesData] = await Promise.all([
-        api.getConferenceOfficialsAdmin(),
-        api.getConferencesAdmin(),
-      ]);
-      setOfficials(officialsData);
-      setConferences(conferencesData);
-    } catch (err) {
-      addToast("Failed to load data", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const searchMembers = async (term: string) => {
     if (term.length < 2) {
@@ -155,44 +148,38 @@ export const ConferenceAdminOfficials: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      if (modalType === 'add') {
-        if (!selectedMember) {
-          addToast("Please select a member", "error");
-          return;
-        }
-        await api.addConferenceOfficialAdmin({
-          conference_id: formData.conference_id,
-          member_id: selectedMember.id,
-        });
-        addToast("District official added successfully", "success");
-      } else if (modalType === 'edit' && selectedOfficial) {
-        await api.updateConferenceOfficialAdmin(selectedOfficial.id, {
-          conference_official_count: formData.conference_official_count,
-          conference_member_count: formData.conference_member_count,
-        });
-        addToast("Official limits updated successfully", "success");
+    if (modalType === 'add') {
+      if (!selectedMember) {
+        addToast("Please select a member", "error");
+        return;
       }
-      
-      closeModal();
-      loadData();
-    } catch (err: any) {
-      addToast(err.message || "Failed to save official", "error");
+      addOfficialMutation.mutate(
+        { conference_id: formData.conference_id, member_id: selectedMember.id },
+        { onSuccess: closeModal }
+      );
+    } else if (modalType === 'edit' && selectedOfficial) {
+      updateOfficialMutation.mutate(
+        {
+          officialId: selectedOfficial.id,
+          data: {
+            conference_official_count: formData.conference_official_count,
+            conference_member_count: formData.conference_member_count,
+          },
+        },
+        { onSuccess: closeModal }
+      );
     }
   };
 
   const handleDelete = async () => {
     if (!officialToDelete) return;
     
-    try {
-      await api.deleteConferenceOfficialAdmin(officialToDelete.id);
-      addToast("District official removed successfully", "success");
-      setShowDeleteConfirm(false);
-      setOfficialToDelete(null);
-      loadData();
-    } catch (err) {
-      addToast("Failed to remove official", "error");
-    }
+    deleteOfficialMutation.mutate(officialToDelete.id, {
+      onSuccess: () => {
+        setShowDeleteConfirm(false);
+        setOfficialToDelete(null);
+      },
+    });
   };
 
   const filteredOfficials = officials.filter(official =>

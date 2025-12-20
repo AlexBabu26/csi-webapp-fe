@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../../components/ui';
 import { ArrowLeft, Save, Calculator, Users } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
-import { api } from '../../../services/api';
 import { calculateGrade, calculatePoints } from '../../../services/api-helpers';
+import { useGroupEventScoring, useSubmitScores } from '../../../hooks/queries';
 
 interface Team {
   participation_id: number;
@@ -27,28 +27,19 @@ export const ScoreGroupEvent: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [data, setData] = useState<{
-    event_id: number;
-    event_name: string;
-    teams: Team[];
-  } | null>(null);
+  const parsedEventId = parseInt(eventId!);
+  
+  // Use TanStack Query
+  const { data, isLoading: loading } = useGroupEventScoring(parsedEventId);
+  const submitScoresMutation = useSubmitScores();
+  
   const [scores, setScores] = useState<Record<number, Score>>({});
 
+  // Initialize scores when data loads
   useEffect(() => {
-    loadTeams();
-  }, [eventId]);
-
-  const loadTeams = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getGroupEventCandidates(parseInt(eventId!));
-      setData(response.data);
-      
-      // Initialize scores
+    if (data?.teams) {
       const initialScores: Record<number, Score> = {};
-      response.data.teams.forEach((team: Team) => {
+      data.teams.forEach((team: Team) => {
         initialScores[team.participation_id] = {
           participation_id: team.participation_id,
           marks: 0,
@@ -56,12 +47,8 @@ export const ScoreGroupEvent: React.FC = () => {
         };
       });
       setScores(initialScores);
-    } catch (err: any) {
-      addToast(err.message || "Failed to load teams", "error");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [data]);
 
   const updateScore = (participationId: number, field: 'marks' | 'position', value: number) => {
     const updatedScore = { ...scores[participationId], [field]: value };
@@ -102,17 +89,19 @@ export const ScoreGroupEvent: React.FC = () => {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      await api.bulkAddGroupScores(parseInt(eventId!), scoresToSubmit);
-      addToast("Scores submitted successfully", "success");
-      navigate('/kalamela/admin/scores');
-    } catch (err: any) {
-      addToast(err.message || "Failed to submit scores", "error");
-    } finally {
-      setSubmitting(false);
-    }
+    submitScoresMutation.mutate(
+      {
+        eventId: parsedEventId,
+        eventType: 'group',
+        scores: scoresToSubmit,
+      },
+      {
+        onSuccess: () => navigate('/kalamela/admin/scores'),
+      }
+    );
   };
+
+  const submitting = submitScoresMutation.isPending;
 
   if (loading) {
     return (

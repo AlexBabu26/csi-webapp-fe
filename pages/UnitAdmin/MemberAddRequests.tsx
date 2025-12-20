@@ -1,52 +1,22 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, Badge, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { FileText, ExternalLink, Check, X } from 'lucide-react';
 import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
 import { MemberAddRequest, RequestStatus } from '../../types';
+import { useMemberAddRequests, useRequestActions } from '../../hooks/queries';
 
 export const MemberAddRequests: React.FC = () => {
-  const { addToast } = useToast();
-  
-  const [requests, setRequests] = useState<MemberAddRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadRequests();
-  }, []);
-
-  const loadRequests = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getMemberAddRequests();
-      setRequests(response.data);
-    } catch (err) {
-      console.error("Failed to load member add requests", err);
-      addToast("Failed to load requests", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use TanStack Query
+  const { data: requests = [], isLoading: loading } = useMemberAddRequests();
+  const { approve, reject } = useRequestActions('Member Add');
 
   const handleApprove = async (requestId: number) => {
-    try {
-      await api.approveRequest(requestId, 'Member Add');
-      addToast("Member add request approved", "success");
-      loadRequests();
-    } catch (err) {
-      addToast("Failed to approve request", "error");
-    }
+    approve.mutate({ requestId });
   };
 
   const handleReject = async (requestId: number) => {
-    try {
-      await api.rejectRequest(requestId, 'Member Add');
-      addToast("Member add request rejected", "success");
-      loadRequests();
-    } catch (err) {
-      addToast("Failed to reject request", "error");
-    }
+    reject.mutate({ requestId });
   };
 
   const getStatusBadge = (status: RequestStatus) => {

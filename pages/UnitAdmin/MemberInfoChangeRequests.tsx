@@ -1,37 +1,19 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, Badge, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { FileText, ExternalLink, Check, X, RotateCcw } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { api } from '../../services/api';
 import { MemberInfoChangeRequest, RequestStatus } from '../../types';
+import { useMemberInfoChangeRequests, useRequestActions } from '../../hooks/queries';
 
 export const MemberInfoChangeRequests: React.FC = () => {
-  const { addToast } = useToast();
+  // Use TanStack Query
+  const { data: requests = [], isLoading: loading } = useMemberInfoChangeRequests();
+  const { approve, reject, revert, isProcessing } = useRequestActions('Member Info Change');
   
-  const [requests, setRequests] = useState<MemberInfoChangeRequest[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<MemberInfoChangeRequest | null>(null);
   const [dialogAction, setDialogAction] = useState<'approve' | 'reject' | 'revert' | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  useEffect(() => {
-    loadRequests();
-  }, []);
-
-  const loadRequests = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getMemberInfoChangeRequests();
-      setRequests(response.data);
-    } catch (err) {
-      console.error("Failed to load member info change requests", err);
-      addToast("Failed to load requests", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openDialog = (request: MemberInfoChangeRequest, action: 'approve' | 'reject' | 'revert') => {
     setSelectedRequest(request);
@@ -46,26 +28,14 @@ export const MemberInfoChangeRequests: React.FC = () => {
   const handleConfirmAction = async (remarks?: string) => {
     if (!selectedRequest || !dialogAction) return;
     
-    try {
-      setIsProcessing(true);
-      
-      if (dialogAction === 'approve') {
-        await api.approveRequest(selectedRequest.id, 'Member Info Change', remarks);
-        addToast("Member info change request approved", "success");
-      } else if (dialogAction === 'reject') {
-        await api.rejectRequest(selectedRequest.id, 'Member Info Change', remarks);
-        addToast("Member info change request rejected", "success");
-      } else if (dialogAction === 'revert') {
-        await api.revertRequest(selectedRequest.id, 'Member Info Change', remarks);
-        addToast("Member info change request reverted", "success");
-      }
-      
-      closeDialog();
-      loadRequests();
-    } catch (err) {
-      addToast(`Failed to ${dialogAction} request`, "error");
-    } finally {
-      setIsProcessing(false);
+    const params = { requestId: selectedRequest.id, remarks };
+    
+    if (dialogAction === 'approve') {
+      approve.mutate(params, { onSuccess: closeDialog });
+    } else if (dialogAction === 'reject') {
+      reject.mutate(params, { onSuccess: closeDialog });
+    } else if (dialogAction === 'revert') {
+      revert.mutate(params, { onSuccess: closeDialog });
     }
   };
 

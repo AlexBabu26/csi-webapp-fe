@@ -1,36 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, Badge, Button } from '../../../components/ui';
 import { MessageSquare, AlertCircle } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
-import { api } from '../../../services/api';
 import { Portal } from '../../../components/Portal';
+import { useKalamelaAppeals, useResolveKalamelaAppeal } from '../../../hooks/queries';
 
 export const ManageAppeals: React.FC = () => {
   const { addToast } = useToast();
   
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  // Use TanStack Query
+  const { data: appealsData, isLoading: loading } = useKalamelaAppeals();
+  const resolveMutation = useResolveKalamelaAppeal();
+  
+  const appeals = appealsData ?? [];
+  
   const [showReplyDialog, setShowReplyDialog] = useState(false);
   const [selectedAppeal, setSelectedAppeal] = useState<any | null>(null);
   const [reply, setReply] = useState('');
   const [newPosition, setNewPosition] = useState<number | null>(null);
-  const [appeals, setAppeals] = useState<any[]>([]);
-
-  useEffect(() => {
-    loadAppeals();
-  }, []);
-
-  const loadAppeals = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getKalamelaAdminAppeals();
-      setAppeals(response.data);
-    } catch (err) {
-      addToast("Failed to load appeals", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleReply = async () => {
     if (!selectedAppeal || !reply.trim()) {
@@ -38,20 +25,17 @@ export const ManageAppeals: React.FC = () => {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      await api.replyToAppeal(selectedAppeal.appeal_id, reply, newPosition || undefined);
-      addToast("Reply sent successfully", "success");
-      setShowReplyDialog(false);
-      setSelectedAppeal(null);
-      setReply('');
-      setNewPosition(null);
-      loadAppeals();
-    } catch (err: any) {
-      addToast(err.message || "Failed to send reply", "error");
-    } finally {
-      setSubmitting(false);
-    }
+    resolveMutation.mutate(
+      { appealId: selectedAppeal.appeal_id, reply },
+      {
+        onSuccess: () => {
+          setShowReplyDialog(false);
+          setSelectedAppeal(null);
+          setReply('');
+          setNewPosition(null);
+        },
+      }
+    );
   };
 
   const openReplyDialog = (appeal: any) => {
@@ -294,9 +278,9 @@ export const ManageAppeals: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={handleReply}
-                    disabled={submitting || !reply.trim()}
+                    disabled={resolveMutation.isPending || !reply.trim()}
                   >
-                    {submitting ? 'Sending...' : 'Send Reply'}
+                    {resolveMutation.isPending ? 'Sending...' : 'Send Reply'}
                   </Button>
                 </div>
               </div>

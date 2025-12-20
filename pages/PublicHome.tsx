@@ -9,6 +9,7 @@ import { Footer } from '../components/Footer';
 import { api } from '../services/api';
 import { getMediaUrl } from '../services/http';
 import { setAuthUser, setAuthTokens } from '../services/auth';
+import { useSiteSettings, useNotices } from '../hooks/queries';
 
 interface PublicHomeProps {
   onLogin: (role: UserRole) => void;
@@ -86,30 +87,10 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [showFullAbout, setShowFullAbout] = useState(false);
   
-  // Site settings state
-  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [settingsLoading, setSettingsLoading] = useState(true);
-
-  // Fetch site settings on mount
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const [settings, noticesData] = await Promise.all([
-          api.getSiteSettings(),
-          api.getNotices(true) // Get only active notices
-        ]);
-        setSiteSettings(settings);
-        setNotices(noticesData);
-      } catch (err) {
-        console.error('Failed to load site settings:', err);
-        // Fallback to defaults if API fails
-      } finally {
-        setSettingsLoading(false);
-      }
-    };
-    loadSettings();
-  }, []);
+  // Use TanStack Query for site settings
+  const { data: siteSettings, isLoading: settingsLoading } = useSiteSettings();
+  const { data: noticesData } = useNotices();
+  const notices = noticesData ?? [];
 
   // Use API data or fallback to constants
   const appName = siteSettings?.app_name || APP_NAME;
@@ -153,9 +134,12 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
       if (me.user_type === '1') {
         console.log('[PublicHome] Navigating to admin dashboard');
         navigate('/admin/dashboard');
-      } else if (me.user_type === '2' || me.user_type === '3') {
+      } else if (me.user_type === '2') {
         console.log('[PublicHome] Navigating to Kalamela official portal');
         navigate('/kalamela/official');
+      } else if (me.user_type === '3') {
+        console.log('[PublicHome] Navigating to Conference official portal');
+        navigate('/conference/official/home');
       } else {
         console.log('[PublicHome] Navigating to home');
         navigate('/');

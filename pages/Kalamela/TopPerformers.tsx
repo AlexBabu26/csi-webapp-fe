@@ -1,47 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, Badge } from '../../components/ui';
 import { Trophy, Star, Crown } from 'lucide-react';
-import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
+import { useKalamelaTopPerformers } from '../../hooks/queries';
 
 export const TopPerformers: React.FC = () => {
-  const { addToast } = useToast();
-  
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<{
-    kalaprathibha: Array<{
-      rank: number;
-      unit_name: string;
-      total_points: number;
-      individual_points: number;
-      group_points: number;
-      event_count: number;
-    }>;
-    kalathilakam: Array<{
-      rank: number;
-      participant_name: string;
-      unit_name: string;
-      total_points: number;
-      event_count: number;
-      grades: { A: number; B: number; C: number };
-    }>;
-  } | null>(null);
-
-  useEffect(() => {
-    loadTopPerformers();
-  }, []);
-
-  const loadTopPerformers = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getKalaprathibha();
-      setData(response.data);
-    } catch (err) {
-      addToast("Failed to load top performers", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use TanStack Query
+  const { data, isLoading: loading } = useKalamelaTopPerformers();
 
   if (loading) {
     return (

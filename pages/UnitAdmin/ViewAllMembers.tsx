@@ -1,34 +1,18 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, Badge, Button } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Download, Users, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { UnitMember } from '../../types';
+import { useMembers } from '../../hooks/queries';
 
 export const ViewAllMembers: React.FC = () => {
   const { addToast } = useToast();
   
-  const [members, setMembers] = useState<UnitMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use TanStack Query
+  const { data: members = [], isLoading: loading } = useMembers();
   const [selectedRows, setSelectedRows] = useState<UnitMember[]>([]);
-
-  useEffect(() => {
-    const loadMembers = async () => {
-      try {
-        setLoading(true);
-        const response = await api.getUnitMembers();
-        setMembers(response.data);
-      } catch (err) {
-        console.error("Failed to load members", err);
-        addToast("Failed to load members", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadMembers();
-  }, [addToast]);
 
   const handleExport = async () => {
     try {

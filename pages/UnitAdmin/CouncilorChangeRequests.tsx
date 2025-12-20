@@ -1,62 +1,26 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, Badge, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { FileText, ExternalLink, Check, X, RotateCcw } from 'lucide-react';
 import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
 import { CouncilorChangeRequest, RequestStatus } from '../../types';
+import { useCouncilorChangeRequests, useRequestActions } from '../../hooks/queries';
 
 export const CouncilorChangeRequests: React.FC = () => {
-  const { addToast } = useToast();
-  
-  const [requests, setRequests] = useState<CouncilorChangeRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadRequests();
-  }, []);
-
-  const loadRequests = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getCouncilorChangeRequests();
-      setRequests(response.data);
-    } catch (err) {
-      console.error("Failed to load councilor change requests", err);
-      addToast("Failed to load requests", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use TanStack Query
+  const { data: requests = [], isLoading: loading } = useCouncilorChangeRequests();
+  const { approve, reject, revert } = useRequestActions('Councilor Change');
 
   const handleApprove = async (requestId: number) => {
-    try {
-      await api.approveRequest(requestId, 'Councilor Change');
-      addToast("Councilor change request approved", "success");
-      loadRequests();
-    } catch (err) {
-      addToast("Failed to approve request", "error");
-    }
+    approve.mutate({ requestId });
   };
 
   const handleReject = async (requestId: number) => {
-    try {
-      await api.rejectRequest(requestId, 'Councilor Change');
-      addToast("Councilor change request rejected", "success");
-      loadRequests();
-    } catch (err) {
-      addToast("Failed to reject request", "error");
-    }
+    reject.mutate({ requestId });
   };
 
   const handleRevert = async (requestId: number) => {
-    try {
-      await api.revertRequest(requestId, 'Councilor Change');
-      addToast("Councilor change request reverted", "success");
-      loadRequests();
-    } catch (err) {
-      addToast("Failed to revert request", "error");
-    }
+    revert.mutate({ requestId });
   };
 
   const getStatusBadge = (status: RequestStatus) => {

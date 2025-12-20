@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Calculator } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
 import { api } from '../../../services/api';
 import { calculateGrade, calculatePoints } from '../../../services/api-helpers';
+import { useIndividualEventScoring, useSubmitScores } from '../../../hooks/queries';
 
 interface Candidate {
   participant_id: number;
@@ -29,28 +30,19 @@ export const ScoreIndividualEvent: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [data, setData] = useState<{
-    event_id: number;
-    event_name: string;
-    participants: Candidate[];
-  } | null>(null);
+  const parsedEventId = parseInt(eventId!);
+  
+  // Use TanStack Query
+  const { data, isLoading: loading } = useIndividualEventScoring(parsedEventId);
+  const submitScoresMutation = useSubmitScores();
+  
   const [scores, setScores] = useState<Record<number, Score>>({});
 
+  // Initialize scores when data loads
   useEffect(() => {
-    loadCandidates();
-  }, [eventId]);
-
-  const loadCandidates = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getIndividualEventCandidates(parseInt(eventId!));
-      setData(response.data);
-      
-      // Initialize scores
+    if (data?.participants) {
       const initialScores: Record<number, Score> = {};
-      response.data.participants.forEach((participant: Candidate) => {
+      data.participants.forEach((participant: Candidate) => {
         initialScores[participant.participant_id] = {
           participant_id: participant.participant_id,
           marks: 0,
@@ -58,12 +50,8 @@ export const ScoreIndividualEvent: React.FC = () => {
         };
       });
       setScores(initialScores);
-    } catch (err: any) {
-      addToast(err.message || "Failed to load candidates", "error");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [data]);
 
   const updateScore = (participantId: number, field: 'marks' | 'position', value: number) => {
     const updatedScore = { ...scores[participantId], [field]: value };
@@ -105,17 +93,19 @@ export const ScoreIndividualEvent: React.FC = () => {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      await api.bulkAddIndividualScores(parseInt(eventId!), scoresToSubmit);
-      addToast("Scores submitted successfully", "success");
-      navigate('/kalamela/admin/scores');
-    } catch (err: any) {
-      addToast(err.message || "Failed to submit scores", "error");
-    } finally {
-      setSubmitting(false);
-    }
+    submitScoresMutation.mutate(
+      {
+        eventId: parsedEventId,
+        eventType: 'individual',
+        scores: scoresToSubmit,
+      },
+      {
+        onSuccess: () => navigate('/kalamela/admin/scores'),
+      }
+    );
   };
+
+  const submitting = submitScoresMutation.isPending;
 
   if (loading) {
     return (

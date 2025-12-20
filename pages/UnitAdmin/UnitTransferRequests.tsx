@@ -1,37 +1,19 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, Badge, Button, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { FileText, ExternalLink, Check, X, RotateCcw } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { api } from '../../services/api';
 import { TransferRequest, RequestStatus } from '../../types';
+import { useTransferRequests, useRequestActions } from '../../hooks/queries';
 
 export const UnitTransferRequests: React.FC = () => {
-  const { addToast } = useToast();
+  // Use TanStack Query
+  const { data: requests = [], isLoading: loading } = useTransferRequests();
+  const { approve, reject, revert, isProcessing } = useRequestActions('Transfer');
   
-  const [requests, setRequests] = useState<TransferRequest[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<TransferRequest | null>(null);
   const [dialogAction, setDialogAction] = useState<'approve' | 'reject' | 'revert' | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  useEffect(() => {
-    loadRequests();
-  }, []);
-
-  const loadRequests = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getTransferRequests();
-      setRequests(response.data);
-    } catch (err) {
-      console.error("Failed to load transfer requests", err);
-      addToast("Failed to load requests", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openDialog = (request: TransferRequest, action: 'approve' | 'reject' | 'revert') => {
     setSelectedRequest(request);
@@ -46,26 +28,14 @@ export const UnitTransferRequests: React.FC = () => {
   const handleConfirmAction = async (remarks?: string) => {
     if (!selectedRequest || !dialogAction) return;
     
-    try {
-      setIsProcessing(true);
-      
-      if (dialogAction === 'approve') {
-        await api.approveRequest(selectedRequest.id, 'Transfer', remarks);
-        addToast("Transfer request approved", "success");
-      } else if (dialogAction === 'reject') {
-        await api.rejectRequest(selectedRequest.id, 'Transfer', remarks);
-        addToast("Transfer request rejected", "success");
-      } else if (dialogAction === 'revert') {
-        await api.revertRequest(selectedRequest.id, 'Transfer', remarks);
-        addToast("Transfer request reverted", "success");
-      }
-      
-      closeDialog();
-      loadRequests();
-    } catch (err) {
-      addToast(`Failed to ${dialogAction} request`, "error");
-    } finally {
-      setIsProcessing(false);
+    const params = { requestId: selectedRequest.id, remarks };
+    
+    if (dialogAction === 'approve') {
+      approve.mutate(params, { onSuccess: closeDialog });
+    } else if (dialogAction === 'reject') {
+      reject.mutate(params, { onSuccess: closeDialog });
+    } else if (dialogAction === 'revert') {
+      revert.mutate(params, { onSuccess: closeDialog });
     }
   };
 

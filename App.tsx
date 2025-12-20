@@ -6,6 +6,7 @@ import { ToastProvider } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Skeleton } from './components/ui';
 import { UserRole } from './types';
+import { QueryProvider } from './providers/QueryProvider';
 
 // Lazy Load Pages
 const PublicHome = lazy(() => import('./pages/PublicHome').then(module => ({ default: module.PublicHome })));
@@ -104,10 +105,11 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <ToastProvider>
-        <Router>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
+      <QueryProvider>
+        <ToastProvider>
+          <Router>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
               {/* Homepage with Login */}
               <Route path="/" element={<PublicHome onLogin={handleLogin} />} />
               
@@ -402,6 +404,7 @@ const App: React.FC = () => {
           </Suspense>
         </Router>
       </ToastProvider>
+      </QueryProvider>
     </ErrorBoundary>
   );
 };

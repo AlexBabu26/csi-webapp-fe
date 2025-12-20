@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Badge, Button } from '../../components/ui';
 import { Plus, Edit2, Trash2, X, Calendar, Users, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Portal } from '../../components/Portal';
+import { useConferencesAdmin, useCreateConference, useUpdateConference, useDeleteConference } from '../../hooks/queries';
 
 interface Conference {
   id: number;
@@ -17,8 +17,11 @@ interface Conference {
 export const ConferenceAdminHome: React.FC = () => {
   const { addToast } = useToast();
   
-  const [conferences, setConferences] = useState<Conference[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use TanStack Query
+  const { data: conferences = [], isLoading: loading } = useConferencesAdmin();
+  const createMutation = useCreateConference();
+  const updateMutation = useUpdateConference();
+  const deleteMutation = useDeleteConference();
   
   // Modal states
   const [showModal, setShowModal] = useState(false);
@@ -36,10 +39,6 @@ export const ConferenceAdminHome: React.FC = () => {
     status: 'Active' as 'Active' | 'Inactive' | 'Completed',
   });
 
-  useEffect(() => {
-    loadConferences();
-  }, []);
-
   // Lock body scroll when modal is open
   useEffect(() => {
     if (showModal || showDeleteConfirm) {
@@ -51,18 +50,6 @@ export const ConferenceAdminHome: React.FC = () => {
       document.body.style.overflow = '';
     };
   }, [showModal, showDeleteConfirm]);
-
-  const loadConferences = async () => {
-    try {
-      setLoading(true);
-      const data = await api.getConferencesAdmin();
-      setConferences(data);
-    } catch (err) {
-      addToast("Failed to load conferences", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openModal = (type: 'add' | 'edit', conference?: Conference) => {
     setModalType(type);
@@ -93,41 +80,31 @@ export const ConferenceAdminHome: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      if (modalType === 'add') {
-        await api.createConferenceAdmin({
-          title: formData.title,
-          details: formData.details,
-        });
-        addToast("Conference created successfully", "success");
-      } else if (modalType === 'edit' && selectedConference) {
-        await api.updateConferenceAdmin(selectedConference.id, {
-          title: formData.title,
-          details: formData.details,
-          status: formData.status,
-        });
-        addToast("Conference updated successfully", "success");
-      }
-      
-      closeModal();
-      loadConferences();
-    } catch (err) {
-      addToast("Failed to save conference", "error");
+    if (modalType === 'add') {
+      createMutation.mutate(
+        { title: formData.title, details: formData.details },
+        { onSuccess: closeModal }
+      );
+    } else if (modalType === 'edit' && selectedConference) {
+      updateMutation.mutate(
+        {
+          conferenceId: selectedConference.id,
+          data: { title: formData.title, details: formData.details, status: formData.status },
+        },
+        { onSuccess: closeModal }
+      );
     }
   };
 
   const handleDelete = async () => {
     if (!conferenceToDelete) return;
     
-    try {
-      await api.deleteConferenceAdmin(conferenceToDelete.id);
-      addToast("Conference deleted successfully", "success");
-      setShowDeleteConfirm(false);
-      setConferenceToDelete(null);
-      loadConferences();
-    } catch (err) {
-      addToast("Failed to delete conference", "error");
-    }
+    deleteMutation.mutate(conferenceToDelete.id, {
+      onSuccess: () => {
+        setShowDeleteConfirm(false);
+        setConferenceToDelete(null);
+      },
+    });
   };
 
   const getStatusBadge = (status: string) => {

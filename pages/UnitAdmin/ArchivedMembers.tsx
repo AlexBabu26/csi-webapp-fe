@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, Badge, Button, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Download, RotateCcw, Archive } from 'lucide-react';
@@ -6,32 +6,17 @@ import { useToast } from '../../components/Toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { api } from '../../services/api';
 import { ArchivedMember } from '../../types';
+import { useArchivedMembers, useRestoreMember } from '../../hooks/queries';
 
 export const ArchivedMembers: React.FC = () => {
   const { addToast } = useToast();
   
-  const [members, setMembers] = useState<ArchivedMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use TanStack Query
+  const { data: members = [], isLoading: loading, refetch } = useArchivedMembers();
+  const restoreMutation = useRestoreMember();
+  
   const [selectedMember, setSelectedMember] = useState<ArchivedMember | null>(null);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
-
-  useEffect(() => {
-    loadArchivedMembers();
-  }, []);
-
-  const loadArchivedMembers = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getArchivedMembers();
-      setMembers(response.data);
-    } catch (err) {
-      console.error("Failed to load archived members", err);
-      addToast("Failed to load archived members", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleRestore = (member: ArchivedMember) => {
     setSelectedMember(member);
@@ -41,19 +26,12 @@ export const ArchivedMembers: React.FC = () => {
   const handleConfirmRestore = async () => {
     if (!selectedMember) return;
     
-    try {
-      setIsRestoring(true);
-      await api.restoreMember(selectedMember.id);
-      addToast(`${selectedMember.name} restored successfully`, "success");
-      setShowRestoreDialog(false);
-      setSelectedMember(null);
-      // Reload the list
-      loadArchivedMembers();
-    } catch (err) {
-      addToast("Failed to restore member", "error");
-    } finally {
-      setIsRestoring(false);
-    }
+    restoreMutation.mutate(selectedMember.id, {
+      onSuccess: () => {
+        setShowRestoreDialog(false);
+        setSelectedMember(null);
+      },
+    });
   };
 
   const handleExport = async () => {
@@ -228,7 +206,7 @@ export const ArchivedMembers: React.FC = () => {
         confirmText="Restore"
         cancelText="Cancel"
         variant="info"
-        isLoading={isRestoring}
+        isLoading={restoreMutation.isPending}
       />
     </div>
   );

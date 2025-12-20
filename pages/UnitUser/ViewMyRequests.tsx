@@ -1,58 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge } from '../../components/ui';
 import { RequestStatusBadge } from '../../components/RequestStatusBadge';
 import { FileText, ArrowRightLeft, Users, Shield, UserCheck, UserPlus } from 'lucide-react';
 import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
-
-interface MyRequestsData {
-  transfers: any[];
-  memberInfoChanges: any[];
-  officialsChanges: any[];
-  councilorChanges: any[];
-  memberAdds: any[];
-}
+import { useMyRequests } from '../../hooks/queries';
 
 export const ViewMyRequests: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
-  const [requests, setRequests] = useState<MyRequestsData>({
-    transfers: [],
-    memberInfoChanges: [],
-    officialsChanges: [],
-    councilorChanges: [],
-    memberAdds: [],
-  });
-  const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
   // Get current unit ID from authenticated user
   const unitId = getCurrentUnitId();
 
-  useEffect(() => {
-    if (!unitId) {
-      addToast("Please login to access this page", "error");
-      navigate('/');
-      return;
-    }
-    loadRequests();
-  }, [unitId]);
+  // Use TanStack Query
+  const { data: requests, isLoading: loading } = useMyRequests(unitId || 0);
 
-  const loadRequests = async () => {
-    if (!unitId) return;
-    
-    try {
-      setLoading(true);
-      const response = await api.getMyRequests(unitId);
-      setRequests(response.data);
-    } catch (err) {
-      console.error("Failed to load requests", err);
-      addToast("Failed to load requests", "error");
-    } finally {
-      setLoading(false);
-    }
+  // Redirect if not logged in
+  if (!unitId) {
+    addToast("Please login to access this page", "error");
+    navigate('/');
+    return null;
+  }
+
+  // Default empty data structure
+  const requestsData = requests || {
+    transfers: [],
+    memberInfoChanges: [],
+    officialsChanges: [],
+    councilorChanges: [],
+    memberAdds: [],
   };
 
   const filterByStatus = (items: any[]) => {
@@ -62,31 +41,31 @@ export const ViewMyRequests: React.FC = () => {
 
   const getTotalCount = () => {
     return (
-      requests.transfers.length +
-      requests.memberInfoChanges.length +
-      requests.officialsChanges.length +
-      requests.councilorChanges.length +
-      requests.memberAdds.length
+      requestsData.transfers.length +
+      requestsData.memberInfoChanges.length +
+      requestsData.officialsChanges.length +
+      requestsData.councilorChanges.length +
+      requestsData.memberAdds.length
     );
   };
 
   const getPendingCount = () => {
     return (
-      requests.transfers.filter(r => r.status === 'PENDING').length +
-      requests.memberInfoChanges.filter(r => r.status === 'PENDING').length +
-      requests.officialsChanges.filter(r => r.status === 'PENDING').length +
-      requests.councilorChanges.filter(r => r.status === 'PENDING').length +
-      requests.memberAdds.filter(r => r.status === 'PENDING').length
+      requestsData.transfers.filter(r => r.status === 'PENDING').length +
+      requestsData.memberInfoChanges.filter(r => r.status === 'PENDING').length +
+      requestsData.officialsChanges.filter(r => r.status === 'PENDING').length +
+      requestsData.councilorChanges.filter(r => r.status === 'PENDING').length +
+      requestsData.memberAdds.filter(r => r.status === 'PENDING').length
     );
   };
 
   const getApprovedCount = () => {
     return (
-      requests.transfers.filter(r => r.status === 'APPROVED').length +
-      requests.memberInfoChanges.filter(r => r.status === 'APPROVED').length +
-      requests.officialsChanges.filter(r => r.status === 'APPROVED').length +
-      requests.councilorChanges.filter(r => r.status === 'APPROVED').length +
-      requests.memberAdds.filter(r => r.status === 'APPROVED').length
+      requestsData.transfers.filter(r => r.status === 'APPROVED').length +
+      requestsData.memberInfoChanges.filter(r => r.status === 'APPROVED').length +
+      requestsData.officialsChanges.filter(r => r.status === 'APPROVED').length +
+      requestsData.councilorChanges.filter(r => r.status === 'APPROVED').length +
+      requestsData.memberAdds.filter(r => r.status === 'APPROVED').length
     );
   };
 
@@ -146,15 +125,15 @@ export const ViewMyRequests: React.FC = () => {
       </Card>
 
       {/* Transfer Requests */}
-      {filterByStatus(requests.transfers).length > 0 && (
+      {filterByStatus(requestsData.transfers).length > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <ArrowRightLeft className="w-5 h-5 text-primary" />
             <h3 className="text-lg font-bold text-textDark">Transfer Requests</h3>
-            <Badge variant="light">{filterByStatus(requests.transfers).length}</Badge>
+            <Badge variant="light">{filterByStatus(requestsData.transfers).length}</Badge>
           </div>
           <div className="space-y-3">
-            {filterByStatus(requests.transfers).map((request) => (
+            {filterByStatus(requestsData.transfers).map((request) => (
               <div key={request.id} className="p-4 border border-borderColor rounded-lg hover:bg-bgLight transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -175,15 +154,15 @@ export const ViewMyRequests: React.FC = () => {
       )}
 
       {/* Member Info Change Requests */}
-      {filterByStatus(requests.memberInfoChanges).length > 0 && (
+      {filterByStatus(requestsData.memberInfoChanges).length > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <FileText className="w-5 h-5 text-primary" />
             <h3 className="text-lg font-bold text-textDark">Member Info Changes</h3>
-            <Badge variant="light">{filterByStatus(requests.memberInfoChanges).length}</Badge>
+            <Badge variant="light">{filterByStatus(requestsData.memberInfoChanges).length}</Badge>
           </div>
           <div className="space-y-3">
-            {filterByStatus(requests.memberInfoChanges).map((request) => (
+            {filterByStatus(requestsData.memberInfoChanges).map((request) => (
               <div key={request.id} className="p-4 border border-borderColor rounded-lg hover:bg-bgLight transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -202,15 +181,15 @@ export const ViewMyRequests: React.FC = () => {
       )}
 
       {/* Officials Change Requests */}
-      {filterByStatus(requests.officialsChanges).length > 0 && (
+      {filterByStatus(requestsData.officialsChanges).length > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <Shield className="w-5 h-5 text-primary" />
             <h3 className="text-lg font-bold text-textDark">Officials Changes</h3>
-            <Badge variant="light">{filterByStatus(requests.officialsChanges).length}</Badge>
+            <Badge variant="light">{filterByStatus(requestsData.officialsChanges).length}</Badge>
           </div>
           <div className="space-y-3">
-            {filterByStatus(requests.officialsChanges).map((request) => (
+            {filterByStatus(requestsData.officialsChanges).map((request) => (
               <div key={request.id} className="p-4 border border-borderColor rounded-lg hover:bg-bgLight transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -229,15 +208,15 @@ export const ViewMyRequests: React.FC = () => {
       )}
 
       {/* Councilor Change Requests */}
-      {filterByStatus(requests.councilorChanges).length > 0 && (
+      {filterByStatus(requestsData.councilorChanges).length > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <UserCheck className="w-5 h-5 text-primary" />
             <h3 className="text-lg font-bold text-textDark">Councilor Changes</h3>
-            <Badge variant="light">{filterByStatus(requests.councilorChanges).length}</Badge>
+            <Badge variant="light">{filterByStatus(requestsData.councilorChanges).length}</Badge>
           </div>
           <div className="space-y-3">
-            {filterByStatus(requests.councilorChanges).map((request) => (
+            {filterByStatus(requestsData.councilorChanges).map((request) => (
               <div key={request.id} className="p-4 border border-borderColor rounded-lg hover:bg-bgLight transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -258,15 +237,15 @@ export const ViewMyRequests: React.FC = () => {
       )}
 
       {/* Member Add Requests */}
-      {filterByStatus(requests.memberAdds).length > 0 && (
+      {filterByStatus(requestsData.memberAdds).length > 0 && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <UserPlus className="w-5 h-5 text-primary" />
             <h3 className="text-lg font-bold text-textDark">Member Add Requests</h3>
-            <Badge variant="light">{filterByStatus(requests.memberAdds).length}</Badge>
+            <Badge variant="light">{filterByStatus(requestsData.memberAdds).length}</Badge>
           </div>
           <div className="space-y-3">
-            {filterByStatus(requests.memberAdds).map((request) => (
+            {filterByStatus(requestsData.memberAdds).map((request) => (
               <div key={request.id} className="p-4 border border-borderColor rounded-lg hover:bg-bgLight transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">

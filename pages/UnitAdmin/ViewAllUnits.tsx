@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
@@ -6,31 +6,14 @@ import { Download, Eye, Building } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { Unit } from '../../types';
+import { useUnits } from '../../hooks/queries';
 
 export const ViewAllUnits: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
   
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRows, setSelectedRows] = useState<Unit[]>([]);
-
-  useEffect(() => {
-    const loadUnits = async () => {
-      try {
-        setLoading(true);
-        const response = await api.getUnits();
-        setUnits(response.data);
-      } catch (err) {
-        console.error("Failed to load units", err);
-        addToast("Failed to load units", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUnits();
-  }, [addToast]);
+  // Use TanStack Query
+  const { data: units = [], isLoading: loading } = useUnits();
 
   const handleExport = async () => {
     try {

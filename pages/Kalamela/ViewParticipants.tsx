@@ -1,64 +1,69 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
 import { ArrowLeft, Trash2, Users, User } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRemoveParticipant } from '../../hooks/queries';
 
 type TabType = 'individual' | 'group';
 
 export const ViewParticipants: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const queryClient = useQueryClient();
   
   const [activeTab, setActiveTab] = useState<TabType>('individual');
-  const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedParticipation, setSelectedParticipation] = useState<number | null>(null);
-  const [data, setData] = useState<{
-    individual_event_participations: Record<string, any[]>;
-    group_event_participations: Record<string, any[]>;
-  } | null>(null);
-
-  useEffect(() => {
-    loadParticipants();
-  }, [activeTab]);
-
-  const loadParticipants = async () => {
-    try {
-      setLoading(true);
-      if (activeTab === 'individual') {
-        const response = await api.getOfficialIndividualParticipants();
-        setData({ ...data, individual_event_participations: response.data.individual_event_participations || {} });
-      } else {
-        const response = await api.getOfficialGroupParticipants();
-        setData({ ...data, group_event_participations: response.data.group_event_participations || {} });
-      }
-    } catch (err) {
-      addToast("Failed to load participants", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [selectedParticipation, setSelectedParticipation] = useState<{ id: number; eventId: number } | null>(null);
+  
+  // Use TanStack Query
+  const { data: individualData, isLoading: loadingIndividual } = useQuery({
+    queryKey: ['kalamela', 'participants', 'individual', 'official'],
+    queryFn: async () => {
+      const response = await api.getOfficialIndividualParticipants();
+      return response.data.individual_event_participations || {};
+    },
+    enabled: activeTab === 'individual',
+  });
+  
+  const { data: groupData, isLoading: loadingGroup } = useQuery({
+    queryKey: ['kalamela', 'participants', 'group', 'official'],
+    queryFn: async () => {
+      const response = await api.getOfficialGroupParticipants();
+      return response.data.group_event_participations || {};
+    },
+    enabled: activeTab === 'group',
+  });
+  
+  const removeMutation = useRemoveParticipant();
+  
+  const loading = activeTab === 'individual' ? loadingIndividual : loadingGroup;
 
   const handleRemove = async () => {
     if (!selectedParticipation) return;
 
-    try {
-      if (activeTab === 'individual') {
-        await api.removeIndividualParticipant(selectedParticipation);
-      } else {
-        await api.removeGroupParticipant(selectedParticipation);
+    removeMutation.mutate(
+      { participantId: selectedParticipation.id, eventId: selectedParticipation.eventId },
+      {
+        onSuccess: () => {
+          setShowDeleteDialog(false);
+          setSelectedParticipation(null);
+          // Invalidate the specific query
+          queryClient.invalidateQueries({ 
+            queryKey: ['kalamela', 'participants', activeTab, 'official'] 
+          });
+        },
       }
-      addToast("Participant removed successfully", "success");
-      setShowDeleteDialog(false);
-      setSelectedParticipation(null);
-      loadParticipants();
-    } catch (err: any) {
-      addToast(err.message || "Failed to remove participant", "error");
-    }
+    );
   };
+
+  const individualEvents = individualData || {};
+  const groupEvents = groupData || {};
+  const events = activeTab === 'individual' ? individualEvents : groupEvents;
+  const eventNames = Object.keys(events);
 
   if (loading) {
     return (
@@ -71,11 +76,6 @@ export const ViewParticipants: React.FC = () => {
       </div>
     );
   }
-
-  const individualEvents = data?.individual_event_participations || {};
-  const groupEvents = data?.group_event_participations || {};
-  const events = activeTab === 'individual' ? individualEvents : groupEvents;
-  const eventNames = Object.keys(events);
 
   return (
     <div className="space-y-6 animate-slide-in">
@@ -189,7 +189,10 @@ export const ViewParticipants: React.FC = () => {
                         variant="danger"
                         size="sm"
                         onClick={() => {
-                          setSelectedParticipation(participant.participation_id || participant.id);
+                          setSelectedParticipation({ 
+                            id: participant.participation_id || participant.id,
+                            eventId: participant.event_id || 0
+                          });
                           setShowDeleteDialog(true);
                         }}
                       >

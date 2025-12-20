@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { 
   BarChart, 
   Bar,
@@ -19,46 +19,22 @@ import { DataTable, ColumnDef } from '../components/DataTable';
 import { Download, Plus, AlertCircle, Eye, Users, Building, UserCheck, FileText, TrendingUp } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../services/api';
 import { Unit, UnitStats, DistrictWiseData } from '../types';
+import { useDashboardData } from '../hooks/queries';
 
 export const AdminDashboard: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
   
-  // Local state for data
-  const [stats, setStats] = useState<UnitStats | null>(null);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [chartData, setChartData] = useState<DistrictWiseData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedRows, setSelectedRows] = useState<Unit[]>([]);
+  // Use TanStack Query for data fetching
+  const { stats, units, chartData, isLoading: loading, error } = useDashboardData();
 
-  // Fetch data on mount
+  // Show error toast on query error
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        setLoading(true);
-        const [statsRes, unitsRes, chartRes] = await Promise.all([
-          api.getUnitStats(),
-          api.getUnits(),
-          api.getDistrictWiseData()
-        ]);
-        
-        setStats(statsRes.data);
-        setUnits(unitsRes.data);
-        setChartData(chartRes.data);
-      } catch (err) {
-        console.error("Failed to load dashboard data", err);
-        setError("Failed to load dashboard data. Please try again.");
-        addToast("Connection failed", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDashboardData();
-  }, [addToast]);
+    if (error) {
+      addToast("Connection failed", "error");
+    }
+  }, [error, addToast]);
 
   const handleAction = (action: string) => {
     addToast(`${action} action triggered`, 'info');
@@ -205,7 +181,7 @@ export const AdminDashboard: React.FC = () => {
       <div className="p-8 text-center bg-white rounded-lg shadow-sm border border-red-100 mt-8">
         <AlertCircle className="mx-auto h-12 w-12 text-red-400 mb-4" />
         <h3 className="text-lg font-medium text-textDark">Unable to load dashboard</h3>
-        <p className="text-textMuted mb-4">{error}</p>
+        <p className="text-textMuted mb-4">Failed to load dashboard data. Please try again.</p>
         <Button onClick={() => window.location.reload()} variant="primary">Retry</Button>
       </div>
     );
@@ -529,16 +505,6 @@ export const AdminDashboard: React.FC = () => {
       <Card noPadding className="overflow-hidden">
         <div className="px-6 py-4 border-b border-borderColor flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gray-50/50">
             <h3 className="text-lg font-bold text-textDark">View Registration Details</h3>
-            <div className="flex items-center gap-2">
-              {selectedRows.length > 0 && (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => handleBulkAction('Export')}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Export Selected
-                  </Button>
-                </>
-              )}
-            </div>
         </div>
         <div className="p-4">
           <DataTable

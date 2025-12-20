@@ -1,10 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, Badge, Button } from '../../components/ui';
 import { Plus, Info, Edit2, Trash2, X } from 'lucide-react';
 import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
 import { IndividualEvent, GroupEvent } from '../../types';
 import { Portal } from '../../components/Portal';
+import { 
+  useIndividualEvents, 
+  useGroupEvents, 
+  useCreateIndividualEvent, 
+  useCreateGroupEvent, 
+  useUpdateIndividualEvent, 
+  useUpdateGroupEvent, 
+  useDeleteIndividualEvent, 
+  useDeleteGroupEvent 
+} from '../../hooks/queries';
 
 type TabType = 'individual' | 'group';
 
@@ -12,9 +21,22 @@ export const EventsManagement: React.FC = () => {
   const { addToast } = useToast();
   
   const [activeTab, setActiveTab] = useState<TabType>('individual');
-  const [individualEvents, setIndividualEvents] = useState<IndividualEvent[]>([]);
-  const [groupEvents, setGroupEvents] = useState<GroupEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  // Use TanStack Query
+  const { data: individualEventsData, isLoading: loadingIndividual } = useIndividualEvents();
+  const { data: groupEventsData, isLoading: loadingGroup } = useGroupEvents();
+  
+  const individualEvents = individualEventsData ?? [];
+  const groupEvents = groupEventsData ?? [];
+  const loading = loadingIndividual || loadingGroup;
+  
+  // Mutations
+  const createIndividualMutation = useCreateIndividualEvent();
+  const createGroupMutation = useCreateGroupEvent();
+  const updateIndividualMutation = useUpdateIndividualEvent();
+  const updateGroupMutation = useUpdateGroupEvent();
+  const deleteIndividualMutation = useDeleteIndividualEvent();
+  const deleteGroupMutation = useDeleteGroupEvent();
   
   // Modal states
   const [showModal, setShowModal] = useState(false);
@@ -29,26 +51,6 @@ export const EventsManagement: React.FC = () => {
     minAllowedLimit: 3,
     maxAllowedLimit: 10,
   });
-
-  useEffect(() => {
-    loadEvents();
-  }, []);
-
-  const loadEvents = async () => {
-    try {
-      setLoading(true);
-      const [individualRes, groupRes] = await Promise.all([
-        api.getIndividualEvents(),
-        api.getGroupEvents(),
-      ]);
-      setIndividualEvents(individualRes.data);
-      setGroupEvents(groupRes.data);
-    } catch (err) {
-      addToast("Failed to load events", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const openModal = (type: 'add' | 'edit' | 'info', event?: IndividualEvent | GroupEvent) => {
     setModalType(type);
@@ -83,40 +85,41 @@ export const EventsManagement: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      if (modalType === 'add') {
-        if (activeTab === 'individual') {
-          await api.addIndividualEvent({
+    if (modalType === 'add') {
+      if (activeTab === 'individual') {
+        createIndividualMutation.mutate(
+          {
             name: formData.name,
             description: formData.description,
             category: formData.category,
             registrationFee: 50,
-          });
-          addToast("Individual event created successfully", "success");
-        } else {
-          await api.addGroupEvent({
+          },
+          { onSuccess: closeModal }
+        );
+      } else {
+        createGroupMutation.mutate(
+          {
             name: formData.name,
             description: formData.description,
             minAllowedLimit: formData.minAllowedLimit,
             maxAllowedLimit: formData.maxAllowedLimit,
             registrationFee: 100,
-          });
-          addToast("Group event created successfully", "success");
-        }
-      } else if (modalType === 'edit' && selectedEvent) {
-        if (activeTab === 'individual') {
-          await api.updateIndividualEvent(selectedEvent.id, formData);
-          addToast("Event updated successfully", "success");
-        } else {
-          await api.updateGroupEvent(selectedEvent.id, formData);
-          addToast("Event updated successfully", "success");
-        }
+          },
+          { onSuccess: closeModal }
+        );
       }
-      
-      closeModal();
-      loadEvents();
-    } catch (err) {
-      addToast("Failed to save event", "error");
+    } else if (modalType === 'edit' && selectedEvent) {
+      if (activeTab === 'individual') {
+        updateIndividualMutation.mutate(
+          { eventId: selectedEvent.id, data: formData },
+          { onSuccess: closeModal }
+        );
+      } else {
+        updateGroupMutation.mutate(
+          { eventId: selectedEvent.id, data: formData },
+          { onSuccess: closeModal }
+        );
+      }
     }
   };
 

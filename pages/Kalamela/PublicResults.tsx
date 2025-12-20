@@ -1,36 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, Badge } from '../../components/ui';
 import { Trophy, Medal, Award, Calendar, Users } from 'lucide-react';
-import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
+import { usePublicKalamelaResults } from '../../hooks/queries';
 
 type TabType = 'individual' | 'group';
 
 export const PublicResults: React.FC = () => {
-  const { addToast } = useToast();
-  
   const [activeTab, setActiveTab] = useState<TabType>('individual');
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<{
-    individual_results: Record<string, any[]>;
-    group_results: Record<string, any[]>;
-  } | null>(null);
-
-  useEffect(() => {
-    loadResults();
-  }, []);
-
-  const loadResults = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getPublicKalamelaResults();
-      setData(response.data);
-    } catch (err) {
-      addToast("Failed to load results", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+  // Use TanStack Query
+  const { data, isLoading: loading } = usePublicKalamelaResults();
 
   const getPositionIcon = (position: number) => {
     if (position === 1) return <Trophy className="w-5 h-5 text-yellow-500" />;

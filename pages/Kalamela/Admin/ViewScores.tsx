@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../../components/ui';
 import { Plus, Edit2, Eye, Calendar, Users } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
+import { useIndividualEvents, useGroupEvents } from '../../../hooks/queries';
 import { api } from '../../../services/api';
+import { useQuery } from '@tanstack/react-query';
 
 type TabType = 'individual' | 'group';
 
@@ -12,40 +14,40 @@ export const ViewScores: React.FC = () => {
   const { addToast } = useToast();
   
   const [activeTab, setActiveTab] = useState<TabType>('individual');
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<{
-    individual_event_scores: Record<string, any[]>;
-    group_event_scores: Record<string, any[]>;
-  } | null>(null);
-  const [allEvents, setAllEvents] = useState<{
-    individual_events: any[];
-    group_events: any[];
-  } | null>(null);
+  
+  // Use TanStack Query for events
+  const { data: individualEventsData, isLoading: loadingIndividual } = useIndividualEvents();
+  const { data: groupEventsData, isLoading: loadingGroup } = useGroupEvents();
+  
+  // Scores queries
+  const { data: individualScoresData, isLoading: loadingIndScores } = useQuery({
+    queryKey: ['kalamela', 'scores', 'individual', 'all'],
+    queryFn: async () => {
+      const response = await api.getAdminIndividualScores();
+      return response.data.individual_event_scores || {};
+    },
+  });
+  
+  const { data: groupScoresData, isLoading: loadingGroupScores } = useQuery({
+    queryKey: ['kalamela', 'scores', 'group', 'all'],
+    queryFn: async () => {
+      const response = await api.getAdminGroupScores();
+      return response.data.group_event_scores || {};
+    },
+  });
+  
+  const loading = loadingIndividual || loadingGroup || loadingIndScores || loadingGroupScores;
+  
+  const individualEvents = individualEventsData ?? [];
+  const groupEvents = groupEventsData ?? [];
+  const individualScores = individualScoresData ?? {};
+  const groupScores = groupScoresData ?? {};
+  
+  const events = activeTab === 'individual' ? individualEvents : groupEvents;
+  const scores = activeTab === 'individual' ? individualScores : groupScores;
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [scoresIndividual, scoresGroup, events] = await Promise.all([
-        api.getAdminIndividualScores(),
-        api.getAdminGroupScores(),
-        api.getKalamelaAdminHome(),
-      ]);
-      
-      setData({
-        individual_event_scores: scoresIndividual.data.individual_event_scores || {},
-        group_event_scores: scoresGroup.data.group_event_scores || {},
-      });
-      setAllEvents(events.data);
-    } catch (err) {
-      addToast("Failed to load scores", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const eventsWithScores = events.filter((event: any) => scores[event.name]);
+  const eventsWithoutScores = events.filter((event: any) => !scores[event.name]);
 
   if (loading) {
     return (
@@ -57,16 +59,6 @@ export const ViewScores: React.FC = () => {
       </div>
     );
   }
-
-  const individualScores = data?.individual_event_scores || {};
-  const groupScores = data?.group_event_scores || {};
-  const scores = activeTab === 'individual' ? individualScores : groupScores;
-  const events = activeTab === 'individual' 
-    ? allEvents?.individual_events || []
-    : allEvents?.group_events || [];
-
-  const eventsWithScores = events.filter((event) => scores[event.name]);
-  const eventsWithoutScores = events.filter((event) => !scores[event.name]);
 
   return (
     <div className="space-y-6 animate-slide-in">
@@ -104,7 +96,7 @@ export const ViewScores: React.FC = () => {
           }`}
         >
           <Users className="w-4 h-4 inline mr-2" />
-          Group ({(allEvents?.group_events || []).length} events)
+          Group ({groupEvents.length} events)
         </button>
       </Card>
 

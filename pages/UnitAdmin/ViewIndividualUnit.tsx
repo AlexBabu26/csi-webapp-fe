@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
 import { ArrowLeft, Download, FileText, Archive } from 'lucide-react';
@@ -6,50 +6,21 @@ import { useToast } from '../../components/Toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { api } from '../../services/api';
 import { Unit, UnitOfficial, UnitCouncilor, UnitMember } from '../../types';
+import { useUnitDetailFull, useArchiveMember } from '../../hooks/queries';
 
 export const ViewIndividualUnit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { addToast } = useToast();
   const navigate = useNavigate();
   
-  const [unit, setUnit] = useState<Unit | null>(null);
-  const [official, setOfficial] = useState<UnitOfficial | null>(null);
-  const [councilors, setCouncilors] = useState<UnitCouncilor[]>([]);
-  const [members, setMembers] = useState<UnitMember[]>([]);
-  const [loading, setLoading] = useState(true);
+  const unitId = id ? parseInt(id) : 0;
+  
+  // Use TanStack Query
+  const { unit, official, councilors, members, isLoading: loading, refetch } = useUnitDetailFull(unitId);
+  const archiveMutation = useArchiveMember();
+  
   const [selectedMember, setSelectedMember] = useState<UnitMember | null>(null);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
-  const [isArchiving, setIsArchiving] = useState(false);
-
-  useEffect(() => {
-    loadUnitDetails();
-  }, [id]);
-
-  const loadUnitDetails = async () => {
-    if (!id) return;
-    
-    try {
-      setLoading(true);
-      const unitId = parseInt(id);
-      
-      const [unitRes, officialsRes, councilorsRes, membersRes] = await Promise.all([
-        api.getUnitById(unitId),
-        api.getUnitOfficials(unitId),
-        api.getUnitCouncilors(unitId),
-        api.getUnitMembers(unitId),
-      ]);
-      
-      setUnit(unitRes.data);
-      setOfficial(officialsRes.data[0] || null);
-      setCouncilors(councilorsRes.data);
-      setMembers(membersRes.data);
-    } catch (err) {
-      console.error("Failed to load unit details", err);
-      addToast("Failed to load unit details", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePrint = () => {
     navigate(`/admin/print-form/${id}`);
@@ -63,19 +34,16 @@ export const ViewIndividualUnit: React.FC = () => {
   const handleConfirmArchive = async (reason?: string) => {
     if (!selectedMember) return;
     
-    try {
-      setIsArchiving(true);
-      await api.archiveMember(selectedMember.id, reason);
-      addToast(`${selectedMember.name} archived successfully`, "success");
-      setShowArchiveDialog(false);
-      setSelectedMember(null);
-      // Reload the unit details
-      loadUnitDetails();
-    } catch (err) {
-      addToast("Failed to archive member", "error");
-    } finally {
-      setIsArchiving(false);
-    }
+    archiveMutation.mutate(
+      { memberId: selectedMember.id, reason },
+      {
+        onSuccess: () => {
+          setShowArchiveDialog(false);
+          setSelectedMember(null);
+          refetch();
+        },
+      }
+    );
   };
 
   if (loading) {
@@ -326,7 +294,7 @@ export const ViewIndividualUnit: React.FC = () => {
         showRemarksField={true}
         remarksLabel="Archive Reason (Optional)"
         remarksPlaceholder="e.g., Age limit exceeded, Transferred to another diocese..."
-        isLoading={isArchiving}
+        isLoading={archiveMutation.isPending}
       />
     </div>
   );

@@ -1,33 +1,17 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, Badge, Button } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Download, UserCheck } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { UnitCouncilor } from '../../types';
+import { useCouncilors } from '../../hooks/queries';
 
 export const ViewAllCouncilors: React.FC = () => {
   const { addToast } = useToast();
   
-  const [councilors, setCouncilors] = useState<UnitCouncilor[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadCouncilors = async () => {
-      try {
-        setLoading(true);
-        const response = await api.getUnitCouncilors();
-        setCouncilors(response.data);
-      } catch (err) {
-        console.error("Failed to load councilors", err);
-        addToast("Failed to load councilors", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCouncilors();
-  }, [addToast]);
+  // Use TanStack Query
+  const { data: councilors = [], isLoading: loading } = useCouncilors();
 
   const handleExport = async () => {
     try {

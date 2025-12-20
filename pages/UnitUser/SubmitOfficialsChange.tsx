@@ -7,12 +7,19 @@ import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
 import { UnitOfficial } from '../../types';
+import { useUnitOfficials } from '../../hooks/queries';
 
 export const SubmitOfficialsChange: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
   
-  const [currentOfficial, setCurrentOfficial] = useState<UnitOfficial | null>(null);
+  // Get current unit ID from authenticated user
+  const currentUnitId = getCurrentUnitId();
+  
+  // Use TanStack Query
+  const { data: officialsData } = useUnitOfficials(currentUnitId || undefined);
+  const currentOfficial = officialsData?.[0] || null;
+  
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     presidentDesignation: '',
@@ -30,42 +37,31 @@ export const SubmitOfficialsChange: React.FC = () => {
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
 
-  // Get current unit ID from authenticated user
-  const currentUnitId = getCurrentUnitId();
-
   useEffect(() => {
-    const loadOfficial = async () => {
-      if (!currentUnitId) {
-        addToast("Please login to access this page", "error");
-        navigate('/');
-        return;
-      }
-      
-      try {
-        const response = await api.getUnitOfficials(currentUnitId);
-        if (response.data.length > 0) {
-          const official = response.data[0];
-          setCurrentOfficial(official);
-          setFormData({
-            presidentDesignation: official.presidentDesignation || '',
-            presidentName: official.presidentName,
-            presidentPhone: official.presidentPhone,
-            vicePresidentName: official.vicePresidentName,
-            vicePresidentPhone: official.vicePresidentPhone,
-            secretaryName: official.secretaryName,
-            secretaryPhone: official.secretaryPhone,
-            jointSecretaryName: official.jointSecretaryName,
-            jointSecretaryPhone: official.jointSecretaryPhone,
-            treasurerName: official.treasurerName,
-            treasurerPhone: official.treasurerPhone,
-          });
-        }
-      } catch (err) {
-        addToast("Failed to load officials data", "error");
-      }
-    };
-    loadOfficial();
-  }, [addToast, currentUnitId, navigate]);
+    if (!currentUnitId) {
+      addToast("Please login to access this page", "error");
+      navigate('/');
+    }
+  }, [currentUnitId, addToast, navigate]);
+
+  // Update form data when official data loads
+  useEffect(() => {
+    if (currentOfficial) {
+      setFormData({
+        presidentDesignation: currentOfficial.presidentDesignation || '',
+        presidentName: currentOfficial.presidentName,
+        presidentPhone: currentOfficial.presidentPhone,
+        vicePresidentName: currentOfficial.vicePresidentName,
+        vicePresidentPhone: currentOfficial.vicePresidentPhone,
+        secretaryName: currentOfficial.secretaryName,
+        secretaryPhone: currentOfficial.secretaryPhone,
+        jointSecretaryName: currentOfficial.jointSecretaryName,
+        jointSecretaryPhone: currentOfficial.jointSecretaryPhone,
+        treasurerName: currentOfficial.treasurerName,
+        treasurerPhone: currentOfficial.treasurerPhone,
+      });
+    }
+  }, [currentOfficial]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

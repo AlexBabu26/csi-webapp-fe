@@ -1,62 +1,26 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, Badge, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { FileText, ExternalLink, Check, X, RotateCcw } from 'lucide-react';
 import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
 import { OfficialsChangeRequest, RequestStatus } from '../../types';
+import { useOfficialsChangeRequests, useRequestActions } from '../../hooks/queries';
 
 export const OfficialsChangeRequests: React.FC = () => {
-  const { addToast } = useToast();
-  
-  const [requests, setRequests] = useState<OfficialsChangeRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadRequests();
-  }, []);
-
-  const loadRequests = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getOfficialsChangeRequests();
-      setRequests(response.data);
-    } catch (err) {
-      console.error("Failed to load officials change requests", err);
-      addToast("Failed to load requests", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use TanStack Query
+  const { data: requests = [], isLoading: loading } = useOfficialsChangeRequests();
+  const { approve, reject, revert } = useRequestActions('Officials Change');
 
   const handleApprove = async (requestId: number) => {
-    try {
-      await api.approveRequest(requestId, 'Officials Change');
-      addToast("Officials change request approved", "success");
-      loadRequests();
-    } catch (err) {
-      addToast("Failed to approve request", "error");
-    }
+    approve.mutate({ requestId });
   };
 
   const handleReject = async (requestId: number) => {
-    try {
-      await api.rejectRequest(requestId, 'Officials Change');
-      addToast("Officials change request rejected", "success");
-      loadRequests();
-    } catch (err) {
-      addToast("Failed to reject request", "error");
-    }
+    reject.mutate({ requestId });
   };
 
   const handleRevert = async (requestId: number) => {
-    try {
-      await api.revertRequest(requestId, 'Officials Change');
-      addToast("Officials change request reverted", "success");
-      loadRequests();
-    } catch (err) {
-      addToast("Failed to revert request", "error");
-    }
+    revert.mutate({ requestId });
   };
 
   const getStatusBadge = (status: RequestStatus) => {

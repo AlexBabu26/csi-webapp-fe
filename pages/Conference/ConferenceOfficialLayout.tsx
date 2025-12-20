@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { 
   Home, 
@@ -12,9 +12,9 @@ import {
   MapPin,
   Target
 } from 'lucide-react';
-import { api } from '../../services/api';
 import { clearAuthToken, clearAuthUser, getAuthUser } from '../../services/auth';
 import { ConferenceOfficialView } from '../../types';
+import { useConferenceOfficialView } from '../../hooks/queries';
 
 interface NavItem {
   label: string;
@@ -33,24 +33,10 @@ export const ConferenceOfficialLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [conferenceData, setConferenceData] = useState<ConferenceOfficialView | null>(null);
-  const [loading, setLoading] = useState(true);
   const user = getAuthUser();
-
-  useEffect(() => {
-    loadConferenceData();
-  }, []);
-
-  const loadConferenceData = async () => {
-    try {
-      const data = await api.getConferenceOfficialView();
-      setConferenceData(data);
-    } catch (error) {
-      console.error('Failed to load conference data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+  // Use TanStack Query
+  const { data: conferenceData, isLoading: loading } = useConferenceOfficialView();
 
   const handleLogout = () => {
     clearAuthToken();

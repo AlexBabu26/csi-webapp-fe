@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
 import { ArrowLeft, CreditCard, Upload, CheckCircle, XCircle, Printer } from 'lucide-react';
@@ -6,48 +6,24 @@ import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { FileUpload } from '../../components/FileUpload';
 import { Portal } from '../../components/Portal';
+import { useKalamelaPaymentPreview } from '../../hooks/queries';
 
 export const PaymentPreview: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   
-  const [loading, setLoading] = useState(true);
+  // Use TanStack Query
+  const { data, isLoading: loading, refetch } = useKalamelaPaymentPreview();
+  
   const [uploading, setUploading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
-  const [data, setData] = useState<{
-    individual_events_count: number;
-    group_events_count: number;
-    individual_event_amount: number;
-    group_event_amount: number;
-    total_amount_to_pay: number;
-    payment_status: string | null;
-    payment_id?: number;
-    individual_event_participations: Record<string, any[]>;
-    group_event_participations: Record<string, any[]>;
-  } | null>(null);
-
-  useEffect(() => {
-    loadPreview();
-  }, []);
-
-  const loadPreview = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getOfficialPreview();
-      setData(response.data);
-    } catch (err) {
-      addToast("Failed to load preview", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCreatePayment = async () => {
     try {
       const response = await api.createKalamelaPayment();
       addToast(response.message || "Payment record created", "success");
-      loadPreview(); // Reload to get payment ID
+      refetch(); // Reload to get payment ID
       setShowUploadDialog(true);
     } catch (err: any) {
       addToast(err.message || "Failed to create payment", "error");
@@ -66,7 +42,7 @@ export const PaymentPreview: React.FC = () => {
       addToast("Payment proof uploaded successfully", "success");
       setShowUploadDialog(false);
       setPaymentFile(null);
-      loadPreview();
+      refetch();
     } catch (err: any) {
       addToast(err.message || "Failed to upload proof", "error");
     } finally {

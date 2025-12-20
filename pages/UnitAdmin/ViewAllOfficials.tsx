@@ -1,33 +1,17 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, Badge, Button } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Download, Users } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { UnitOfficial } from '../../types';
+import { useOfficials } from '../../hooks/queries';
 
 export const ViewAllOfficials: React.FC = () => {
   const { addToast } = useToast();
   
-  const [officials, setOfficials] = useState<UnitOfficial[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadOfficials = async () => {
-      try {
-        setLoading(true);
-        const response = await api.getUnitOfficials();
-        setOfficials(response.data);
-      } catch (err) {
-        console.error("Failed to load officials", err);
-        addToast("Failed to load officials", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadOfficials();
-  }, [addToast]);
+  // Use TanStack Query
+  const { data: officials = [], isLoading: loading } = useOfficials();
 
   const handleExport = async () => {
     try {

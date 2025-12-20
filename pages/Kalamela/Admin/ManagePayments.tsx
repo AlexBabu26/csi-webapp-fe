@@ -1,37 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, Badge, Button } from '../../../components/ui';
 import { CheckCircle, XCircle, Eye, Download } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
-import { api } from '../../../services/api';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { Portal } from '../../../components/Portal';
+import { useKalamelaPayments, useApproveKalamelaPayment, useDeclineKalamelaPayment } from '../../../hooks/queries';
 
 export const ManagePayments: React.FC = () => {
   const { addToast } = useToast();
   
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  // Use TanStack Query
+  const { data: paymentsData, isLoading: loading } = useKalamelaPayments();
+  const approveMutation = useApproveKalamelaPayment();
+  const declineMutation = useDeclineKalamelaPayment();
+  
+  const payments = paymentsData ?? [];
+  
   const [showDialog, setShowDialog] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
   const [actionType, setActionType] = useState<'approve' | 'decline'>('approve');
   const [declineReason, setDeclineReason] = useState('');
-  const [payments, setPayments] = useState<any[]>([]);
-
-  useEffect(() => {
-    loadPayments();
-  }, []);
-
-  const loadPayments = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getKalamelaAdminPayments();
-      setPayments(response.data);
-    } catch (err) {
-      addToast("Failed to load payments", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAction = async () => {
     if (!selectedPayment) return;
@@ -41,23 +29,25 @@ export const ManagePayments: React.FC = () => {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      if (actionType === 'approve') {
-        await api.approveKalamelaPayment(selectedPayment.payment_id);
-        addToast("Payment approved successfully", "success");
-      } else {
-        await api.declineKalamelaPayment(selectedPayment.payment_id, declineReason);
-        addToast("Payment declined", "success");
-      }
-      setShowDialog(false);
-      setSelectedPayment(null);
-      setDeclineReason('');
-      loadPayments();
-    } catch (err: any) {
-      addToast(err.message || "Failed to process payment", "error");
-    } finally {
-      setSubmitting(false);
+    if (actionType === 'approve') {
+      approveMutation.mutate(selectedPayment.payment_id, {
+        onSuccess: () => {
+          setShowDialog(false);
+          setSelectedPayment(null);
+          setDeclineReason('');
+        },
+      });
+    } else {
+      declineMutation.mutate(
+        { paymentId: selectedPayment.payment_id, reason: declineReason },
+        {
+          onSuccess: () => {
+            setShowDialog(false);
+            setSelectedPayment(null);
+            setDeclineReason('');
+          },
+        }
+      );
     }
   };
 
@@ -66,6 +56,8 @@ export const ManagePayments: React.FC = () => {
     setActionType(action);
     setShowDialog(true);
   };
+
+  const isSubmitting = approveMutation.isPending || declineMutation.isPending;
 
   if (loading) {
     return (
@@ -291,9 +283,9 @@ export const ManagePayments: React.FC = () => {
                   <Button
                     variant={actionType === 'approve' ? 'success' : 'danger'}
                     onClick={handleAction}
-                    disabled={submitting}
+                    disabled={isSubmitting}
                   >
-                    {submitting ? 'Processing...' : actionType === 'approve' ? 'Approve' : 'Decline'}
+                    {isSubmitting ? 'Processing...' : actionType === 'approve' ? 'Approve' : 'Decline'}
                   </Button>
                 </div>
               </div>

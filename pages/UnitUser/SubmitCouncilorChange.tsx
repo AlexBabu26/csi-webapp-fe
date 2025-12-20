@@ -7,43 +7,34 @@ import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
 import { UnitCouncilor, UnitMember } from '../../types';
+import { useUnitCouncilors, useMembers } from '../../hooks/queries';
 
 export const SubmitCouncilorChange: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
   
-  const [councilors, setCouncilors] = useState<UnitCouncilor[]>([]);
-  const [members, setMembers] = useState<UnitMember[]>([]);
+  // Get current unit ID from authenticated user
+  const currentUnitId = getCurrentUnitId();
+  
+  // Use TanStack Query
+  const { data: councilorsData } = useUnitCouncilors(currentUnitId || undefined);
+  const { data: membersData } = useMembers(currentUnitId || undefined);
+  
+  const councilors = councilorsData ?? [];
+  const members = membersData ?? [];
+  
   const [loading, setLoading] = useState(false);
   const [selectedCouncilorId, setSelectedCouncilorId] = useState<number>(0);
   const [newMemberId, setNewMemberId] = useState<number>(0);
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
 
-  // Get current unit ID from authenticated user
-  const currentUnitId = getCurrentUnitId();
-
   useEffect(() => {
-    const loadData = async () => {
-      if (!currentUnitId) {
-        addToast("Please login to access this page", "error");
-        navigate('/');
-        return;
-      }
-      
-      try {
-        const [councilorsRes, membersRes] = await Promise.all([
-          api.getUnitCouncilors(currentUnitId),
-          api.getUnitMembers(currentUnitId)
-        ]);
-        setCouncilors(councilorsRes.data);
-        setMembers(membersRes.data);
-      } catch (err) {
-        addToast("Failed to load data", "error");
-      }
-    };
-    loadData();
-  }, [addToast, currentUnitId, navigate]);
+    if (!currentUnitId) {
+      addToast("Please login to access this page", "error");
+      navigate('/');
+    }
+  }, [currentUnitId, addToast, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

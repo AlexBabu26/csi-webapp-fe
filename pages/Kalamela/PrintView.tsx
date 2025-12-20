@@ -1,39 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui';
 import { ArrowLeft, Printer } from 'lucide-react';
-import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
+import { useKalamelaPrintData } from '../../hooks/queries';
 
 export const PrintView: React.FC = () => {
   const navigate = useNavigate();
-  const { addToast } = useToast();
   
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<{
-    unit_name: string;
-    district_name: string;
-    individual_event_participations: Record<string, any[]>;
-    group_event_participations: Record<string, any[]>;
-    total_amount_paid: number;
-    payment_date?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    loadPrintData();
-  }, []);
-
-  const loadPrintData = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getOfficialPrintView();
-      setData(response.data);
-    } catch (err) {
-      addToast("Failed to load print data", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use TanStack Query
+  const { data, isLoading: loading } = useKalamelaPrintData();
 
   const handlePrint = () => {
     window.print();

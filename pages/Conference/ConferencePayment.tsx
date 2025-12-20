@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { 
   CreditCard, 
@@ -12,10 +12,14 @@ import {
   X
 } from 'lucide-react';
 import { Card, Button, Badge, Skeleton } from '../../components/ui';
-import { api } from '../../services/api';
 import { ConferenceOfficialView, ConferencePayment as ConferencePaymentType } from '../../types';
 import { useToast } from '../../components/Toast';
 import { getMediaUrl } from '../../services/http';
+import { 
+  useConferenceOfficialView, 
+  useConferenceDelegatesOfficial, 
+  useUploadConferencePaymentProof 
+} from '../../hooks/queries';
 
 interface ConferenceContext {
   conferenceData: ConferenceOfficialView | null;
@@ -28,54 +32,28 @@ export const ConferencePayment: React.FC = () => {
   const context = useOutletContext<ConferenceContext>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [loading, setLoading] = useState(true);
-  const [conferenceData, setConferenceData] = useState<ConferenceOfficialView | null>(null);
-  const [payment, setPayment] = useState<ConferencePaymentType | null>(null);
+  // Use TanStack Query
+  const { data: viewData, isLoading: viewLoading, refetch: refetchView } = useConferenceOfficialView();
+  const { data: delegatesData, isLoading: delegatesLoading } = useConferenceDelegatesOfficial();
+  const uploadPaymentMutation = useUploadConferencePaymentProof();
+  
+  const loading = viewLoading || delegatesLoading;
+  const conferenceData = viewData || null;
+  const payment = viewData?.unit_payment || null;
+  
+  // Delegates info for payment
+  const delegatesInfo = delegatesData ? {
+    delegates_count: delegatesData.delegates_count,
+    max_count: delegatesData.max_count,
+    payment_status: delegatesData.payment_status,
+    amount_to_pay: delegatesData.amount_to_pay,
+    food_preference: delegatesData.food_preference,
+  } : null;
   
   // Form states
   const [paymentReference, setPaymentReference] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Delegates info for payment
-  const [delegatesInfo, setDelegatesInfo] = useState<{
-    delegates_count: number;
-    max_count: number;
-    payment_status: string;
-    amount_to_pay: number;
-    food_preference: { veg_count: number; non_veg_count: number };
-  } | null>(null);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const data = await api.getConferenceOfficialView();
-      setConferenceData(data);
-      setPayment(data.unit_payment || null);
-      
-      // Also load delegates info for payment details
-      try {
-        const delegatesData = await api.getConferenceDelegatesOfficial();
-        setDelegatesInfo({
-          delegates_count: delegatesData.delegates_count,
-          max_count: delegatesData.max_count,
-          payment_status: delegatesData.payment_status,
-          amount_to_pay: delegatesData.amount_to_pay,
-          food_preference: delegatesData.food_preference,
-        });
-      } catch (err) {
-        console.log('Could not fetch delegates info:', err);
-      }
-    } catch (error: any) {
-      addToast(error.message || 'Failed to load data', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -105,30 +83,27 @@ export const ConferencePayment: React.FC = () => {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      // First submit payment details
-      const totalAmount = (conferenceData?.unit_delegates?.length || 0) * (conferenceData?.conference?.registration_fee || 0);
-      
-      await api.submitConferencePaymentOfficial({
-        amount: totalAmount,
-        payment_reference: paymentReference || undefined
-      });
-
-      // Then upload the proof
-      await api.uploadConferencePaymentProofOfficial(selectedFile);
-      
-      addToast('Payment submitted successfully', 'success');
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      setPaymentReference('');
-      loadData();
-      context?.refreshData?.();
-    } catch (error: any) {
-      addToast(error.message || 'Failed to submit payment', 'error');
-    } finally {
-      setSubmitting(false);
-    }
+    // Calculate total amount
+    const totalAmount = (conferenceData?.unit_delegates?.length || 0) * (conferenceData?.conference?.registration_fee || 0);
+    
+    uploadPaymentMutation.mutate(
+      {
+        file: selectedFile,
+        paymentData: {
+          amount_to_pay: totalAmount,
+          payment_reference: paymentReference || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          setSelectedFile(null);
+          setPreviewUrl(null);
+          setPaymentReference('');
+          refetchView();
+          context?.refreshData?.();
+        },
+      }
+    );
   };
 
   const clearFile = () => {
@@ -345,8 +320,8 @@ export const ConferencePayment: React.FC = () => {
             {/* Submit Button */}
             <Button
               onClick={handleSubmitPayment}
-              disabled={!selectedFile || submitting}
-              isLoading={submitting}
+              disabled={!selectedFile || uploadPaymentMutation.isPending}
+              isLoading={uploadPaymentMutation.isPending}
               className="w-full"
             >
               <CreditCard className="w-4 h-4 mr-2" />

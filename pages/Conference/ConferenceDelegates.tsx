@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { 
   Users, 
@@ -17,9 +17,14 @@ import {
 } from 'lucide-react';
 import { Card, Button, Badge, Skeleton } from '../../components/ui';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { api } from '../../services/api';
 import { ConferenceOfficialView, ConferenceDelegatesResponse } from '../../types';
 import { useToast } from '../../components/Toast';
+import { 
+  useConferenceOfficialView, 
+  useConferenceDelegatesOfficial, 
+  useAddDelegate, 
+  useRemoveDelegate 
+} from '../../hooks/queries';
 
 interface ConferenceContext {
   conferenceData: ConferenceOfficialView | null;
@@ -53,128 +58,88 @@ export const ConferenceDelegates: React.FC = () => {
   const { addToast } = useToast();
   const context = useOutletContext<ConferenceContext>();
   
-  const [availableMembers, setAvailableMembers] = useState<AvailableMember[]>([]);
-  const [delegateMembers, setDelegateMembers] = useState<DelegateMember[]>([]);
-  const [delegateOfficials, setDelegateOfficials] = useState<DelegateOfficial[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [registrationOpen, setRegistrationOpen] = useState(false);
+  // Use TanStack Query
+  const { data: viewData, isLoading: viewLoading, refetch: refetchView } = useConferenceOfficialView();
+  const { data: delegatesData, isLoading: delegatesLoading, refetch: refetchDelegates } = useConferenceDelegatesOfficial();
+  const addDelegateMutation = useAddDelegate();
+  const removeDelegateMutation = useRemoveDelegate();
+  
+  const loading = viewLoading || delegatesLoading;
+  
+  // Extract data from queries
+  const availableMembers = viewData?.available_members || [];
+  const registrationOpen = viewData?.registration_open || false;
+  const conferenceInfo = viewData ? {
+    rem_count: viewData.rem_count,
+    max_count: viewData.max_count,
+    allowed_count: viewData.allowed_count,
+    member_count: viewData.member_count,
+    district: viewData.district,
+  } : null;
+  
+  const delegateMembers = delegatesData?.delegate_members || [];
+  const delegateOfficials = delegatesData?.delegate_officials || [];
+  const delegatesInfo = delegatesData ? {
+    delegates_count: delegatesData.delegates_count,
+    max_count: delegatesData.max_count,
+    payment_status: delegatesData.payment_status,
+    amount_to_pay: delegatesData.amount_to_pay,
+    food_preference: delegatesData.food_preference,
+  } : null;
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [delegatesSearchTerm, setDelegatesSearchTerm] = useState('');
-  
-  // Delegates info from API
-  const [delegatesInfo, setDelegatesInfo] = useState<{
-    delegates_count: number;
-    max_count: number;
-    payment_status: string;
-    amount_to_pay: number;
-    food_preference: { veg_count: number; non_veg_count: number };
-  } | null>(null);
-  
-  // Conference info from view API
-  const [conferenceInfo, setConferenceInfo] = useState<{
-    rem_count: number;
-    max_count: number;
-    allowed_count: number;
-    member_count: number;
-    district: string;
-  } | null>(null);
   
   // Dialog states
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState<AvailableMember | null>(null);
   const [selectedDelegate, setSelectedDelegate] = useState<DelegateMember | null>(null);
-  const [processing, setProcessing] = useState(false);
   
   // Add delegate form states
   const [foodPreference, setFoodPreference] = useState<'veg' | 'non-veg'>('veg');
   const [accommodationRequired, setAccommodationRequired] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      // Load conference view data (available members)
-      const viewData = await api.getConferenceOfficialView();
-      setAvailableMembers(viewData.available_members || []);
-      setRegistrationOpen(viewData.registration_open);
-      setConferenceInfo({
-        rem_count: viewData.rem_count,
-        max_count: viewData.max_count,
-        allowed_count: viewData.allowed_count,
-        member_count: viewData.member_count,
-        district: viewData.district,
-      });
-      
-      // Load delegates data
-      try {
-        const delegatesData = await api.getConferenceDelegatesOfficial();
-        setDelegateMembers(delegatesData.delegate_members || []);
-        setDelegateOfficials(delegatesData.delegate_officials || []);
-        setDelegatesInfo({
-          delegates_count: delegatesData.delegates_count,
-          max_count: delegatesData.max_count,
-          payment_status: delegatesData.payment_status,
-          amount_to_pay: delegatesData.amount_to_pay,
-          food_preference: delegatesData.food_preference,
-        });
-      } catch (err) {
-        // Delegates endpoint might fail if no delegates yet
-        console.log('Could not fetch delegates:', err);
-        setDelegateMembers([]);
-        setDelegateOfficials([]);
-      }
-    } catch (error: any) {
-      addToast(error.message || 'Failed to load data', 'error');
-    } finally {
-      setLoading(false);
-    }
+  const refreshData = () => {
+    refetchView();
+    refetchDelegates();
+    context?.refreshData?.();
   };
 
   const handleAddDelegate = async () => {
     if (!selectedMember) return;
     
-    setProcessing(true);
-    try {
-      await api.addConferenceDelegateOfficial(selectedMember.id, {
-        member_id: selectedMember.id,
-        food_preference: foodPreference,
-        accommodation_required: accommodationRequired,
-      });
-      addToast(`${selectedMember.name} added as delegate`, 'success');
-      setShowAddDialog(false);
-      setSelectedMember(null);
-      // Reset form states
-      setFoodPreference('veg');
-      setAccommodationRequired(false);
-      loadData();
-      context?.refreshData?.();
-    } catch (error: any) {
-      addToast(error.message || 'Failed to add delegate', 'error');
-    } finally {
-      setProcessing(false);
-    }
+    addDelegateMutation.mutate(
+      {
+        memberId: selectedMember.id,
+        data: {
+          member_id: selectedMember.id,
+          food_preference: foodPreference,
+          accommodation_required: accommodationRequired,
+        },
+      },
+      {
+        onSuccess: () => {
+          setShowAddDialog(false);
+          setSelectedMember(null);
+          setFoodPreference('veg');
+          setAccommodationRequired(false);
+          refreshData();
+        },
+      }
+    );
   };
 
   const handleRemoveDelegate = async () => {
     if (!selectedDelegate) return;
     
-    setProcessing(true);
-    try {
-      await api.removeConferenceDelegateOfficial(selectedDelegate.id);
-      addToast(`${selectedDelegate.name} removed from delegates`, 'success');
-      setShowRemoveDialog(false);
-      setSelectedDelegate(null);
-      loadData();
-      context?.refreshData?.();
-    } catch (error: any) {
-      addToast(error.message || 'Failed to remove delegate', 'error');
-    } finally {
-      setProcessing(false);
-    }
+    removeDelegateMutation.mutate(selectedDelegate.id, {
+      onSuccess: () => {
+        setShowRemoveDialog(false);
+        setSelectedDelegate(null);
+        refreshData();
+      },
+    });
   };
 
   const filteredMembers = availableMembers.filter(member =>
@@ -746,8 +711,8 @@ export const ConferenceDelegates: React.FC = () => {
               </Button>
               <Button 
                 onClick={handleAddDelegate} 
-                disabled={processing}
-                isLoading={processing}
+                disabled={addDelegateMutation.isPending}
+                isLoading={addDelegateMutation.isPending}
                 className="w-full sm:w-auto"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
@@ -770,7 +735,7 @@ export const ConferenceDelegates: React.FC = () => {
         message={`Are you sure you want to remove ${selectedDelegate?.name} from the delegates list?`}
         confirmText="Remove"
         confirmVariant="danger"
-        isLoading={processing}
+        isLoading={removeDelegateMutation.isPending}
       />
     </div>
   );

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, Badge, Button } from '../../../components/ui';
 import { Download } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
 import { api } from '../../../services/api';
+import { useKalamelaAdminResults } from '../../../hooks/queries';
 
 type ViewType = 'unit' | 'district';
 
@@ -10,50 +11,10 @@ export const AdminResults: React.FC = () => {
   const { addToast } = useToast();
   
   const [activeView, setActiveView] = useState<ViewType>('unit');
-  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const [data, setData] = useState<{
-    units?: Array<{
-      unit_id: number;
-      unit_name: string;
-      district_name: string;
-      individual_points: number;
-      group_points: number;
-      total_points: number;
-      event_count: number;
-      rank: number;
-    }>;
-    districts?: Array<{
-      district_id: number;
-      district_name: string;
-      total_points: number;
-      unit_count: number;
-      individual_points: number;
-      group_points: number;
-      rank: number;
-    }>;
-  } | null>(null);
-
-  useEffect(() => {
-    loadResults();
-  }, [activeView]);
-
-  const loadResults = async () => {
-    try {
-      setLoading(true);
-      if (activeView === 'unit') {
-        const response = await api.getKalamelaUnitWiseResults();
-        setData(response.data);
-      } else {
-        const response = await api.getKalamelaDistrictWiseResults();
-        setData(response.data);
-      }
-    } catch (err) {
-      addToast("Failed to load results", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+  // Use TanStack Query
+  const { data, isLoading: loading } = useKalamelaAdminResults();
 
   const handleExport = async () => {
     try {

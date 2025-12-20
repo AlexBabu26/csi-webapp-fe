@@ -2,22 +2,36 @@ import React, { useEffect, useState } from 'react';
 import { Card, Button, Badge, IconButton } from '../../components/ui';
 import { Settings, Save, Upload, Plus, Trash2, Edit2, GripVertical, ExternalLink, Globe, Phone, Mail, MapPin, Facebook, Instagram, Youtube, Image, Bell, Link2, Info, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
 import { getMediaUrl } from '../../services/http';
 import { SiteSettings as SiteSettingsType, SiteSettingsUpdate, Notice, NoticeCreate, QuickLink, QuickLinkCreate } from '../../types';
+import { 
+  useSiteSettingsData, 
+  useUpdateSiteSettings, 
+  useUploadLogo, 
+  useCreateNotice, 
+  useUpdateNotice, 
+  useDeleteNotice, 
+  useCreateQuickLink, 
+  useUpdateQuickLink, 
+  useDeleteQuickLink 
+} from '../../hooks/queries';
 
 type TabType = 'general' | 'logos' | 'contact' | 'notices' | 'quicklinks';
 
 export const SiteSettings: React.FC = () => {
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('general');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   
-  // Settings state
-  const [settings, setSettings] = useState<SiteSettingsType | null>(null);
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [quickLinks, setQuickLinks] = useState<QuickLink[]>([]);
+  // Use TanStack Query
+  const { settings, notices, quickLinks, isLoading: loading, refetch } = useSiteSettingsData();
+  const updateSettingsMutation = useUpdateSiteSettings();
+  const uploadLogoMutation = useUploadLogo();
+  const createNoticeMutation = useCreateNotice();
+  const updateNoticeMutation = useUpdateNotice();
+  const deleteNoticeMutation = useDeleteNotice();
+  const createLinkMutation = useCreateQuickLink();
+  const updateLinkMutation = useUpdateQuickLink();
+  const deleteLinkMutation = useDeleteQuickLink();
   
   // Form states
   const [formData, setFormData] = useState<SiteSettingsUpdate>({});
@@ -28,130 +42,72 @@ export const SiteSettings: React.FC = () => {
   const [showNewNoticeForm, setShowNewNoticeForm] = useState(false);
   const [showNewLinkForm, setShowNewLinkForm] = useState(false);
 
+  // Initialize form data when settings load
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [settingsData, noticesData, linksData] = await Promise.all([
-        api.getSiteSettings(),
-        api.getNotices(),
-        api.getQuickLinks()
-      ]);
-      setSettings(settingsData);
+    if (settings) {
       setFormData({
-        app_name: settingsData.app_name,
-        app_subtitle: settingsData.app_subtitle || '',
-        about_text: settingsData.about_text || '',
-        registration_enabled: settingsData.registration_enabled,
-        registration_closed_message: settingsData.registration_closed_message || '',
-        contact: settingsData.contact,
-        social_links: settingsData.social_links,
+        app_name: settings.app_name,
+        app_subtitle: settings.app_subtitle || '',
+        about_text: settings.about_text || '',
+        registration_enabled: settings.registration_enabled,
+        registration_closed_message: settings.registration_closed_message || '',
+        contact: settings.contact,
+        social_links: settings.social_links,
       });
-      setNotices(noticesData);
-      setQuickLinks(linksData);
-    } catch (err) {
-      console.error('Failed to load site settings:', err);
-      addToast('Failed to load site settings', 'error');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [settings]);
 
   const handleSaveSettings = async () => {
-    try {
-      setSaving(true);
-      await api.updateSiteSettings(formData);
-      addToast('Settings saved successfully', 'success');
-      loadData();
-    } catch (err) {
-      addToast('Failed to save settings', 'error');
-    } finally {
-      setSaving(false);
-    }
+    updateSettingsMutation.mutate(formData);
   };
 
   const handleLogoUpload = async (type: 'primary' | 'secondary' | 'tertiary', file: File) => {
-    try {
-      await api.uploadLogo(type, file);
-      addToast(`${type} logo uploaded successfully`, 'success');
-      loadData();
-    } catch (err) {
-      addToast('Failed to upload logo', 'error');
-    }
+    uploadLogoMutation.mutate({ type, file });
   };
 
   const handleCreateNotice = async () => {
     if (!newNotice.text.trim()) return;
-    try {
-      await api.createNotice(newNotice);
-      addToast('Notice created', 'success');
-      setNewNotice({ text: '', priority: 'normal', is_active: true });
-      setShowNewNoticeForm(false);
-      loadData();
-    } catch (err) {
-      addToast('Failed to create notice', 'error');
-    }
+    createNoticeMutation.mutate(newNotice, {
+      onSuccess: () => {
+        setNewNotice({ text: '', priority: 'normal', is_active: true });
+        setShowNewNoticeForm(false);
+      },
+    });
   };
 
   const handleUpdateNotice = async (notice: Notice) => {
-    try {
-      await api.updateNotice(notice.id, notice);
-      addToast('Notice updated', 'success');
-      setEditingNotice(null);
-      loadData();
-    } catch (err) {
-      addToast('Failed to update notice', 'error');
-    }
+    updateNoticeMutation.mutate(
+      { noticeId: notice.id, data: { text: notice.text, priority: notice.priority, is_active: notice.is_active } },
+      { onSuccess: () => setEditingNotice(null) }
+    );
   };
 
   const handleDeleteNotice = async (id: number) => {
-    if (!confirm('Delete this notice?')) return;
-    try {
-      await api.deleteNotice(id);
-      addToast('Notice deleted', 'success');
-      loadData();
-    } catch (err) {
-      addToast('Failed to delete notice', 'error');
-    }
+    deleteNoticeMutation.mutate(id);
   };
 
   const handleCreateLink = async () => {
     if (!newLink.label.trim() || !newLink.url.trim()) return;
-    try {
-      await api.createQuickLink(newLink);
-      addToast('Quick link created', 'success');
-      setNewLink({ label: '', url: '', enabled: true });
-      setShowNewLinkForm(false);
-      loadData();
-    } catch (err) {
-      addToast('Failed to create quick link', 'error');
-    }
+    createLinkMutation.mutate(newLink, {
+      onSuccess: () => {
+        setNewLink({ label: '', url: '', enabled: true });
+        setShowNewLinkForm(false);
+      },
+    });
   };
 
   const handleUpdateLink = async (link: QuickLink) => {
-    try {
-      await api.updateQuickLink(link.id, link);
-      addToast('Quick link updated', 'success');
-      setEditingLink(null);
-      loadData();
-    } catch (err) {
-      addToast('Failed to update quick link', 'error');
-    }
+    updateLinkMutation.mutate(
+      { linkId: link.id, data: { label: link.label, url: link.url, enabled: link.enabled } },
+      { onSuccess: () => setEditingLink(null) }
+    );
   };
 
   const handleDeleteLink = async (id: number) => {
-    if (!confirm('Delete this quick link?')) return;
-    try {
-      await api.deleteQuickLink(id);
-      addToast('Quick link deleted', 'success');
-      loadData();
-    } catch (err) {
-      addToast('Failed to delete quick link', 'error');
-    }
+    deleteLinkMutation.mutate(id);
   };
+
+  const saving = updateSettingsMutation.isPending;
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'general', label: 'General', icon: <Settings size={16} /> },

@@ -7,13 +7,21 @@ import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
 import { UnitMember } from '../../types';
+import { useMembers, useSubmitMemberInfoChange } from '../../hooks/queries';
 
 export const SubmitMemberInfoChange: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
   
-  const [members, setMembers] = useState<UnitMember[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Get current unit ID from authenticated user
+  const currentUnitId = getCurrentUnitId();
+  
+  // Use TanStack Query
+  const { data: membersData } = useMembers(currentUnitId || undefined);
+  const submitMutation = useSubmitMemberInfoChange();
+  
+  const members = membersData ?? [];
+  
   const [selectedMemberId, setSelectedMemberId] = useState<number>(0);
   const [formData, setFormData] = useState({
     name: '',
@@ -25,26 +33,12 @@ export const SubmitMemberInfoChange: React.FC = () => {
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
 
-  // Get current unit ID from authenticated user
-  const currentUnitId = getCurrentUnitId();
-
   useEffect(() => {
-    const loadMembers = async () => {
-      if (!currentUnitId) {
-        addToast("Please login to access this page", "error");
-        navigate('/');
-        return;
-      }
-      
-      try {
-        const response = await api.getUnitMembers(currentUnitId);
-        setMembers(response.data);
-      } catch (err) {
-        addToast("Failed to load members", "error");
-      }
-    };
-    loadMembers();
-  }, [addToast, currentUnitId, navigate]);
+    if (!currentUnitId) {
+      addToast("Please login to access this page", "error");
+      navigate('/');
+    }
+  }, [currentUnitId, addToast, navigate]);
 
   useEffect(() => {
     // Auto-fill form with selected member's current data
@@ -87,24 +81,21 @@ export const SubmitMemberInfoChange: React.FC = () => {
       return;
     }
 
-    try {
-      setLoading(true);
-      await api.submitMemberInfoChange({
+    submitMutation.mutate(
+      {
         memberId: selectedMemberId,
         changes,
         reason,
         proof: proofFile || undefined,
-      });
-      addToast("Member info change request submitted successfully", "success");
-      navigate('/unit/my-requests');
-    } catch (err) {
-      addToast("Failed to submit request", "error");
-    } finally {
-      setLoading(false);
-    }
+      },
+      {
+        onSuccess: () => navigate('/unit/my-requests'),
+      }
+    );
   };
 
   const selectedMember = members.find(m => m.id === selectedMemberId);
+  const loading = submitMutation.isPending;
 
   return (
     <div className="space-y-6 animate-slide-in">

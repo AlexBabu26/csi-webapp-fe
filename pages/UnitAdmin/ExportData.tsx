@@ -1,43 +1,31 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, Badge, Button, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Download, Building, Shield, UserCheck } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { Unit, ClergyDistrict } from '../../types';
+import { useUnits } from '../../hooks/queries';
+import { useQuery } from '@tanstack/react-query';
 
 export const ExportData: React.FC = () => {
   const { addToast } = useToast();
   
-  const [districts, setDistricts] = useState<ClergyDistrict[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use TanStack Query
+  const { data: unitsData, isLoading: unitsLoading } = useUnits();
+  const { data: districtsData, isLoading: districtsLoading } = useQuery({
+    queryKey: ['clergyDistricts'],
+    queryFn: async () => {
+      const response = await api.getClergyDistricts();
+      return response.data;
+    },
+  });
+  
+  const districts = districtsData ?? [];
+  const units = unitsData ?? [];
+  const loading = unitsLoading || districtsLoading;
+  
   const [selectedDistrict, setSelectedDistrict] = useState<number>(0);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [districtsRes, unitsRes] = await Promise.all([
-          api.getClergyDistricts(),
-          api.getUnits()
-        ]);
-        
-        setDistricts(districtsRes.data);
-        setUnits(unitsRes.data);
-        if (districtsRes.data.length > 0) {
-          setSelectedDistrict(districtsRes.data[0].id);
-        }
-      } catch (err) {
-        console.error("Failed to load data", err);
-        addToast("Failed to load data", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [addToast]);
 
   const handleDistrictOfficialsExport = async () => {
     if (!selectedDistrict) {

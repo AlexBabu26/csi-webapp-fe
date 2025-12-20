@@ -3,6 +3,7 @@ import { Card, Badge, Button } from '../../components/ui';
 import { Users, Download, ChevronDown, ChevronRight, MapPin, Phone, User, Search } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
+import { useConferencesAdmin, useConferenceAdminInfo } from '../../hooks/queries';
 
 interface Conference {
   id: number;
@@ -53,55 +54,28 @@ interface ConferenceInfo {
 export const ConferenceAdminInfo: React.FC = () => {
   const { addToast } = useToast();
   
-  const [conferences, setConferences] = useState<Conference[]>([]);
+  // Use TanStack Query
+  const { data: conferences = [], isLoading: loading } = useConferencesAdmin();
+  
   const [selectedConferenceId, setSelectedConferenceId] = useState<number | null>(null);
-  const [conferenceInfo, setConferenceInfo] = useState<ConferenceInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingInfo, setLoadingInfo] = useState(false);
   const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [exporting, setExporting] = useState(false);
 
+  // Auto-select active conference when conferences load
   useEffect(() => {
-    loadConferences();
-  }, []);
-
-  useEffect(() => {
-    if (selectedConferenceId) {
-      loadConferenceInfo(selectedConferenceId);
-    }
-  }, [selectedConferenceId]);
-
-  const loadConferences = async () => {
-    try {
-      setLoading(true);
-      const data = await api.getConferencesAdmin();
-      setConferences(data);
-      // Auto-select active conference
-      const activeConference = data.find((c: Conference) => c.status === 'Active');
+    if (conferences.length > 0 && !selectedConferenceId) {
+      const activeConference = conferences.find((c: Conference) => c.status === 'Active');
       if (activeConference) {
         setSelectedConferenceId(activeConference.id);
-      } else if (data.length > 0) {
-        setSelectedConferenceId(data[0].id);
+      } else {
+        setSelectedConferenceId(conferences[0].id);
       }
-    } catch (err) {
-      addToast("Failed to load conferences", "error");
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [conferences, selectedConferenceId]);
 
-  const loadConferenceInfo = async (conferenceId: number) => {
-    try {
-      setLoadingInfo(true);
-      const data = await api.getConferenceInfoAdmin(conferenceId);
-      setConferenceInfo(data);
-    } catch (err) {
-      addToast("Failed to load conference info", "error");
-    } finally {
-      setLoadingInfo(false);
-    }
-  };
+  // Use TanStack Query for conference info
+  const { data: conferenceInfo, isLoading: loadingInfo } = useConferenceAdminInfo(selectedConferenceId || 0);
 
   const handleExport = async () => {
     if (!selectedConferenceId) return;

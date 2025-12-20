@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
 import { ArrowLeft, Plus, CheckCircle, XCircle, Search } from 'lucide-react';
 import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
+import { useEligibleIndividualMembers, useAddIndividualParticipant } from '../../hooks/queries';
 
 interface Member {
   id: number;
@@ -20,32 +20,14 @@ export const SelectIndividualParticipants: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const parsedEventId = parseInt(eventId!);
+  
+  // Use TanStack Query
+  const { data, isLoading: loading, refetch } = useEligibleIndividualMembers(parsedEventId);
+  const addParticipantMutation = useAddIndividualParticipant();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'NA' | 'Junior' | 'Senior'>('NA');
-  const [data, setData] = useState<{
-    event_id: number;
-    event_name: string;
-    event_description: string;
-    eligible_members: Member[];
-  } | null>(null);
-
-  useEffect(() => {
-    loadMembers();
-  }, [eventId]);
-
-  const loadMembers = async () => {
-    try {
-      setLoading(true);
-      const response = await api.selectIndividualEvent(parseInt(eventId!));
-      setData(response.data);
-    } catch (err: any) {
-      addToast(err.message || "Failed to load members", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAddParticipant = async (memberId: number) => {
     if (!selectedCategory || selectedCategory === 'NA') {
@@ -53,21 +35,19 @@ export const SelectIndividualParticipants: React.FC = () => {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      await api.addIndividualParticipant({
-        individual_event_id: parseInt(eventId!),
+    addParticipantMutation.mutate(
+      {
+        individual_event_id: parsedEventId,
         participant_id: memberId,
         seniority_category: selectedCategory,
-      });
-      addToast("Participant added successfully", "success");
-      loadMembers(); // Reload to update registered status
-    } catch (err: any) {
-      addToast(err.message || "Failed to add participant", "error");
-    } finally {
-      setSubmitting(false);
-    }
+      },
+      {
+        onSuccess: () => refetch(),
+      }
+    );
   };
+
+  const submitting = addParticipantMutation.isPending;
 
   const filteredMembers = data?.eligible_members.filter((member) =>
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,38 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
 import { Calendar, Users, CreditCard, FileText, CheckCircle } from 'lucide-react';
 import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
 import { IndividualEvent, GroupEvent } from '../../types';
+import { useKalamelaOfficialHome } from '../../hooks/queries';
 
 export const KalamelaOfficialHome: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<{
-    individual_events: IndividualEvent[];
-    group_events: GroupEvent[];
-    district_id: number;
-    unit_id?: number;
-  } | null>(null);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getKalamelaOfficialHome();
-      setData(response.data);
-    } catch (err) {
-      addToast("Failed to load Kalamela home data", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Use TanStack Query
+  const { data: responseData, isLoading: loading } = useKalamelaOfficialHome();
+  const data = responseData || null;
 
   if (loading) {
     return (

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, Trophy, ChevronRight, AlertCircle, FileText, ArrowLeft, Calendar, MapPin } from 'lucide-react';
 import { Button, Card, Badge } from '../components/ui';
 import { api } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '../components/Footer';
 import { SiteSettings } from '../types';
+import { useSiteSettings } from '../hooks/queries';
 
 // Interface for participant search result with event scores
 interface ParticipantResult {
@@ -31,21 +32,10 @@ export const KalamelaPublic: React.FC = () => {
     const [hasSearched, setHasSearched] = useState(false);
     const [searching, setSearching] = useState(false);
     const [result, setResult] = useState<ParticipantResult | null>(null);
-    const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
     const navigate = useNavigate();
-
-    // Load site settings for footer
-    useEffect(() => {
-        const loadSettings = async () => {
-            try {
-                const settings = await api.getSiteSettings();
-                setSiteSettings(settings);
-            } catch (error) {
-                console.error('Failed to load site settings:', error);
-            }
-        };
-        loadSettings();
-    }, []);
+    
+    // Use TanStack Query for site settings
+    const { data: siteSettings } = useSiteSettings();
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
