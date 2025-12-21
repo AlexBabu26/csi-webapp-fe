@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
-import { Calendar, Users, CreditCard, FileText, CheckCircle } from 'lucide-react';
+import { Calendar, Users, CreditCard, FileText, CheckCircle, ArrowRight, Info } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { IndividualEvent, GroupEvent } from '../../types';
 import { useKalamelaOfficialHome } from '../../hooks/queries';
@@ -25,11 +25,20 @@ export const KalamelaOfficialHome: React.FC = () => {
     return (
       <div className="space-y-6 animate-slide-in">
         <div className="h-8 bg-gray-200 rounded w-64 animate-pulse"></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[1, 2].map((i) => (
             <Card key={i} className="animate-pulse">
               <div className="h-6 bg-gray-200 rounded w-32 mb-3"></div>
               <div className="h-10 bg-gray-200 rounded w-20"></div>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse h-48">
+              <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
+              <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
             </Card>
           ))}
         </div>
@@ -65,25 +74,8 @@ export const KalamelaOfficialHome: React.FC = () => {
     });
   }
 
-  const stats = [
-    {
-      label: 'Individual Events',
-      value: individualEvents.length,
-      icon: Calendar,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
-    {
-      label: 'Group Events',
-      value: groupEvents.length,
-      icon: Users,
-      color: 'text-success',
-      bgColor: 'bg-success/10',
-    },
-  ];
-
   return (
-    <div className="space-y-6 animate-slide-in">
+    <div className="space-y-8 animate-slide-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -106,70 +98,117 @@ export const KalamelaOfficialHome: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {stats.map((stat, index) => (
-          <Card key={index} className="hover:shadow-md transition-shadow">
+      {/* Stats & Instructions Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Stats Cards - Takes 2 columns */}
+        <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+          <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 hover:shadow-lg transition-all">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+              <div className="p-3 rounded-xl bg-primary/20">
+                <Calendar className="w-7 h-7 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-textMuted">{stat.label}</p>
-                <p className="text-2xl font-bold text-textDark">{stat.value}</p>
+                <p className="text-sm font-medium text-textMuted">Individual Events</p>
+                <p className="text-3xl font-bold text-primary">{individualEvents.length}</p>
               </div>
             </div>
           </Card>
-        ))}
-      </div>
-
-      {/* Instructions */}
-      <Card className="bg-primary/5 border-primary/20">
-        <div className="flex items-start gap-3">
-          <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-          <div>
-            <h3 className="font-semibold text-textDark mb-2">Registration Steps</h3>
-            <ol className="text-sm text-textMuted space-y-1 list-decimal list-inside">
-              <li>Select an event from the lists below</li>
-              <li>Choose participants from your unit members</li>
-              <li>Review all registrations in the Preview page</li>
-              <li>Complete payment and upload proof</li>
-              <li>Print your registration form</li>
-            </ol>
-          </div>
+          <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20 hover:shadow-lg transition-all">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-success/20">
+                <Users className="w-7 h-7 text-success" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-textMuted">Group Events</p>
+                <p className="text-3xl font-bold text-success">{groupEvents.length}</p>
+              </div>
+            </div>
+          </Card>
         </div>
-      </Card>
+
+        {/* Quick Tips - Takes 1 column */}
+        <Card className="bg-amber-50 border-amber-200">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="font-semibold text-amber-800 text-sm mb-1">Quick Tips</h3>
+              <ul className="text-xs text-amber-700 space-y-1">
+                <li>• Click on any event card to register</li>
+                <li>• Check remaining slots before selecting</li>
+                <li>• Review all entries before payment</li>
+              </ul>
+            </div>
+          </div>
+        </Card>
+      </div>
 
       {/* Individual Events */}
       <div>
-        <h2 className="text-xl font-bold text-textDark mb-4 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-primary" />
-          Individual Events
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-textDark flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-primary" />
+            Individual Events
+          </h2>
+          <span className="text-sm text-textMuted">{individualEvents.length} event(s)</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {individualEvents.map((event, index: number) => (
-            <Card key={event.id} className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate(`/kalamela/official/event/individual/${event.id}`)}>
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-bold text-textDark">
-                  {index + 1}. {event.name}
+            <Card 
+              key={event.id} 
+              className="group hover:shadow-lg hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
+              onClick={() => navigate(`/kalamela/official/event/individual/${event.id}`)}
+            >
+              {/* Category Badge */}
+              {event.category_name && (
+                <div className="absolute top-3 right-3">
+                  <Badge variant="primary" className="text-xs">{event.category_name}</Badge>
+                </div>
+              )}
+              
+              {/* Event Number */}
+              <div className="absolute top-3 left-3 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-xs font-bold text-primary">{index + 1}</span>
+              </div>
+              
+              <div className="pt-8">
+                <h3 className="font-bold text-textDark text-lg mb-2 group-hover:text-primary transition-colors">
+                  {event.name}
                 </h3>
-                {event.category_name && (
-                  <Badge variant="light">{event.category_name}</Badge>
-                )}
+                <p className="text-sm text-textMuted mb-4 line-clamp-2">
+                  {event.description || 'No description available'}
+                </p>
+                
+                {/* Slots Info */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`text-sm font-medium ${event.remaining_slots > 0 ? 'text-success' : 'text-danger'}`}>
+                    {event.remaining_slots > 0 ? (
+                      <span className="flex items-center gap-1">
+                        <CheckCircle className="w-4 h-4" />
+                        {event.remaining_slots} slot{event.remaining_slots !== 1 ? 's' : ''} left
+                      </span>
+                    ) : (
+                      <span>No slots available</span>
+                    )}
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  className="w-full group-hover:bg-primary-hover"
+                  disabled={event.remaining_slots === 0}
+                >
+                  Select Participants
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
               </div>
-              <p className="text-sm text-textMuted mb-2 line-clamp-2">{event.description || 'No description'}</p>
-              <div className="text-xs text-textMuted mb-4">
-                Slots: {event.remaining_slots} remaining
-              </div>
-              <Button variant="primary" size="sm" className="w-full">
-                Select Participants
-              </Button>
             </Card>
           ))}
           {individualEvents.length === 0 && (
-            <Card className="col-span-full text-center py-8">
-              <p className="text-textMuted">No individual events available yet</p>
+            <Card className="col-span-full text-center py-12 bg-gray-50">
+              <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-textMuted font-medium">No individual events available yet</p>
+              <p className="text-sm text-gray-400 mt-1">Check back later for updates</p>
             </Card>
           )}
         </div>
@@ -177,35 +216,65 @@ export const KalamelaOfficialHome: React.FC = () => {
 
       {/* Group Events */}
       <div>
-        <h2 className="text-xl font-bold text-textDark mb-4 flex items-center gap-2">
-          <Users className="w-5 h-5 text-success" />
-          Group Events
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-textDark flex items-center gap-2">
+            <Users className="w-5 h-5 text-success" />
+            Group Events
+          </h2>
+          <span className="text-sm text-textMuted">{groupEvents.length} event(s)</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {groupEvents.map((event: GroupEvent, index: number) => (
-            <Card key={event.id} className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate(`/kalamela/official/event/group/${event.id}`)}>
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-bold text-textDark">
-                  {index + 1}. {event.name}
+            <Card 
+              key={event.id} 
+              className="group hover:shadow-lg hover:border-success/30 transition-all cursor-pointer relative overflow-hidden"
+              onClick={() => navigate(`/kalamela/official/event/group/${event.id}`)}
+            >
+              {/* Event Number */}
+              <div className="absolute top-3 left-3 w-7 h-7 rounded-full bg-success/10 flex items-center justify-center">
+                <span className="text-xs font-bold text-success">{index + 1}</span>
+              </div>
+              
+              <div className="pt-8">
+                <h3 className="font-bold text-textDark text-lg mb-2 group-hover:text-success transition-colors">
+                  {event.name}
                 </h3>
+                <p className="text-sm text-textMuted mb-4 line-clamp-2">
+                  {event.description || 'No description available'}
+                </p>
+                
+                {/* Team Info */}
+                <div className="bg-gray-50 rounded-lg p-3 mb-4 space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-textMuted">Team Size</span>
+                    <span className="font-medium text-textDark">
+                      {event.min_allowed_limit} - {event.max_allowed_limit} members
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-textMuted">Teams Allowed</span>
+                    <span className="font-medium text-textDark">
+                      {event.per_unit_allowed_limit} per unit
+                    </span>
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="success" 
+                  size="sm" 
+                  className="w-full group-hover:bg-success/90"
+                >
+                  Select Team
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
               </div>
-              <p className="text-sm text-textMuted mb-3 line-clamp-2">{event.description || 'No description'}</p>
-              <div className="flex items-center gap-4 text-sm text-textMuted mb-4">
-                <span className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  {event.min_allowed_limit} - {event.max_allowed_limit} per team
-                </span>
-                <span>{event.per_unit_allowed_limit} team(s)/unit</span>
-              </div>
-              <Button variant="success" size="sm" className="w-full">
-                Select Team
-              </Button>
             </Card>
           ))}
           {groupEvents.length === 0 && (
-            <Card className="col-span-full text-center py-8">
-              <p className="text-textMuted">No group events available yet</p>
+            <Card className="col-span-full text-center py-12 bg-gray-50">
+              <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-textMuted font-medium">No group events available yet</p>
+              <p className="text-sm text-gray-400 mt-1">Check back later for updates</p>
             </Card>
           )}
         </div>
