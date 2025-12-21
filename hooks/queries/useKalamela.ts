@@ -907,11 +907,17 @@ export const useDeleteKalamelaRule = () => {
 // ============ DISTRICT MEMBERS QUERIES ============
 
 // Get all district members for participant selection
-export const useDistrictMembers = () => {
+export const useDistrictMembers = (params?: {
+  event_id?: number;
+  event_type?: 'individual' | 'group';
+  unit_id?: number;
+  participation_category?: 'Junior' | 'Senior' | 'Ineligible';
+  search?: string;
+}) => {
   return useQuery({
-    queryKey: ['kalamela', 'districtMembers'],
+    queryKey: ['kalamela', 'districtMembers', params],
     queryFn: async () => {
-      return await api.getDistrictMembers();
+      return await api.getDistrictMembers(params);
     },
   });
 };

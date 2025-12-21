@@ -1,23 +1,25 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
-import { ArrowLeft, Plus, CheckCircle, XCircle, Search, Users, Calendar, Phone, User, Filter } from 'lucide-react';
+import { ArrowLeft, Plus, CheckCircle, XCircle, Search, Users, Calendar, Phone, User, Filter, AlertCircle, Info } from 'lucide-react';
 import { useToast } from '../../components/Toast';
-import { useDistrictMembers, useAddIndividualParticipant, useEligibleIndividualMembers } from '../../hooks/queries';
+import { useDistrictMembers, useAddIndividualParticipant } from '../../hooks/queries';
 import { formatDate } from '../../utils/kalamelaValidation';
 
 interface Member {
   id: number;
   name: string;
-  phone_number: string;
-  dob: string;
+  phone_number?: string;
+  dob?: string;
   age: number;
   gender: string;
-  unit_id: number;
-  unit_name: string;
+  unit_id?: number;
+  unit_name?: string;
   participation_category: 'Junior' | 'Senior' | 'Ineligible';
-  is_excluded: boolean;
-  is_registered?: boolean;
+  is_excluded?: boolean;
+  is_eligible?: boolean;
+  is_already_registered?: boolean;
+  ineligibility_reasons?: string[];
 }
 
 export const SelectIndividualParticipants: React.FC = () => {
@@ -27,42 +29,50 @@ export const SelectIndividualParticipants: React.FC = () => {
   
   const parsedEventId = parseInt(eventId!);
   
-  // Fetch event details
-  const { data: eventData } = useEligibleIndividualMembers(parsedEventId);
-  
-  // Fetch all district members using the new API
-  const { data: districtData, isLoading: loading, refetch } = useDistrictMembers();
+  // Fetch district members with event-based pre-filtering
+  const { data: districtData, isLoading: loading, refetch } = useDistrictMembers({
+    event_id: parsedEventId,
+    event_type: 'individual',
+  });
   
   const addParticipantMutation = useAddIndividualParticipant();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<Set<number>>(new Set());
   const [filterUnit, setFilterUnit] = useState<number | 'all'>('all');
-  const [filterCategory, setFilterCategory] = useState<'all' | 'Junior' | 'Senior' | 'Ineligible'>('all');
+  const [showOnlyEligible, setShowOnlyEligible] = useState(true);
 
+  // Get event context from API response
+  const eventContext = districtData?.event_context;
+  
   // Get units from API response
   const units = districtData?.units || [];
   
   // Get summary from API response
   const summary = districtData?.summary;
 
-  // Client-side filtering (no API call needed)
+  // Client-side filtering (search and unit filter)
   const filteredMembers = useMemo(() => {
     if (!districtData?.members) return [];
     return districtData.members.filter((member: Member) => {
       const matchesSearch = !searchTerm || 
         member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        member.unit_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (member.unit_name && member.unit_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (member.phone_number && member.phone_number.includes(searchTerm));
       
       const matchesUnit = filterUnit === 'all' || member.unit_id === filterUnit;
-      const matchesCategory = filterCategory === 'all' || member.participation_category === filterCategory;
       
-      return matchesSearch && matchesUnit && matchesCategory;
+      // Filter by eligibility if toggle is on
+      const matchesEligibility = !showOnlyEligible || member.is_eligible;
+      
+      return matchesSearch && matchesUnit && matchesEligibility;
     });
-  }, [districtData, searchTerm, filterUnit, filterCategory]);
+  }, [districtData, searchTerm, filterUnit, showOnlyEligible]);
 
   const handleSelectMember = (memberId: number) => {
+    const member = districtData?.members.find((m: Member) => m.id === memberId);
+    if (!member?.is_eligible || member?.is_already_registered) return;
+    
     const newSelected = new Set(selectedMembers);
     if (newSelected.has(memberId)) {
       newSelected.delete(memberId);
@@ -74,10 +84,10 @@ export const SelectIndividualParticipants: React.FC = () => {
 
   const handleSelectAll = () => {
     const eligibleIds = filteredMembers
-      .filter((m: Member) => !m.is_registered && !m.is_excluded && m.participation_category !== 'Ineligible')
+      .filter((m: Member) => m.is_eligible && !m.is_already_registered)
       .map((m: Member) => m.id);
     
-    if (selectedMembers.size === eligibleIds.length) {
+    if (selectedMembers.size === eligibleIds.length && eligibleIds.length > 0) {
       setSelectedMembers(new Set());
     } else {
       setSelectedMembers(new Set(eligibleIds));
@@ -86,10 +96,15 @@ export const SelectIndividualParticipants: React.FC = () => {
 
   const handleAddParticipant = async (memberId: number) => {
     const member = districtData?.members.find((m: Member) => m.id === memberId);
-    const category = member?.participation_category;
     
-    if (!category || category === 'Ineligible') {
-      addToast("This member is not eligible for participation", "warning");
+    if (!member?.is_eligible) {
+      const reasons = member?.ineligibility_reasons?.join(', ') || 'Not eligible for this event';
+      addToast(reasons, "warning");
+      return;
+    }
+    
+    if (member?.is_already_registered) {
+      addToast("This member is already registered for this event", "warning");
       return;
     }
 
@@ -97,7 +112,7 @@ export const SelectIndividualParticipants: React.FC = () => {
       {
         individual_event_id: parsedEventId,
         participant_id: memberId,
-        seniority_category: category,
+        seniority_category: member.participation_category as 'Junior' | 'Senior',
       },
       {
         onSuccess: () => {
@@ -119,15 +134,14 @@ export const SelectIndividualParticipants: React.FC = () => {
     let successCount = 0;
     for (const memberId of selectedMembers) {
       const member = districtData?.members.find((m: Member) => m.id === memberId);
-      const category = member?.participation_category;
       
-      if (!category || category === 'Ineligible') continue;
+      if (!member?.is_eligible || member?.is_already_registered) continue;
 
       try {
         await addParticipantMutation.mutateAsync({
           individual_event_id: parsedEventId,
           participant_id: memberId,
-          seniority_category: category,
+          seniority_category: member.participation_category as 'Junior' | 'Senior',
         });
         successCount++;
       } catch (err) {
@@ -160,7 +174,7 @@ export const SelectIndividualParticipants: React.FC = () => {
     );
   }
 
-  const eligibleCount = filteredMembers.filter((m: Member) => !m.is_registered && !m.is_excluded && m.participation_category !== 'Ineligible').length;
+  const eligibleCount = filteredMembers.filter((m: Member) => m.is_eligible && !m.is_already_registered).length;
 
   return (
     <div className="space-y-6 animate-slide-in">
@@ -171,8 +185,8 @@ export const SelectIndividualParticipants: React.FC = () => {
           Back
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-textDark">{eventData?.event_name || 'Select Participants'}</h1>
-          <p className="text-sm text-textMuted mt-1">{eventData?.event_description || 'Choose participants from your district'}</p>
+          <h1 className="text-2xl font-bold text-textDark">{eventContext?.name || 'Select Participants'}</h1>
+          <p className="text-sm text-textMuted mt-1">Choose participants from your district</p>
         </div>
         {selectedMembers.size > 0 && (
           <Button variant="primary" onClick={handleBulkAdd} disabled={submitting}>
@@ -182,6 +196,35 @@ export const SelectIndividualParticipants: React.FC = () => {
         )}
       </div>
 
+      {/* Event Context Info */}
+      {eventContext && (
+        <Card className="bg-blue-50 border-blue-200">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-800 text-sm mb-1">Event Requirements</h3>
+              <div className="flex flex-wrap gap-3 text-xs text-blue-700">
+                {eventContext.gender_restriction && (
+                  <span className="bg-blue-100 px-2 py-1 rounded">
+                    Gender: <strong>{eventContext.gender_restriction}</strong>
+                  </span>
+                )}
+                {eventContext.seniority_restriction && (
+                  <span className="bg-blue-100 px-2 py-1 rounded">
+                    Category: <strong>{eventContext.seniority_restriction}</strong>
+                  </span>
+                )}
+                {eventContext.already_registered_count !== undefined && (
+                  <span className="bg-blue-100 px-2 py-1 rounded">
+                    Already Registered: <strong>{eventContext.already_registered_count}</strong>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <Card className="bg-primary/5 border-primary/20">
@@ -190,6 +233,15 @@ export const SelectIndividualParticipants: React.FC = () => {
             <div>
               <p className="text-xs text-textMuted">Total</p>
               <p className="text-xl font-bold text-primary">{districtData?.total_count || 0}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="bg-green-50 border-green-200">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <div>
+              <p className="text-xs text-textMuted">Eligible</p>
+              <p className="text-xl font-bold text-green-600">{summary?.eligible_count || 0}</p>
             </div>
           </div>
         </Card>
@@ -208,15 +260,6 @@ export const SelectIndividualParticipants: React.FC = () => {
             <div>
               <p className="text-xs text-textMuted">Senior</p>
               <p className="text-xl font-bold text-purple-600">{summary?.senior_count || 0}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="bg-gray-100 border-gray-200">
-          <div className="flex items-center gap-3">
-            <XCircle className="w-5 h-5 text-gray-500" />
-            <div>
-              <p className="text-xs text-textMuted">Ineligible</p>
-              <p className="text-xl font-bold text-gray-500">{summary?.ineligible_count || 0}</p>
             </div>
           </div>
         </Card>
@@ -257,18 +300,15 @@ export const SelectIndividualParticipants: React.FC = () => {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-2">
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value as 'all' | 'Junior' | 'Senior' | 'Ineligible')}
-              className="px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[130px]"
-            >
-              <option value="all">All Categories</option>
-              <option value="Junior">Junior ({summary?.junior_count || 0})</option>
-              <option value="Senior">Senior ({summary?.senior_count || 0})</option>
-              <option value="Ineligible">Ineligible ({summary?.ineligible_count || 0})</option>
-            </select>
-          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showOnlyEligible}
+              onChange={(e) => setShowOnlyEligible(e.target.checked)}
+              className="w-4 h-4 text-primary border-borderColor rounded focus:ring-primary"
+            />
+            <span className="text-sm text-textDark">Show only eligible</span>
+          </label>
         </div>
       </Card>
 
@@ -281,7 +321,7 @@ export const SelectIndividualParticipants: React.FC = () => {
                 <th className="px-4 py-3 text-left">
                   <input
                     type="checkbox"
-                    checked={selectedMembers.size > 0 && selectedMembers.size === eligibleCount}
+                    checked={selectedMembers.size > 0 && selectedMembers.size === eligibleCount && eligibleCount > 0}
                     onChange={handleSelectAll}
                     className="w-4 h-4 text-primary border-borderColor rounded focus:ring-primary"
                   />
@@ -289,10 +329,10 @@ export const SelectIndividualParticipants: React.FC = () => {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider">ID</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider">Full Name</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider">Contact</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider">DOB</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider">Age</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider">Unit</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider">Category</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider">Action</th>
               </tr>
             </thead>
@@ -302,16 +342,19 @@ export const SelectIndividualParticipants: React.FC = () => {
                   <td colSpan={9} className="px-4 py-12 text-center">
                     <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-textMuted font-medium">
-                      {searchTerm || filterUnit !== 'all' || filterCategory !== 'all'
+                      {searchTerm || filterUnit !== 'all'
                         ? 'No members found matching your filters' 
-                        : 'No members available'}
+                        : showOnlyEligible 
+                          ? 'No eligible members found for this event'
+                          : 'No members available'}
                     </p>
                   </td>
                 </tr>
               ) : (
                 filteredMembers.map((member: Member) => {
-                  const isIneligible = member.participation_category === 'Ineligible';
-                  const isDisabled = member.is_registered || member.is_excluded || isIneligible;
+                  const isEligible = member.is_eligible;
+                  const isAlreadyRegistered = member.is_already_registered;
+                  const isDisabled = !isEligible || isAlreadyRegistered;
                   const isSelected = selectedMembers.has(member.id);
                   
                   return (
@@ -333,26 +376,20 @@ export const SelectIndividualParticipants: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-textDark">{member.name}</span>
                           <Badge variant={member.gender === 'M' ? 'primary' : 'success'} className="text-xs">
-                            {member.gender}
+                            {member.gender === 'M' ? 'Male' : 'Female'}
                           </Badge>
-                          {member.is_excluded && <Badge variant="danger" className="text-xs">Excluded</Badge>}
-                          {member.is_registered && <Badge variant="success" className="text-xs">Registered</Badge>}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-textDark">
-                        <div className="flex items-center gap-1">
-                          <Phone className="w-3 h-3 text-textMuted" />
-                          {member.phone_number || '-'}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-textDark">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-textMuted" />
-                          {formatDate(member.dob)}
-                        </div>
+                        {member.phone_number ? (
+                          <div className="flex items-center gap-1">
+                            <Phone className="w-3 h-3 text-textMuted" />
+                            {member.phone_number}
+                          </div>
+                        ) : '-'}
                       </td>
                       <td className="px-4 py-3 text-sm text-textDark font-medium">{member.age} yrs</td>
-                      <td className="px-4 py-3 text-sm text-textDark">{member.unit_name}</td>
+                      <td className="px-4 py-3 text-sm text-textDark">{member.unit_name || '-'}</td>
                       <td className="px-4 py-3">
                         <Badge 
                           variant={
@@ -368,20 +405,45 @@ export const SelectIndividualParticipants: React.FC = () => {
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
+                        {isAlreadyRegistered ? (
+                          <Badge variant="success" className="text-xs">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Registered
+                          </Badge>
+                        ) : isEligible ? (
+                          <Badge variant="primary" className="text-xs bg-green-100 text-green-700 border-green-200">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Eligible
+                          </Badge>
+                        ) : (
+                          <div className="group relative">
+                            <Badge variant="danger" className="text-xs cursor-help">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              Ineligible
+                            </Badge>
+                            {member.ineligibility_reasons && member.ineligibility_reasons.length > 0 && (
+                              <div className="absolute z-10 hidden group-hover:block bottom-full left-0 mb-2 w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg">
+                                {member.ineligibility_reasons.map((reason, idx) => (
+                                  <div key={idx}>• {reason}</div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
                         <Button
-                          variant={member.is_registered ? 'outline' : 'primary'}
+                          variant={isAlreadyRegistered ? 'outline' : isEligible ? 'primary' : 'outline'}
                           size="sm"
                           onClick={() => handleAddParticipant(member.id)}
                           disabled={submitting || isDisabled}
                         >
-                          {member.is_registered ? (
+                          {isAlreadyRegistered ? (
                             <><CheckCircle className="w-4 h-4 mr-1" />Added</>
-                          ) : member.is_excluded ? (
-                            <><XCircle className="w-4 h-4 mr-1" />Excluded</>
-                          ) : isIneligible ? (
-                            <><XCircle className="w-4 h-4 mr-1" />Ineligible</>
-                          ) : (
+                          ) : isEligible ? (
                             <><Plus className="w-4 h-4 mr-1" />Add</>
+                          ) : (
+                            <><XCircle className="w-4 h-4 mr-1" />N/A</>
                           )}
                         </Button>
                       </td>
@@ -395,6 +457,7 @@ export const SelectIndividualParticipants: React.FC = () => {
         {filteredMembers.length > 0 && (
           <div className="px-4 py-3 bg-gray-50 border-t border-borderColor text-sm text-textMuted">
             Showing {filteredMembers.length} of {districtData?.total_count || 0} members
+            {showOnlyEligible && ` (${summary?.eligible_count || 0} eligible)`}
           </div>
         )}
       </Card>

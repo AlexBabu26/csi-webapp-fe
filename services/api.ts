@@ -2263,23 +2263,28 @@ class ApiService {
 
   // ==================== KALAMELA DISTRICT MEMBERS ====================
 
-  // GET /kalamela/official/district-members - Get all district members
+  // GET /kalamela/official/district-members - Get district members with optional event filtering
   async getDistrictMembers(params?: {
     unit_id?: number;
     participation_category?: 'Junior' | 'Senior' | 'Ineligible';
     search?: string;
+    event_id?: number;
+    event_type?: 'individual' | 'group';
   }): Promise<{
     members: Array<{
       id: number;
       name: string;
-      phone_number: string;
-      dob: string;
+      phone_number?: string;
+      dob?: string;
       age: number;
       gender: string;
-      unit_id: number;
-      unit_name: string;
+      unit_id?: number;
+      unit_name?: string;
       participation_category: 'Junior' | 'Senior' | 'Ineligible';
-      is_excluded: boolean;
+      is_excluded?: boolean;
+      is_eligible?: boolean;
+      is_already_registered?: boolean;
+      ineligibility_reasons?: string[];
     }>;
     total_count: number;
     summary: {
@@ -2287,18 +2292,28 @@ class ApiService {
       senior_count: number;
       ineligible_count: number;
       excluded_count: number;
+      eligible_count?: number;
     };
-    units: Array<{ id: number; name: string }>;
-    filters_applied: {
+    units?: Array<{ id: number; name: string }>;
+    filters_applied?: {
       unit_id: number | null;
       participation_category: string | null;
       search: string | null;
     };
-    age_restrictions: {
+    age_restrictions?: {
       junior_dob_start: string;
       junior_dob_end: string;
       senior_dob_start: string;
       senior_dob_end: string;
+    };
+    event_context?: {
+      id: number;
+      name: string;
+      type: string;
+      gender_restriction?: string;
+      seniority_restriction?: string;
+      is_mandatory?: boolean;
+      already_registered_count?: number;
     };
   }> {
     const token = this.getToken();
@@ -2308,6 +2323,8 @@ class ApiService {
     if (params?.unit_id) query.unit_id = params.unit_id;
     if (params?.participation_category) query.participation_category = params.participation_category;
     if (params?.search) query.search = params.search;
+    if (params?.event_id) query.event_id = params.event_id;
+    if (params?.event_type) query.event_type = params.event_type;
     
     return httpGet('/kalamela/official/district-members', { token, query });
   }
