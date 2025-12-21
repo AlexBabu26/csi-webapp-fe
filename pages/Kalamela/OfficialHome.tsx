@@ -6,6 +6,13 @@ import { useToast } from '../../components/Toast';
 import { IndividualEvent, GroupEvent } from '../../types';
 import { useKalamelaOfficialHome } from '../../hooks/queries';
 
+// Helper type for the API response structure
+interface IndividualEventItem {
+  event: IndividualEvent & { category_name: string };
+  participation_count: number;
+  remaining_slots: number;
+}
+
 export const KalamelaOfficialHome: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -32,17 +39,43 @@ export const KalamelaOfficialHome: React.FC = () => {
 
   if (!data) return null;
 
+  // Transform individual_events from grouped object to flat array
+  const individualEvents: Array<IndividualEvent & { participation_count: number; remaining_slots: number }> = [];
+  if (data.individual_events && typeof data.individual_events === 'object') {
+    Object.values(data.individual_events).forEach((categoryEvents: any) => {
+      if (Array.isArray(categoryEvents)) {
+        categoryEvents.forEach((item: IndividualEventItem) => {
+          individualEvents.push({
+            ...item.event,
+            participation_count: item.participation_count,
+            remaining_slots: item.remaining_slots,
+          });
+        });
+      }
+    });
+  }
+
+  // Transform group_events from object to array
+  const groupEvents: GroupEvent[] = [];
+  if (data.group_events && typeof data.group_events === 'object') {
+    Object.values(data.group_events).forEach((event: any) => {
+      if (event && event.id) {
+        groupEvents.push(event as GroupEvent);
+      }
+    });
+  }
+
   const stats = [
     {
       label: 'Individual Events',
-      value: data.individual_events.length,
+      value: individualEvents.length,
       icon: Calendar,
       color: 'text-primary',
       bgColor: 'bg-primary/10',
     },
     {
       label: 'Group Events',
-      value: data.group_events.length,
+      value: groupEvents.length,
       icon: Users,
       color: 'text-success',
       bgColor: 'bg-success/10',
@@ -114,7 +147,7 @@ export const KalamelaOfficialHome: React.FC = () => {
           Individual Events
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.individual_events.map((event: IndividualEvent, index: number) => (
+          {individualEvents.map((event, index: number) => (
             <Card key={event.id} className="hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => navigate(`/kalamela/official/event/individual/${event.id}`)}>
               <div className="flex items-start justify-between mb-3">
@@ -125,13 +158,16 @@ export const KalamelaOfficialHome: React.FC = () => {
                   <Badge variant="light">{event.category_name}</Badge>
                 )}
               </div>
-              <p className="text-sm text-textMuted mb-4 line-clamp-2">{event.description || 'No description'}</p>
+              <p className="text-sm text-textMuted mb-2 line-clamp-2">{event.description || 'No description'}</p>
+              <div className="text-xs text-textMuted mb-4">
+                Slots: {event.remaining_slots} remaining
+              </div>
               <Button variant="primary" size="sm" className="w-full">
                 Select Participants
               </Button>
             </Card>
           ))}
-          {data.individual_events.length === 0 && (
+          {individualEvents.length === 0 && (
             <Card className="col-span-full text-center py-8">
               <p className="text-textMuted">No individual events available yet</p>
             </Card>
@@ -146,7 +182,7 @@ export const KalamelaOfficialHome: React.FC = () => {
           Group Events
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.group_events.map((event: GroupEvent, index: number) => (
+          {groupEvents.map((event: GroupEvent, index: number) => (
             <Card key={event.id} className="hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => navigate(`/kalamela/official/event/group/${event.id}`)}>
               <div className="flex items-start justify-between mb-3">
@@ -167,7 +203,7 @@ export const KalamelaOfficialHome: React.FC = () => {
               </Button>
             </Card>
           ))}
-          {data.group_events.length === 0 && (
+          {groupEvents.length === 0 && (
             <Card className="col-span-full text-center py-8">
               <p className="text-textMuted">No group events available yet</p>
             </Card>
