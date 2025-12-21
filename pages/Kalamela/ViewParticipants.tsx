@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
-import { ArrowLeft, Trash2, Users, User, Phone, Calendar, MapPin } from 'lucide-react';
+import { ArrowLeft, Trash2, Users, User, Phone, MapPin } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -191,115 +191,120 @@ export const ViewParticipants: React.FC = () => {
 
                 {/* Enhanced participant cards */}
                 <div className="space-y-3">
-                  {participants.map((participant: any) => (
-                    <div
-                      key={participant.participation_id || participant.id}
-                      className="flex items-start justify-between p-4 bg-bgLight rounded-lg border border-borderColor hover:border-gray-300 hover:shadow-sm transition-all"
-                    >
-                      <div className="flex-1 min-w-0">
-                        {activeTab === 'individual' ? (
-                          <div className="space-y-2">
-                            {/* Name and badges row */}
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-semibold text-textDark text-base">{participant.participant_name}</p>
-                              <Badge variant="light" className="font-mono text-xs">{participant.chest_number}</Badge>
-                              {participant.seniority_category && participant.seniority_category !== 'NA' && (
-                                <Badge 
-                                  variant={participant.seniority_category === 'Junior' ? 'primary' : 'success'}
-                                  className="text-xs"
-                                >
-                                  {participant.seniority_category}
-                                </Badge>
-                              )}
-                              {participant.gender && (
-                                <Badge variant="light" className="text-xs">
-                                  {participant.gender === 'M' ? 'Male' : participant.gender === 'F' ? 'Female' : participant.gender}
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            {/* Details row */}
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-textMuted">
-                              {/* Unit Name */}
-                              {participant.unit_name && (
-                                <div className="flex items-center gap-1.5">
-                                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                                  <span className="truncate">{participant.unit_name}</span>
-                                </div>
-                              )}
-                              
-                              {/* Contact Number */}
-                              {participant.phone_number && (
-                                <div className="flex items-center gap-1.5">
-                                  <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                                  <span>{participant.phone_number}</span>
-                                </div>
-                              )}
-                              
-                              {/* Age */}
-                              {participant.age && (
-                                <div className="flex items-center gap-1.5">
-                                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                                  <span>{participant.age} years</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-semibold text-textDark">Team {participant.participation_id}</p>
-                              <Badge variant="light" className="font-mono text-xs">{participant.chest_number}</Badge>
-                              <Badge variant="success" className="text-xs">{participant.members?.length || 0} members</Badge>
-                            </div>
-                            {participant.members && participant.members.length > 0 && (
-                              <div className="bg-white rounded-md border border-borderColor overflow-hidden">
-                                <table className="w-full text-sm">
-                                  <thead className="bg-gray-50">
-                                    <tr>
-                                      <th className="px-3 py-2 text-left text-xs font-medium text-textMuted">Name</th>
-                                      <th className="px-3 py-2 text-left text-xs font-medium text-textMuted">Contact</th>
-                                      <th className="px-3 py-2 text-left text-xs font-medium text-textMuted">Unit</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-borderColor">
-                                    {participant.members.map((member: any, idx: number) => (
-                                      <tr key={idx} className="hover:bg-gray-50">
-                                        <td className="px-3 py-2 font-medium text-textDark">{member.name}</td>
-                                        <td className="px-3 py-2 text-textMuted">
-                                          {member.phone_number || '-'}
-                                        </td>
-                                        <td className="px-3 py-2 text-textMuted">
-                                          {member.unit_name || participant.unit_name || '-'}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        className="ml-4 flex-shrink-0"
-                        onClick={() => {
-                          setSelectedParticipation({ 
-                            id: participant.participation_id || participant.id,
-                            eventId: participant.event_id || 0,
-                            eventType: activeTab,
-                            name: participant.participant_name || `Team ${participant.participation_id}`,
-                          });
-                          setShowDeleteDialog(true);
-                        }}
+                  {participants.map((participant: any) => {
+                    // Get the correct ID based on event type
+                    const participationId = activeTab === 'individual' 
+                      ? participant.individual_event_participation_id 
+                      : participant.group_event_participation_id || participant.participation_id;
+                    const eventId = activeTab === 'individual'
+                      ? participant.individual_event_id
+                      : participant.group_event_id || participant.event_id;
+                    
+                    return (
+                      <div
+                        key={participationId}
+                        className="flex items-start justify-between p-4 bg-bgLight rounded-lg border border-borderColor hover:border-gray-300 hover:shadow-sm transition-all"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          {activeTab === 'individual' ? (
+                            <div className="space-y-2">
+                              {/* Name and badges row */}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-semibold text-textDark text-base">{participant.participant_name}</p>
+                                <Badge variant="light" className="font-mono text-xs">{participant.participant_chest_number}</Badge>
+                                {participant.seniority_category && participant.seniority_category !== 'NA' && (
+                                  <Badge 
+                                    variant={participant.seniority_category === 'Junior' ? 'primary' : 'success'}
+                                    className="text-xs"
+                                  >
+                                    {participant.seniority_category}
+                                  </Badge>
+                                )}
+                              </div>
+                              
+                              {/* Details row */}
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-textMuted">
+                                {/* Unit Name */}
+                                {participant.participant_unit && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                                    <span className="truncate">{participant.participant_unit}</span>
+                                  </div>
+                                )}
+                                
+                                {/* District */}
+                                {participant.participant_district && participant.participant_district !== participant.participant_unit && (
+                                  <div className="flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-purple-500" />
+                                    <span>{participant.participant_district}</span>
+                                  </div>
+                                )}
+                                
+                                {/* Contact Number */}
+                                {participant.participant_phone && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                                    <span>{participant.participant_phone}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-semibold text-textDark">Team {participationId}</p>
+                                <Badge variant="light" className="font-mono text-xs">{participant.chest_number || participant.group_chest_number}</Badge>
+                                <Badge variant="success" className="text-xs">{participant.members?.length || 0} members</Badge>
+                              </div>
+                              {participant.members && participant.members.length > 0 && (
+                                <div className="bg-white rounded-md border border-borderColor overflow-hidden">
+                                  <table className="w-full text-sm">
+                                    <thead className="bg-gray-50">
+                                      <tr>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-textMuted">Name</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-textMuted">Contact</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-textMuted">Unit</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-borderColor">
+                                      {participant.members.map((member: any, idx: number) => (
+                                        <tr key={idx} className="hover:bg-gray-50">
+                                          <td className="px-3 py-2 font-medium text-textDark">{member.name || member.participant_name}</td>
+                                          <td className="px-3 py-2 text-textMuted">
+                                            {member.phone_number || member.participant_phone || '-'}
+                                          </td>
+                                          <td className="px-3 py-2 text-textMuted">
+                                            {member.unit_name || member.participant_unit || participant.unit_name || '-'}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          className="ml-4 flex-shrink-0"
+                          onClick={() => {
+                            setSelectedParticipation({ 
+                              id: participationId,
+                              eventId: eventId || 0,
+                              eventType: activeTab,
+                              name: participant.participant_name || `Team ${participationId}`,
+                            });
+                            setShowDeleteDialog(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
               </Card>
             );
