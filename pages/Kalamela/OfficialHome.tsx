@@ -114,19 +114,18 @@ export const KalamelaOfficialHome: React.FC = () => {
           Individual Events
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.individual_events.map((event, index) => (
+          {data.individual_events.map((event: IndividualEvent, index: number) => (
             <Card key={event.id} className="hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => navigate(`/kalamela/official/event/individual/${event.id}`)}>
               <div className="flex items-start justify-between mb-3">
                 <h3 className="font-bold text-textDark">
                   {index + 1}. {event.name}
                 </h3>
-                <Badge variant="light">Rs.{event.registrationFee}</Badge>
+                {event.category_name && (
+                  <Badge variant="light">{event.category_name}</Badge>
+                )}
               </div>
-              <p className="text-sm text-textMuted mb-4 line-clamp-2">{event.description}</p>
-              {event.category && (
-                <Badge variant="primary" className="mb-3">{event.category}</Badge>
-              )}
+              <p className="text-sm text-textMuted mb-4 line-clamp-2">{event.description || 'No description'}</p>
               <Button variant="primary" size="sm" className="w-full">
                 Select Participants
               </Button>
@@ -147,19 +146,22 @@ export const KalamelaOfficialHome: React.FC = () => {
           Group Events
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.group_events.map((event, index) => (
+          {data.group_events.map((event: GroupEvent, index: number) => (
             <Card key={event.id} className="hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => navigate(`/kalamela/official/event/group/${event.id}`)}>
               <div className="flex items-start justify-between mb-3">
                 <h3 className="font-bold text-textDark">
                   {index + 1}. {event.name}
                 </h3>
-                <Badge variant="light">Rs.{event.registrationFee}</Badge>
               </div>
-              <p className="text-sm text-textMuted mb-3 line-clamp-2">{event.description}</p>
-              <p className="text-sm text-textMuted mb-4">
-                Participants: {event.minAllowedLimit} - {event.maxAllowedLimit}
-              </p>
+              <p className="text-sm text-textMuted mb-3 line-clamp-2">{event.description || 'No description'}</p>
+              <div className="flex items-center gap-4 text-sm text-textMuted mb-4">
+                <span className="flex items-center gap-1">
+                  <Users className="w-4 h-4" />
+                  {event.min_allowed_limit} - {event.max_allowed_limit} per team
+                </span>
+                <span>{event.per_unit_allowed_limit} team(s)/unit</span>
+              </div>
               <Button variant="success" size="sm" className="w-full">
                 Select Team
               </Button>
@@ -167,7 +169,7 @@ export const KalamelaOfficialHome: React.FC = () => {
           ))}
           {data.group_events.length === 0 && (
             <Card className="col-span-full text-center py-8">
-              <p className="textMuted">No group events available yet</p>
+              <p className="text-textMuted">No group events available yet</p>
             </Card>
           )}
         </div>
@@ -175,5 +177,3 @@ export const KalamelaOfficialHome: React.FC = () => {
     </div>
   );
 };
-
-

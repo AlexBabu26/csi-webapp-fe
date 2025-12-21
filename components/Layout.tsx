@@ -22,7 +22,8 @@ import {
   Star,
   CreditCard,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  Tag
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '../constants';
@@ -114,6 +115,7 @@ const NAV_GROUPS: NavGroup[] = [
     roles: ['admin'],
     items: [
       { label: 'Events Management', path: '/kalamela/admin/events', icon: <Calendar size={18} /> },
+      { label: 'Categories', path: '/kalamela/admin/categories', icon: <Tag size={18} /> },
       { label: 'Score Entry', path: '/kalamela/admin/scores', icon: <Star size={18} /> },
       { label: 'Results', path: '/kalamela/admin/results', icon: <Trophy size={18} /> },
       { label: 'Payments', path: '/kalamela/admin/payments', icon: <CreditCard size={18} /> },

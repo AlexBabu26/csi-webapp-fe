@@ -62,6 +62,11 @@ export const queryKeys = {
       individual: () => [...queryKeys.kalamela.events.all(), 'individual'] as const,
       group: () => [...queryKeys.kalamela.events.all(), 'group'] as const,
     },
+    categories: {
+      all: () => [...queryKeys.kalamela.all, 'categories'] as const,
+      list: () => [...queryKeys.kalamela.categories.all(), 'list'] as const,
+      detail: (id: number) => [...queryKeys.kalamela.categories.all(), 'detail', id] as const,
+    },
     participants: (eventId: number) => [...queryKeys.kalamela.all, 'participants', eventId] as const,
     allParticipants: () => [...queryKeys.kalamela.all, 'allParticipants'] as const,
     scores: (eventId: number) => [...queryKeys.kalamela.all, 'scores', eventId] as const,

@@ -47,6 +47,13 @@ import {
   TopPerformer,
   KalamelaDashboardStats,
   EventGrade,
+  KalamelaCategory,
+  KalamelaCategoryCreate,
+  KalamelaCategoryUpdate,
+  IndividualEventCreate,
+  IndividualEventUpdate,
+  GroupEventCreate,
+  GroupEventUpdate,
   // Site Settings types
   SiteSettings,
   SiteSettingsUpdate,
@@ -685,15 +692,12 @@ class ApiService {
   // -------------------------
   // Kalamela Admin (role 1)
   // -------------------------
-  createAdminIndividualEvent(payload: { name: string; category?: string; description?: string }, token: string) {
-    return httpPost<any>('/kalamela/admin/events/individual', payload, { token });
+  createAdminIndividualEvent(payload: IndividualEventCreate, token: string) {
+    return httpPost<IndividualEvent>('/kalamela/admin/events/individual', payload, { token });
   }
 
-  createAdminGroupEvent(
-    payload: { name: string; description?: string; max_allowed_limit: number; min_allowed_limit: number; per_unit_allowed_limit: number },
-    token: string
-  ) {
-    return httpPost<any>('/kalamela/admin/events/group', payload, { token });
+  createAdminGroupEvent(payload: GroupEventCreate, token: string) {
+    return httpPost<GroupEvent>('/kalamela/admin/events/group', payload, { token });
   }
 
   addAdminIndividualScore(payload: { participation_id: number; awarded_mark: number; grade?: string; total_points: number }, token: string) {
@@ -1974,51 +1978,18 @@ class ApiService {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     
-    // API returns snake_case fields
-    interface ApiIndividualEvent {
-      id: number;
-      name: string;
-      category?: string;
-      description?: string;
-      created_at?: string;
-    }
-    
-    interface ApiGroupEvent {
-      id: number;
-      name: string;
-      description?: string;
-      min_allowed_limit: number;
-      max_allowed_limit: number;
-      per_unit_allowed_limit?: number;
-      created_at?: string;
-    }
-    
     const rawData = await httpGet<{
-      individual_events: ApiIndividualEvent[];
-      group_events: ApiGroupEvent[];
+      individual_events: IndividualEvent[];
+      group_events: GroupEvent[];
     }>('/kalamela/admin/home', { token });
     
-    // Transform API response to match frontend interfaces
-    const individual_events: IndividualEvent[] = (rawData.individual_events || []).map(event => ({
-      id: event.id,
-      name: event.name,
-      description: event.description || '',
-      category: event.category,
-      registrationFee: 50, // Default Rs.50 for individual events
-      createdAt: event.created_at || new Date().toISOString(),
-    }));
-    
-    const group_events: GroupEvent[] = (rawData.group_events || []).map(event => ({
-      id: event.id,
-      name: event.name,
-      description: event.description || '',
-      minAllowedLimit: event.min_allowed_limit,
-      maxAllowedLimit: event.max_allowed_limit,
-      registrationFee: 100, // Default Rs.100 for group events
-      createdAt: event.created_at || new Date().toISOString(),
-    }));
-    
-    return { data: { individual_events, group_events }, status: 200 };
+    return { 
+      data: { 
+        individual_events: rawData.individual_events || [], 
+        group_events: rawData.group_events || [] 
+      }, 
+      status: 200 
+    };
   }
 
   // Kalamela Events Management
@@ -2037,63 +2008,34 @@ class ApiService {
   }
 
   // POST /kalamela/admin/events/individual - Create individual event
-  async addIndividualEvent(payload: { name: string; category?: string; description?: string }): Promise<ApiResponse<IndividualEvent>> {
+  async addIndividualEvent(payload: IndividualEventCreate): Promise<ApiResponse<IndividualEvent>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const response = await httpPost<any>('/kalamela/admin/events/individual', {
-      name: payload.name,
-      category: payload.category || null,
-      description: payload.description || null,
-    }, { token });
+    const response = await httpPost<IndividualEvent>('/kalamela/admin/events/individual', payload, { token });
     return { data: response, message: 'Event created successfully', status: 200 };
   }
 
   // POST /kalamela/admin/events/group - Create group event
-  async addGroupEvent(payload: {
-    name: string;
-    description?: string;
-    max_allowed_limit: number;
-    min_allowed_limit: number;
-  }): Promise<ApiResponse<GroupEvent>> {
+  async addGroupEvent(payload: GroupEventCreate): Promise<ApiResponse<GroupEvent>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const response = await httpPost<any>('/kalamela/admin/events/group', {
-      name: payload.name,
-      description: payload.description || null,
-      max_allowed_limit: payload.max_allowed_limit,
-      min_allowed_limit: payload.min_allowed_limit,
-      per_unit_allowed_limit: payload.max_allowed_limit,
-    }, { token });
+    const response = await httpPost<GroupEvent>('/kalamela/admin/events/group', payload, { token });
     return { data: response, message: 'Event created successfully', status: 200 };
   }
 
   // PUT /kalamela/admin/events/individual/{event_id} - Update individual event
-  async updateIndividualEvent(id: number, payload: Partial<{ name: string; category: string; description: string }>): Promise<ApiResponse<IndividualEvent>> {
+  async updateIndividualEvent(id: number, payload: IndividualEventUpdate): Promise<ApiResponse<IndividualEvent>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const response = await httpPut<any>(`/kalamela/admin/events/individual/${id}`, {
-      name: payload.name || null,
-      category: payload.category || null,
-      description: payload.description || null,
-    }, { token });
+    const response = await httpPut<IndividualEvent>(`/kalamela/admin/events/individual/${id}`, payload, { token });
     return { data: response, message: 'Event updated successfully', status: 200 };
   }
 
   // PUT /kalamela/admin/events/group/{event_id} - Update group event
-  async updateGroupEvent(id: number, payload: Partial<{
-    name: string;
-    description: string;
-    max_allowed_limit: number;
-    min_allowed_limit: number;
-  }>): Promise<ApiResponse<GroupEvent>> {
+  async updateGroupEvent(id: number, payload: GroupEventUpdate): Promise<ApiResponse<GroupEvent>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const response = await httpPut<any>(`/kalamela/admin/events/group/${id}`, {
-      name: payload.name || null,
-      description: payload.description || null,
-      max_allowed_limit: payload.max_allowed_limit,
-      min_allowed_limit: payload.min_allowed_limit,
-    }, { token });
+    const response = await httpPut<GroupEvent>(`/kalamela/admin/events/group/${id}`, payload, { token });
     return { data: response, message: 'Event updated successfully', status: 200 };
   }
 
@@ -2105,6 +2047,48 @@ class ApiService {
       : `/kalamela/admin/events/group/${id}`;
     await httpDelete<any>(endpoint, { token });
     return { data: true, message: 'Event deleted successfully', status: 200 };
+  }
+
+  // ==================== KALAMELA CATEGORY MASTER ====================
+
+  // GET /kalamela/admin/categories - List all categories
+  async getKalamelaCategories(): Promise<ApiResponse<KalamelaCategory[]>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpGet<KalamelaCategory[]>('/kalamela/admin/categories', { token });
+    return { data, status: 200 };
+  }
+
+  // POST /kalamela/admin/categories - Create a new category
+  async createKalamelaCategory(payload: KalamelaCategoryCreate): Promise<ApiResponse<KalamelaCategory>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpPost<KalamelaCategory>('/kalamela/admin/categories', payload, { token });
+    return { data, message: 'Category created successfully', status: 201 };
+  }
+
+  // GET /kalamela/admin/categories/{category_id} - Get category by ID
+  async getKalamelaCategoryById(categoryId: number): Promise<ApiResponse<KalamelaCategory>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpGet<KalamelaCategory>(`/kalamela/admin/categories/${categoryId}`, { token });
+    return { data, status: 200 };
+  }
+
+  // PUT /kalamela/admin/categories/{category_id} - Update a category
+  async updateKalamelaCategory(categoryId: number, payload: KalamelaCategoryUpdate): Promise<ApiResponse<KalamelaCategory>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpPut<KalamelaCategory>(`/kalamela/admin/categories/${categoryId}`, payload, { token });
+    return { data, message: 'Category updated successfully', status: 200 };
+  }
+
+  // DELETE /kalamela/admin/categories/{category_id} - Delete a category
+  async deleteKalamelaCategory(categoryId: number): Promise<ApiResponse<boolean>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpDelete<any>(`/kalamela/admin/categories/${categoryId}`, { token });
+    return { data: true, message: 'Category deleted successfully', status: 200 };
   }
 
   // GET /kalamela/admin/units - View all units with stats

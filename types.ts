@@ -710,26 +710,71 @@ export interface MemberAddSubmission {
 
 // ==================== KALAMELA TYPES ====================
 
+// Kalamela Category Master
+export interface KalamelaCategory {
+  id: number;
+  name: string;
+  description: string | null;
+  created_on: string;
+  updated_on: string;
+}
+
+export interface KalamelaCategoryCreate {
+  name: string;
+  description?: string;
+}
+
+export interface KalamelaCategoryUpdate {
+  name?: string;
+  description?: string;
+}
+
 // Kalamela Events
 export interface IndividualEvent {
   id: number;
   name: string;
-  description: string;
-  category?: string;
-  registrationFee: number; // Rs.50
-  remainingSlots?: number;
-  createdAt: string;
+  description: string | null;
+  category_id?: number | null;
+  category_name?: string | null;
+  created_on: string;
+}
+
+export interface IndividualEventCreate {
+  name: string;
+  category_id?: number;
+  description?: string;
+}
+
+export interface IndividualEventUpdate {
+  name?: string;
+  category_id?: number;
+  description?: string;
 }
 
 export interface GroupEvent {
   id: number;
   name: string;
-  description: string;
-  minAllowedLimit: number;
-  maxAllowedLimit: number;
-  registrationFee: number; // Rs.100
-  remainingSlots?: number;
-  createdAt: string;
+  description: string | null;
+  min_allowed_limit: number;
+  max_allowed_limit: number;
+  per_unit_allowed_limit: number;
+  created_on: string;
+}
+
+export interface GroupEventCreate {
+  name: string;
+  description?: string;
+  max_allowed_limit?: number;
+  min_allowed_limit?: number;
+  per_unit_allowed_limit?: number;
+}
+
+export interface GroupEventUpdate {
+  name?: string;
+  description?: string;
+  max_allowed_limit?: number;
+  min_allowed_limit?: number;
+  per_unit_allowed_limit?: number;
 }
 
 // Kalamela Participants

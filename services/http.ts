@@ -3,7 +3,8 @@ import { getAuthToken, getRefreshToken, setAuthTokens, clearAuth, isTokenExpirin
 export const API_BASE_URL =
   (typeof process !== 'undefined' && (process as any).env?.API_BASE_URL) ||
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) ||
-  'https://csi-project-be.vercel.app/api';
+  // 'https://csi-project-be.vercel.app/api';
+  'http://localhost:7000/api';
 
 const DEFAULT_BASE_URL = API_BASE_URL;
 
@@ -157,7 +158,7 @@ export const http = async <T = any>(
     });
 
     // Handle 401 Unauthorized - try to refresh token and retry
-    if (response.status === 401 && !skipAuthRefresh && !token) {
+    if (response.status === 401 && !skipAuthRefresh) {
       const refreshToken = getRefreshToken();
       if (refreshToken) {
         console.log('[HTTP] Got 401, attempting token refresh...');
@@ -174,12 +175,22 @@ export const http = async <T = any>(
             headers: retryHeaders,
           });
           
+          // If retry also fails with 401, redirect to login
+          if (retryResponse.status === 401) {
+            console.error('[HTTP] Retry also got 401, redirecting to login');
+            clearAuth();
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && window.location.pathname !== '/') {
+              window.location.href = '/';
+            }
+            throw new Error('Session expired. Please login again.');
+          }
+          
           return handleResponse(retryResponse, asBlob) as Promise<T>;
         } catch (refreshError) {
           console.error('[HTTP] Token refresh failed, clearing auth:', refreshError);
           clearAuth();
           // Redirect to login
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && window.location.pathname !== '/') {
             window.location.href = '/';
           }
           throw new Error('Session expired. Please login again.');
@@ -187,7 +198,7 @@ export const http = async <T = any>(
       } else {
         // No refresh token, clear auth and redirect
         clearAuth();
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && window.location.pathname !== '/') {
           window.location.href = '/';
         }
         throw new Error('Session expired. Please login again.');

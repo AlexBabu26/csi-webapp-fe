@@ -72,6 +72,7 @@ const ScoreGroupEvent = lazy(() => import('./pages/Kalamela/Admin/ScoreGroupEven
 const AdminResults = lazy(() => import('./pages/Kalamela/Admin/AdminResults').then(module => ({ default: module.AdminResults })));
 const ManagePayments = lazy(() => import('./pages/Kalamela/Admin/ManagePayments').then(module => ({ default: module.ManagePayments })));
 const ManageAppeals = lazy(() => import('./pages/Kalamela/Admin/ManageAppeals').then(module => ({ default: module.ManageAppeals })));
+const CategoryManagement = lazy(() => import('./pages/Kalamela/Admin/CategoryManagement').then(module => ({ default: module.CategoryManagement })));
 
 // Loading Fallback
 const PageLoader = () => (
@@ -299,6 +300,12 @@ const App: React.FC = () => {
               <Route path="/kalamela/admin/events" element={
                 <AdminRoute>
                   <EventsManagement />
+                </AdminRoute>
+              } />
+
+              <Route path="/kalamela/admin/categories" element={
+                <AdminRoute>
+                  <CategoryManagement />
                 </AdminRoute>
               } />
 

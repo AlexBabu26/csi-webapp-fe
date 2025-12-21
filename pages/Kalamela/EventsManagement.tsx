@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Card, Badge, Button } from '../../components/ui';
-import { Plus, Info, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Info, Edit2, Trash2, X, Users } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { IndividualEvent, GroupEvent } from '../../types';
 import { Portal } from '../../components/Portal';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { 
   useIndividualEvents, 
   useGroupEvents, 
@@ -12,7 +13,8 @@ import {
   useUpdateIndividualEvent, 
   useUpdateGroupEvent, 
   useDeleteIndividualEvent, 
-  useDeleteGroupEvent 
+  useDeleteGroupEvent,
+  useKalamelaCategories
 } from '../../hooks/queries';
 
 type TabType = 'individual' | 'group';
@@ -25,9 +27,11 @@ export const EventsManagement: React.FC = () => {
   // Use TanStack Query
   const { data: individualEventsData, isLoading: loadingIndividual } = useIndividualEvents();
   const { data: groupEventsData, isLoading: loadingGroup } = useGroupEvents();
+  const { data: categoriesData, isLoading: loadingCategories } = useKalamelaCategories();
   
   const individualEvents = individualEventsData ?? [];
   const groupEvents = groupEventsData ?? [];
+  const categories = categoriesData ?? [];
   const loading = loadingIndividual || loadingGroup;
   
   // Mutations
@@ -43,13 +47,18 @@ export const EventsManagement: React.FC = () => {
   const [modalType, setModalType] = useState<'add' | 'edit' | 'info'>('add');
   const [selectedEvent, setSelectedEvent] = useState<IndividualEvent | GroupEvent | null>(null);
   
+  // Delete confirmation states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<IndividualEvent | GroupEvent | null>(null);
+  
   // Form states
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    category: '',
-    minAllowedLimit: 3,
-    maxAllowedLimit: 10,
+    category_id: undefined as number | undefined,
+    min_allowed_limit: 3,
+    max_allowed_limit: 10,
+    per_unit_allowed_limit: 1,
   });
 
   const openModal = (type: 'add' | 'edit' | 'info', event?: IndividualEvent | GroupEvent) => {
@@ -59,18 +68,20 @@ export const EventsManagement: React.FC = () => {
     if (type === 'edit' && event) {
       setFormData({
         name: event.name,
-        description: event.description,
-        category: 'category' in event ? event.category || '' : '',
-        minAllowedLimit: 'minAllowedLimit' in event ? event.minAllowedLimit : 3,
-        maxAllowedLimit: 'maxAllowedLimit' in event ? event.maxAllowedLimit : 10,
+        description: event.description || '',
+        category_id: 'category_id' in event ? (event.category_id ?? undefined) : undefined,
+        min_allowed_limit: 'min_allowed_limit' in event ? event.min_allowed_limit : 3,
+        max_allowed_limit: 'max_allowed_limit' in event ? event.max_allowed_limit : 10,
+        per_unit_allowed_limit: 'per_unit_allowed_limit' in event ? event.per_unit_allowed_limit : 1,
       });
     } else if (type === 'add') {
       setFormData({
         name: '',
         description: '',
-        category: '',
-        minAllowedLimit: 3,
-        maxAllowedLimit: 10,
+        category_id: undefined,
+        min_allowed_limit: 3,
+        max_allowed_limit: 10,
+        per_unit_allowed_limit: 1,
       });
     }
     
@@ -90,8 +101,8 @@ export const EventsManagement: React.FC = () => {
         createIndividualMutation.mutate(
           {
             name: formData.name,
-            description: formData.description,
-            category: formData.category,
+            description: formData.description || undefined,
+            category_id: formData.category_id,
           },
           { onSuccess: closeModal }
         );
@@ -99,9 +110,10 @@ export const EventsManagement: React.FC = () => {
         createGroupMutation.mutate(
           {
             name: formData.name,
-            description: formData.description,
-            minAllowedLimit: formData.minAllowedLimit,
-            maxAllowedLimit: formData.maxAllowedLimit,
+            description: formData.description || undefined,
+            min_allowed_limit: formData.min_allowed_limit,
+            max_allowed_limit: formData.max_allowed_limit,
+            per_unit_allowed_limit: formData.per_unit_allowed_limit,
           },
           { onSuccess: closeModal }
         );
@@ -109,19 +121,69 @@ export const EventsManagement: React.FC = () => {
     } else if (modalType === 'edit' && selectedEvent) {
       if (activeTab === 'individual') {
         updateIndividualMutation.mutate(
-          { eventId: selectedEvent.id, data: formData },
+          { 
+            eventId: selectedEvent.id, 
+            data: {
+              name: formData.name,
+              description: formData.description || undefined,
+              category_id: formData.category_id,
+            }
+          },
           { onSuccess: closeModal }
         );
       } else {
         updateGroupMutation.mutate(
-          { eventId: selectedEvent.id, data: formData },
+          { 
+            eventId: selectedEvent.id, 
+            data: {
+              name: formData.name,
+              description: formData.description || undefined,
+              min_allowed_limit: formData.min_allowed_limit,
+              max_allowed_limit: formData.max_allowed_limit,
+              per_unit_allowed_limit: formData.per_unit_allowed_limit,
+            }
+          },
           { onSuccess: closeModal }
         );
       }
     }
   };
 
+  const handleDeleteClick = (event: IndividualEvent | GroupEvent) => {
+    setEventToDelete(event);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!eventToDelete) return;
+    
+    if (activeTab === 'individual') {
+      deleteIndividualMutation.mutate(eventToDelete.id, {
+        onSuccess: () => {
+          setShowDeleteConfirm(false);
+          setEventToDelete(null);
+        },
+        onError: () => {
+          setShowDeleteConfirm(false);
+          setEventToDelete(null);
+        }
+      });
+    } else {
+      deleteGroupMutation.mutate(eventToDelete.id, {
+        onSuccess: () => {
+          setShowDeleteConfirm(false);
+          setEventToDelete(null);
+        },
+        onError: () => {
+          setShowDeleteConfirm(false);
+          setEventToDelete(null);
+        }
+      });
+    }
+  };
+
   const events = activeTab === 'individual' ? individualEvents : groupEvents;
+  const isDeleting = deleteIndividualMutation.isPending || deleteGroupMutation.isPending;
 
   return (
     <div className="space-y-6 animate-slide-in">
@@ -184,18 +246,22 @@ export const EventsManagement: React.FC = () => {
             <Card key={event.id} className="hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between mb-3">
                 <h3 className="font-bold text-textDark">{index + 1}. {event.name}</h3>
-                <Badge variant="light">Rs.{event.registrationFee}</Badge>
+                {activeTab === 'individual' && 'category_name' in event && event.category_name && (
+                  <Badge variant="light">{event.category_name}</Badge>
+                )}
               </div>
-              <p className="text-sm text-textMuted mb-4 line-clamp-2">{event.description}</p>
+              <p className="text-sm text-textMuted mb-4 line-clamp-2">{event.description || 'No description'}</p>
               
-              {activeTab === 'individual' && 'category' in event && event.category && (
-                <Badge variant="light" className="mb-3">{event.category}</Badge>
-              )}
-              
-              {activeTab === 'group' && 'minAllowedLimit' in event && (
-                <p className="text-sm text-textMuted mb-3">
-                  Participants: {event.minAllowedLimit} - {event.maxAllowedLimit}
-                </p>
+              {activeTab === 'group' && 'min_allowed_limit' in event && (
+                <div className="flex items-center gap-4 text-sm text-textMuted mb-3">
+                  <span className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    {event.min_allowed_limit} - {event.max_allowed_limit} per team
+                  </span>
+                  <span>
+                    {event.per_unit_allowed_limit} team(s)/unit
+                  </span>
+                </div>
               )}
               
               <div className="flex gap-2">
@@ -205,7 +271,12 @@ export const EventsManagement: React.FC = () => {
                 <Button variant="warning" size="sm" onClick={() => openModal('edit', event)}>
                   <Edit2 className="w-4 h-4" />
                 </Button>
-                <Button variant="danger" size="sm" disabled>
+                <Button 
+                  variant="danger" 
+                  size="sm" 
+                  onClick={() => handleDeleteClick(event)}
+                  disabled={isDeleting}
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
@@ -242,29 +313,33 @@ export const EventsManagement: React.FC = () => {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-textMuted">Description</label>
-                      <p className="text-textDark">{selectedEvent.description}</p>
+                      <p className="text-textDark">{selectedEvent.description || 'N/A'}</p>
                     </div>
-                    {activeTab === 'individual' && 'category' in selectedEvent && (
+                    {activeTab === 'individual' && 'category_name' in selectedEvent && (
                       <div>
                         <label className="text-sm font-medium text-textMuted">Category</label>
-                        <p className="text-textDark">{selectedEvent.category || 'N/A'}</p>
+                        <p className="text-textDark">{selectedEvent.category_name || 'N/A'}</p>
                       </div>
                     )}
-                    {activeTab === 'group' && 'minAllowedLimit' in selectedEvent && (
+                    {activeTab === 'group' && 'min_allowed_limit' in selectedEvent && (
                       <>
                         <div>
                           <label className="text-sm font-medium text-textMuted">Minimum Participants</label>
-                          <p className="text-textDark">{selectedEvent.minAllowedLimit}</p>
+                          <p className="text-textDark">{selectedEvent.min_allowed_limit}</p>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-textMuted">Maximum Participants</label>
-                          <p className="text-textDark">{selectedEvent.maxAllowedLimit}</p>
+                          <p className="text-textDark">{selectedEvent.max_allowed_limit}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-textMuted">Teams Allowed Per Unit</label>
+                          <p className="text-textDark">{selectedEvent.per_unit_allowed_limit}</p>
                         </div>
                       </>
                     )}
                     <div>
-                      <label className="text-sm font-medium text-textMuted">Registration Fee</label>
-                      <p className="text-textDark">Rs.{selectedEvent.registrationFee}</p>
+                      <label className="text-sm font-medium text-textMuted">Created On</label>
+                      <p className="text-textDark">{new Date(selectedEvent.created_on).toLocaleDateString()}</p>
                     </div>
                   </div>
                 ) : (
@@ -284,67 +359,95 @@ export const EventsManagement: React.FC = () => {
 
                     <div>
                       <label className="block text-sm font-medium text-textDark mb-2">
-                        Description <span className="text-danger">*</span>
+                        Description
                       </label>
                       <textarea
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                         rows={3}
-                        required
+                        placeholder="Enter event description..."
                       />
                     </div>
 
                     {activeTab === 'individual' && (
                       <div>
                         <label className="block text-sm font-medium text-textDark mb-2">Category</label>
-                        <input
-                          type="text"
-                          value={formData.category}
-                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                          placeholder="e.g., Music, Dance, Arts, Literary"
-                          className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        />
+                        <select
+                          value={formData.category_id ?? ''}
+                          onChange={(e) => setFormData({ ...formData, category_id: e.target.value ? parseInt(e.target.value) : undefined })}
+                          className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white"
+                        >
+                          <option value="">Select a category</option>
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                        {categories.length === 0 && !loadingCategories && (
+                          <p className="text-xs text-textMuted mt-1">No categories available. Create categories first.</p>
+                        )}
                       </div>
                     )}
 
                     {activeTab === 'group' && (
-                      <div className="grid grid-cols-2 gap-4">
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-textDark mb-2">
+                              Min Participants
+                            </label>
+                            <input
+                              type="number"
+                              value={formData.min_allowed_limit}
+                              onChange={(e) => setFormData({ ...formData, min_allowed_limit: parseInt(e.target.value) || 1 })}
+                              min="1"
+                              className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-textDark mb-2">
+                              Max Participants
+                            </label>
+                            <input
+                              type="number"
+                              value={formData.max_allowed_limit}
+                              onChange={(e) => setFormData({ ...formData, max_allowed_limit: parseInt(e.target.value) || 2 })}
+                              min={formData.min_allowed_limit}
+                              className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                        </div>
                         <div>
                           <label className="block text-sm font-medium text-textDark mb-2">
-                            Min Participants <span className="text-danger">*</span>
+                            Teams Allowed Per Unit
                           </label>
                           <input
                             type="number"
-                            value={formData.minAllowedLimit}
-                            onChange={(e) => setFormData({ ...formData, minAllowedLimit: parseInt(e.target.value) })}
+                            value={formData.per_unit_allowed_limit}
+                            onChange={(e) => setFormData({ ...formData, per_unit_allowed_limit: parseInt(e.target.value) || 1 })}
                             min="1"
                             className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                            required
                           />
+                          <p className="text-xs text-textMuted mt-1">How many teams can each unit register for this event</p>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-textDark mb-2">
-                            Max Participants <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="number"
-                            value={formData.maxAllowedLimit}
-                            onChange={(e) => setFormData({ ...formData, maxAllowedLimit: parseInt(e.target.value) })}
-                            min={formData.minAllowedLimit}
-                            className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                            required
-                          />
-                        </div>
-                      </div>
+                      </>
                     )}
 
                     <div className="flex justify-end gap-3 pt-4">
                       <Button type="button" variant="outline" onClick={closeModal}>
                         Cancel
                       </Button>
-                      <Button type="submit" variant="primary">
-                        {modalType === 'add' ? 'Create Event' : 'Update Event'}
+                      <Button 
+                        type="submit" 
+                        variant="primary"
+                        disabled={createIndividualMutation.isPending || createGroupMutation.isPending || updateIndividualMutation.isPending || updateGroupMutation.isPending}
+                      >
+                        {(createIndividualMutation.isPending || createGroupMutation.isPending || updateIndividualMutation.isPending || updateGroupMutation.isPending) 
+                          ? 'Saving...' 
+                          : modalType === 'add' ? 'Create Event' : 'Update Event'
+                        }
                       </Button>
                     </div>
                   </form>
@@ -354,8 +457,22 @@ export const EventsManagement: React.FC = () => {
           </div>
         </Portal>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Event"
+        message={`Are you sure you want to delete "${eventToDelete?.name}"? This action cannot be undone. Events with existing participants cannot be deleted.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setEventToDelete(null);
+        }}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };
-
-

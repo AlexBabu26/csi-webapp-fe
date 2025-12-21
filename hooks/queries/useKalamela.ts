@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { queryKeys } from '../../constants/queryKeys';
 import { useToast } from '../../components/Toast';
+import { getAuthToken } from '../../services/auth';
 
 // ============ QUERIES ============
 
@@ -279,6 +280,90 @@ export const useKalamelaAdminResults = () => {
   });
 };
 
+// ============ CATEGORY QUERIES ============
+
+// Get all categories
+export const useKalamelaCategories = () => {
+  return useQuery({
+    queryKey: queryKeys.kalamela.categories.list(),
+    queryFn: async () => {
+      const response = await api.getKalamelaCategories();
+      return response.data;
+    },
+  });
+};
+
+// Get category by ID
+export const useKalamelaCategoryById = (categoryId: number) => {
+  return useQuery({
+    queryKey: queryKeys.kalamela.categories.detail(categoryId),
+    queryFn: async () => {
+      const response = await api.getKalamelaCategoryById(categoryId);
+      return response.data;
+    },
+    enabled: !!categoryId,
+  });
+};
+
+// ============ CATEGORY MUTATIONS ============
+
+// Create category
+export const useCreateKalamelaCategory = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: { name: string; description?: string }) => {
+      return api.createKalamelaCategory(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.categories.all() });
+      addToast('Category created successfully', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to create category', 'error');
+    },
+  });
+};
+
+// Update category
+export const useUpdateKalamelaCategory = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ categoryId, data }: { categoryId: number; data: { name?: string; description?: string } }) => {
+      return api.updateKalamelaCategory(categoryId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.categories.all() });
+      addToast('Category updated successfully', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to update category', 'error');
+    },
+  });
+};
+
+// Delete category
+export const useDeleteKalamelaCategory = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (categoryId: number) => {
+      return api.deleteKalamelaCategory(categoryId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.categories.all() });
+      addToast('Category deleted successfully', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to delete category', 'error');
+    },
+  });
+};
+
 // ============ MUTATIONS ============
 
 // Create individual event
@@ -287,15 +372,11 @@ export const useCreateIndividualEvent = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: { name: string; description?: string; category?: string }) => {
-      const token = localStorage.getItem('access_token');
+    mutationFn: async (data: { name: string; description?: string; category_id?: number }) => {
+      const token = getAuthToken();
       if (!token) throw new Error('Authentication required');
       
-      return api.createAdminIndividualEvent({
-        name: data.name,
-        description: data.description,
-        category: data.category,
-      }, token);
+      return api.createAdminIndividualEvent(data, token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.events.individual() });
@@ -313,17 +394,17 @@ export const useCreateGroupEvent = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: { name: string; description?: string; minAllowedLimit: number; maxAllowedLimit: number; perUnitAllowedLimit?: number }) => {
-      const token = localStorage.getItem('access_token');
+    mutationFn: async (data: { 
+      name: string; 
+      description?: string; 
+      min_allowed_limit?: number; 
+      max_allowed_limit?: number; 
+      per_unit_allowed_limit?: number 
+    }) => {
+      const token = getAuthToken();
       if (!token) throw new Error('Authentication required');
       
-      return api.createAdminGroupEvent({
-        name: data.name,
-        description: data.description,
-        min_allowed_limit: data.minAllowedLimit,
-        max_allowed_limit: data.maxAllowedLimit,
-        per_unit_allowed_limit: data.perUnitAllowedLimit ?? 1,
-      }, token);
+      return api.createAdminGroupEvent(data, token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.events.group() });
@@ -341,7 +422,7 @@ export const useUpdateIndividualEvent = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ eventId, data }: { eventId: number; data: any }) => {
+    mutationFn: async ({ eventId, data }: { eventId: number; data: { name?: string; description?: string; category_id?: number } }) => {
       return api.updateIndividualEvent(eventId, data);
     },
     onSuccess: () => {
@@ -360,7 +441,16 @@ export const useUpdateGroupEvent = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ eventId, data }: { eventId: number; data: any }) => {
+    mutationFn: async ({ eventId, data }: { 
+      eventId: number; 
+      data: { 
+        name?: string; 
+        description?: string; 
+        min_allowed_limit?: number; 
+        max_allowed_limit?: number; 
+        per_unit_allowed_limit?: number 
+      } 
+    }) => {
       return api.updateGroupEvent(eventId, data);
     },
     onSuccess: () => {
