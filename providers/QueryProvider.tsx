@@ -7,7 +7,14 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000,   // 10 minutes (formerly cacheTime)
-      retry: 1,
+      retry: (failureCount, error: any) => {
+        // Don't retry on 401 (unauthorized) or 403 (forbidden)
+        if (error?.status === 401 || error?.status === 403) {
+          return false;
+        }
+        // Retry other errors once
+        return failureCount < 1;
+      },
       refetchOnWindowFocus: false, // Can enable later once stable
     },
     mutations: {

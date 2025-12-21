@@ -92,7 +92,6 @@ export const EventsManagement: React.FC = () => {
             name: formData.name,
             description: formData.description,
             category: formData.category,
-            registrationFee: 50,
           },
           { onSuccess: closeModal }
         );
@@ -103,7 +102,6 @@ export const EventsManagement: React.FC = () => {
             description: formData.description,
             minAllowedLimit: formData.minAllowedLimit,
             maxAllowedLimit: formData.maxAllowedLimit,
-            registrationFee: 100,
           },
           { onSuccess: closeModal }
         );

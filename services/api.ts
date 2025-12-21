@@ -954,11 +954,41 @@ class ApiService {
   async getUnitMembers(unitId?: number): Promise<ApiResponse<UnitMember[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<UnitMember[]>('/admin/units/members', { 
+    
+    interface ApiMember {
+      id: number;
+      registered_user_id: number;
+      unit_name: string;
+      district: string;
+      name: string;
+      gender: string;
+      dob: string;
+      age: number;
+      number: string;
+      qualification: string;
+      blood_group: string;
+    }
+    
+    const response = await httpGet<{ data: ApiMember[], total: number, page: number, page_size: number, pages: number }>('/admin/units/members', { 
       token,
       query: unitId ? { unit_id: unitId } : undefined 
     });
-    return { data, status: 200 };
+    
+    // Transform snake_case API response to camelCase
+    const members: UnitMember[] = response.data.map(m => ({
+      id: m.id,
+      name: m.name,
+      gender: m.gender as 'M' | 'F',
+      number: m.number,
+      dob: m.dob,
+      age: m.age,
+      qualification: m.qualification || undefined,
+      bloodGroup: m.blood_group || undefined,
+      unitId: m.registered_user_id,
+      unitName: m.unit_name,
+    }));
+    
+    return { data: members, status: 200 };
   }
 
   // GET /admin/units/officials - Get all officials (optionally filtered by unit)

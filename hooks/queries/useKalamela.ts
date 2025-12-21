@@ -287,15 +287,22 @@ export const useCreateIndividualEvent = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: { name: string; description: string; category?: string; registrationFee?: number }) => {
-      return api.createIndividualEvent(data);
+    mutationFn: async (data: { name: string; description?: string; category?: string }) => {
+      const token = localStorage.getItem('access_token');
+      if (!token) throw new Error('Authentication required');
+      
+      return api.createAdminIndividualEvent({
+        name: data.name,
+        description: data.description,
+        category: data.category,
+      }, token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.events.individual() });
       addToast('Individual event created successfully', 'success');
     },
-    onError: () => {
-      addToast('Failed to create individual event', 'error');
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to create individual event', 'error');
     },
   });
 };
@@ -306,15 +313,24 @@ export const useCreateGroupEvent = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: { name: string; description: string; minAllowedLimit: number; maxAllowedLimit: number; registrationFee?: number }) => {
-      return api.createGroupEvent(data);
+    mutationFn: async (data: { name: string; description?: string; minAllowedLimit: number; maxAllowedLimit: number; perUnitAllowedLimit?: number }) => {
+      const token = localStorage.getItem('access_token');
+      if (!token) throw new Error('Authentication required');
+      
+      return api.createAdminGroupEvent({
+        name: data.name,
+        description: data.description,
+        min_allowed_limit: data.minAllowedLimit,
+        max_allowed_limit: data.maxAllowedLimit,
+        per_unit_allowed_limit: data.perUnitAllowedLimit ?? 1,
+      }, token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.events.group() });
       addToast('Group event created successfully', 'success');
     },
-    onError: () => {
-      addToast('Failed to create group event', 'error');
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to create group event', 'error');
     },
   });
 };
