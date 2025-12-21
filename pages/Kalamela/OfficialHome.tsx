@@ -197,6 +197,10 @@ export const KalamelaOfficialHome: React.FC = () => {
                   size="sm" 
                   className="w-full group-hover:bg-primary-hover"
                   disabled={event.remaining_slots === 0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/kalamela/official/event/individual/${event.id}`);
+                  }}
                 >
                   Select Participants
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -263,6 +267,10 @@ export const KalamelaOfficialHome: React.FC = () => {
                   variant="success" 
                   size="sm" 
                   className="w-full group-hover:bg-success/90"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/kalamela/official/event/group/${event.id}`);
+                  }}
                 >
                   Select Team
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
