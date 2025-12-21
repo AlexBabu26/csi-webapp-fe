@@ -103,8 +103,35 @@ const getValidToken = async (providedToken?: string): Promise<string | null> => 
 
 const handleResponse = async (res: Response, asBlob?: boolean) => {
   if (!res.ok) {
-    const message = await res.text();
-    const errorMsg = message || `Request failed with status ${res.status}`;
+    const text = await res.text();
+    let errorMsg = `Request failed with status ${res.status}`;
+    
+    // Try to parse JSON error response
+    try {
+      const errorData = JSON.parse(text);
+      // Handle FastAPI-style error responses
+      if (errorData.detail) {
+        // detail can be a string or an array of validation errors
+        if (typeof errorData.detail === 'string') {
+          errorMsg = errorData.detail;
+        } else if (Array.isArray(errorData.detail)) {
+          // Validation errors from Pydantic
+          errorMsg = errorData.detail.map((err: any) => err.msg || err.message || JSON.stringify(err)).join(', ');
+        } else {
+          errorMsg = JSON.stringify(errorData.detail);
+        }
+      } else if (errorData.message) {
+        errorMsg = errorData.message;
+      } else if (errorData.error) {
+        errorMsg = errorData.error;
+      }
+    } catch {
+      // If not JSON, use the text directly if it's meaningful
+      if (text && text.length < 200) {
+        errorMsg = text;
+      }
+    }
+    
     console.error(`[HTTP Error] ${res.status} ${res.statusText}:`, errorMsg);
     
     // Create an error with status code for easier handling

@@ -674,10 +674,12 @@ export const useAddIndividualParticipant = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['kalamela', 'eligibleMembers', 'individual', variables.individual_event_id] });
+      queryClient.invalidateQueries({ queryKey: ['kalamela', 'districtMembers'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.officialHome() });
       addToast('Participant added successfully', 'success');
     },
     onError: (error: any) => {
+      // Error message is now properly parsed from the API response
       addToast(error.message || 'Failed to add participant', 'error');
     },
   });
