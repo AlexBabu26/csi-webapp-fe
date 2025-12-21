@@ -67,12 +67,15 @@ export const SelectGroupParticipants: React.FC = () => {
 
   const submitting = addGroupMutation.isPending;
 
-  const filteredMembers = data?.eligible_members.filter((member) =>
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.unit_name.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  // Safely access eligible_members with fallback to empty array
+  const eligibleMembers = data?.eligible_members || data?.members || [];
 
-  const availableMembers = filteredMembers.filter(m => !m.is_registered && !m.is_excluded);
+  const filteredMembers = eligibleMembers.filter((member: Member) =>
+    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (member.unit_name && member.unit_name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const availableMembers = filteredMembers.filter((m: Member) => !m.is_registered && !m.is_excluded);
 
   if (loading) {
     return (
@@ -127,7 +130,7 @@ export const SelectGroupParticipants: React.FC = () => {
             <p className="text-sm font-medium text-textDark mb-2">Selected Members:</p>
             <div className="flex flex-wrap gap-2">
               {selectedMembers.map((memberId) => {
-                const member = data.eligible_members.find((m) => m.id === memberId);
+                const member = eligibleMembers.find((m: Member) => m.id === memberId);
                 return member ? (
                   <Badge key={memberId} variant="success" className="flex items-center gap-1">
                     {member.name}

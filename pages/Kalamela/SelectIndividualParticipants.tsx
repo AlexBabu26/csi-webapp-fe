@@ -37,7 +37,6 @@ export const SelectIndividualParticipants: React.FC = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<Set<number>>(new Set());
-  const [memberCategories, setMemberCategories] = useState<Record<number, 'Junior' | 'Senior'>>({});
   const [filterUnit, setFilterUnit] = useState<number | 'all'>('all');
   const [filterCategory, setFilterCategory] = useState<'all' | 'Junior' | 'Senior' | 'Ineligible'>('all');
 
@@ -85,19 +84,12 @@ export const SelectIndividualParticipants: React.FC = () => {
     }
   };
 
-  const handleCategoryChange = (memberId: number, category: 'Junior' | 'Senior') => {
-    setMemberCategories(prev => ({
-      ...prev,
-      [memberId]: category
-    }));
-  };
-
   const handleAddParticipant = async (memberId: number) => {
     const member = districtData?.members.find((m: Member) => m.id === memberId);
-    const category = memberCategories[memberId] || (member?.participation_category !== 'Ineligible' ? member?.participation_category : null);
+    const category = member?.participation_category;
     
     if (!category || category === 'Ineligible') {
-      addToast("Please select Junior or Senior category", "warning");
+      addToast("This member is not eligible for participation", "warning");
       return;
     }
 
@@ -127,7 +119,7 @@ export const SelectIndividualParticipants: React.FC = () => {
     let successCount = 0;
     for (const memberId of selectedMembers) {
       const member = districtData?.members.find((m: Member) => m.id === memberId);
-      const category = memberCategories[memberId] || (member?.participation_category !== 'Ineligible' ? member?.participation_category : null);
+      const category = member?.participation_category;
       
       if (!category || category === 'Ineligible') continue;
 
@@ -321,7 +313,6 @@ export const SelectIndividualParticipants: React.FC = () => {
                   const isIneligible = member.participation_category === 'Ineligible';
                   const isDisabled = member.is_registered || member.is_excluded || isIneligible;
                   const isSelected = selectedMembers.has(member.id);
-                  const selectedCategory = memberCategories[member.id] || member.participation_category;
                   
                   return (
                     <tr 
@@ -363,23 +354,18 @@ export const SelectIndividualParticipants: React.FC = () => {
                       <td className="px-4 py-3 text-sm text-textDark font-medium">{member.age} yrs</td>
                       <td className="px-4 py-3 text-sm text-textDark">{member.unit_name}</td>
                       <td className="px-4 py-3">
-                        {isIneligible ? (
-                          <Badge variant="light" className="text-xs">Ineligible</Badge>
-                        ) : (
-                          <select
-                            value={selectedCategory}
-                            onChange={(e) => handleCategoryChange(member.id, e.target.value as 'Junior' | 'Senior')}
-                            disabled={isDisabled}
-                            className={`px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                              selectedCategory === 'Junior' 
-                                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                : 'bg-purple-50 border-purple-200 text-purple-700'
-                            }`}
-                          >
-                            <option value="Junior">Junior</option>
-                            <option value="Senior">Senior</option>
-                          </select>
-                        )}
+                        <Badge 
+                          variant={
+                            member.participation_category === 'Junior' 
+                              ? 'primary' 
+                              : member.participation_category === 'Senior' 
+                                ? 'success' 
+                                : 'light'
+                          }
+                          className="text-xs"
+                        >
+                          {member.participation_category}
+                        </Badge>
                       </td>
                       <td className="px-4 py-3">
                         <Button
