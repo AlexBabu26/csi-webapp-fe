@@ -729,6 +729,32 @@ export interface KalamelaCategoryUpdate {
   description?: string;
 }
 
+// Kalamela Registration Fees
+export type EventType = 'individual' | 'group';
+
+export interface RegistrationFee {
+  id: number;
+  name: string;
+  event_type: EventType;
+  amount: number;
+  created_by_id: number | null;
+  updated_by_id: number | null;
+  created_on: string;
+  updated_on: string;
+}
+
+export interface RegistrationFeeCreate {
+  name: string;
+  event_type: EventType;
+  amount: number;
+}
+
+export interface RegistrationFeeUpdate {
+  name?: string;
+  event_type?: EventType;
+  amount?: number;
+}
+
 // Kalamela Events
 export interface IndividualEvent {
   id: number;

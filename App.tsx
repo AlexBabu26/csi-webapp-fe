@@ -73,6 +73,7 @@ const AdminResults = lazy(() => import('./pages/Kalamela/Admin/AdminResults').th
 const ManagePayments = lazy(() => import('./pages/Kalamela/Admin/ManagePayments').then(module => ({ default: module.ManagePayments })));
 const ManageAppeals = lazy(() => import('./pages/Kalamela/Admin/ManageAppeals').then(module => ({ default: module.ManageAppeals })));
 const CategoryManagement = lazy(() => import('./pages/Kalamela/Admin/CategoryManagement').then(module => ({ default: module.CategoryManagement })));
+const MasterData = lazy(() => import('./pages/Kalamela/Admin/MasterData').then(module => ({ default: module.MasterData })));
 
 // Loading Fallback
 const PageLoader = () => (
@@ -306,6 +307,12 @@ const App: React.FC = () => {
               <Route path="/kalamela/admin/categories" element={
                 <AdminRoute>
                   <CategoryManagement />
+                </AdminRoute>
+              } />
+
+              <Route path="/kalamela/admin/master-data" element={
+                <AdminRoute>
+                  <MasterData />
                 </AdminRoute>
               } />
 

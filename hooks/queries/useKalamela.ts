@@ -364,6 +364,90 @@ export const useDeleteKalamelaCategory = () => {
   });
 };
 
+// ============ REGISTRATION FEE QUERIES ============
+
+// Get all registration fees
+export const useRegistrationFees = () => {
+  return useQuery({
+    queryKey: queryKeys.kalamela.registrationFees.list(),
+    queryFn: async () => {
+      const response = await api.getRegistrationFees();
+      return response.data;
+    },
+  });
+};
+
+// Get registration fee by ID
+export const useRegistrationFeeById = (feeId: number) => {
+  return useQuery({
+    queryKey: queryKeys.kalamela.registrationFees.detail(feeId),
+    queryFn: async () => {
+      const response = await api.getRegistrationFeeById(feeId);
+      return response.data;
+    },
+    enabled: !!feeId,
+  });
+};
+
+// ============ REGISTRATION FEE MUTATIONS ============
+
+// Create registration fee
+export const useCreateRegistrationFee = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: { name: string; event_type: 'individual' | 'group'; amount: number }) => {
+      return api.createRegistrationFee(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.registrationFees.all() });
+      addToast('Registration fee created successfully', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to create registration fee', 'error');
+    },
+  });
+};
+
+// Update registration fee
+export const useUpdateRegistrationFee = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ feeId, data }: { feeId: number; data: { name?: string; event_type?: 'individual' | 'group'; amount?: number } }) => {
+      return api.updateRegistrationFee(feeId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.registrationFees.all() });
+      addToast('Registration fee updated successfully', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to update registration fee', 'error');
+    },
+  });
+};
+
+// Delete registration fee
+export const useDeleteRegistrationFee = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (feeId: number) => {
+      return api.deleteRegistrationFee(feeId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.registrationFees.all() });
+      addToast('Registration fee deleted successfully', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to delete registration fee', 'error');
+    },
+  });
+};
+
 // ============ MUTATIONS ============
 
 // Create individual event
@@ -470,7 +554,7 @@ export const useDeleteIndividualEvent = () => {
 
   return useMutation({
     mutationFn: async (eventId: number) => {
-      return api.deleteIndividualEvent(eventId);
+      return api.deleteEvent(eventId, 'INDIVIDUAL');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.events.individual() });
@@ -489,7 +573,7 @@ export const useDeleteGroupEvent = () => {
 
   return useMutation({
     mutationFn: async (eventId: number) => {
-      return api.deleteGroupEvent(eventId);
+      return api.deleteEvent(eventId, 'GROUP');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.events.group() });

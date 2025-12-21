@@ -54,6 +54,9 @@ import {
   IndividualEventUpdate,
   GroupEventCreate,
   GroupEventUpdate,
+  RegistrationFee,
+  RegistrationFeeCreate,
+  RegistrationFeeUpdate,
   // Site Settings types
   SiteSettings,
   SiteSettingsUpdate,
@@ -2089,6 +2092,48 @@ class ApiService {
     if (!token) throw new Error('Authentication required');
     await httpDelete<any>(`/kalamela/admin/categories/${categoryId}`, { token });
     return { data: true, message: 'Category deleted successfully', status: 200 };
+  }
+
+  // ==================== KALAMELA REGISTRATION FEE MASTER ====================
+
+  // GET /kalamela/admin/registration-fees - List all registration fees
+  async getRegistrationFees(): Promise<ApiResponse<RegistrationFee[]>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpGet<RegistrationFee[]>('/kalamela/admin/registration-fees', { token });
+    return { data, status: 200 };
+  }
+
+  // POST /kalamela/admin/registration-fees - Create a new registration fee
+  async createRegistrationFee(payload: RegistrationFeeCreate): Promise<ApiResponse<RegistrationFee>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpPost<RegistrationFee>('/kalamela/admin/registration-fees', payload, { token });
+    return { data, message: 'Registration fee created successfully', status: 201 };
+  }
+
+  // GET /kalamela/admin/registration-fees/{fee_id} - Get registration fee by ID
+  async getRegistrationFeeById(feeId: number): Promise<ApiResponse<RegistrationFee>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpGet<RegistrationFee>(`/kalamela/admin/registration-fees/${feeId}`, { token });
+    return { data, status: 200 };
+  }
+
+  // PUT /kalamela/admin/registration-fees/{fee_id} - Update a registration fee
+  async updateRegistrationFee(feeId: number, payload: RegistrationFeeUpdate): Promise<ApiResponse<RegistrationFee>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpPut<RegistrationFee>(`/kalamela/admin/registration-fees/${feeId}`, payload, { token });
+    return { data, message: 'Registration fee updated successfully', status: 200 };
+  }
+
+  // DELETE /kalamela/admin/registration-fees/{fee_id} - Delete a registration fee
+  async deleteRegistrationFee(feeId: number): Promise<ApiResponse<boolean>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpDelete<any>(`/kalamela/admin/registration-fees/${feeId}`, { token });
+    return { data: true, message: 'Registration fee deleted successfully', status: 200 };
   }
 
   // GET /kalamela/admin/units - View all units with stats

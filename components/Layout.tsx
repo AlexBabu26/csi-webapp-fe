@@ -114,8 +114,8 @@ const NAV_GROUPS: NavGroup[] = [
     defaultOpen: false,
     roles: ['admin'],
     items: [
-      { label: 'Events Management', path: '/kalamela/admin/events', icon: <Calendar size={18} /> },
-      { label: 'Categories', path: '/kalamela/admin/categories', icon: <Tag size={18} /> },
+      { label: 'Events', path: '/kalamela/admin/events', icon: <Calendar size={18} /> },
+      { label: 'Master Data', path: '/kalamela/admin/master-data', icon: <Tag size={18} /> },
       { label: 'Score Entry', path: '/kalamela/admin/scores', icon: <Star size={18} /> },
       { label: 'Results', path: '/kalamela/admin/results', icon: <Trophy size={18} /> },
       { label: 'Payments', path: '/kalamela/admin/payments', icon: <CreditCard size={18} /> },
