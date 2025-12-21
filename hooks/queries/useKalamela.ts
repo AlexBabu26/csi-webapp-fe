@@ -744,19 +744,28 @@ export const useRegisterGroupParticipants = () => {
   });
 };
 
-// Remove participant
+// Remove participant (individual or group)
 export const useRemoveParticipant = () => {
   const queryClient = useQueryClient();
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ participantId, eventId }: { participantId: number; eventId: number }) => {
-      return api.removeKalamelaParticipant(participantId);
+    mutationFn: async ({ participantId, eventId, eventType }: { 
+      participantId: number; 
+      eventId: number;
+      eventType: 'individual' | 'group';
+    }) => {
+      if (eventType === 'individual') {
+        return api.removeIndividualParticipant(participantId);
+      } else {
+        return api.removeGroupParticipant(participantId);
+      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.participants(variables.eventId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.allParticipants() });
       queryClient.invalidateQueries({ queryKey: queryKeys.kalamela.officialHome() });
+      queryClient.invalidateQueries({ queryKey: ['kalamela', 'participants'] });
       addToast('Participant removed successfully', 'success');
     },
     onError: (error: any) => {
