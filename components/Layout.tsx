@@ -23,7 +23,8 @@ import {
   CreditCard,
   MessageSquare,
   BarChart3,
-  Tag
+  Tag,
+  KeyRound
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '../constants';
@@ -64,6 +65,7 @@ const NAV_GROUPS: NavGroup[] = [
     roles: ['admin'],
     items: [
       { label: 'Site Settings', path: '/admin/site-settings', icon: <Settings size={18} /> },
+      { label: 'User Management', path: '/admin/user-management', icon: <KeyRound size={18} /> },
     ]
   },
   {

@@ -88,6 +88,16 @@ export const queryKeys = {
     notices: () => [...queryKeys.siteSettings.all, 'notices'] as const,
     quickLinks: () => [...queryKeys.siteSettings.all, 'quickLinks'] as const,
   },
+
+  // User Management
+  userManagement: {
+    all: ['userManagement'] as const,
+    list: (filters?: { user_type?: string; district_id?: number; search?: string; is_active?: boolean }) => 
+      [...queryKeys.userManagement.all, 'list', filters] as const,
+    summary: () => [...queryKeys.userManagement.all, 'summary'] as const,
+    districtOfficials: () => [...queryKeys.userManagement.all, 'districtOfficials'] as const,
+    districtsWithStatus: () => [...queryKeys.userManagement.all, 'districtsWithStatus'] as const,
+  },
 } as const;
 
 

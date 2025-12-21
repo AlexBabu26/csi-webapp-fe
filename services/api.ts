@@ -111,9 +111,9 @@ class ApiService {
   // -------------------------
   // Auth
   // -------------------------
-  async login(payload: { username: string; password: string }) {
+  async login(payload: { username: string; password: string; portal?: 'kalamela' | 'conference' }) {
     try {
-      console.log('[API] login: Attempting login for user:', payload.username);
+      console.log('[API] login: Attempting login for user:', payload.username, 'portal:', payload.portal);
       const result = await httpPost<AuthTokens>('/auth/login', payload);
       console.log('[API] login: Success, token received');
       return result;
@@ -2637,6 +2637,170 @@ class ApiService {
 
   async deleteQuickLink(id: number): Promise<{ message: string }> {
     return httpDelete<{ message: string }>(`/quick-links/${id}`, { token: this.getToken() || undefined });
+  }
+
+  // ==================== USER MANAGEMENT ====================
+
+  // User types for user management
+  private userTypes = {
+    UNIT: 'UNIT',
+    DISTRICT_OFFICIAL: 'DISTRICT_OFFICIAL',
+  } as const;
+
+  // GET /admin/users - List all users with optional filters
+  async getUsers(params?: {
+    user_type?: 'UNIT' | 'DISTRICT_OFFICIAL';
+    district_id?: number;
+    search?: string;
+    is_active?: boolean;
+  }): Promise<Array<{
+    id: number;
+    username: string;
+    email?: string;
+    phone_number?: string;
+    user_type: string;
+    is_active: boolean;
+    unit_name?: string;
+    district_name?: string;
+  }>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    
+    const query: Record<string, string | number | boolean | undefined> = {};
+    if (params?.user_type) query.user_type = params.user_type;
+    if (params?.district_id) query.district_id = params.district_id;
+    if (params?.search) query.search = params.search;
+    if (params?.is_active !== undefined) query.is_active = params.is_active;
+    
+    return httpGet('/admin/users', { token, query });
+  }
+
+  // GET /admin/users/summary - Get users count summary
+  async getUsersSummary(): Promise<{
+    unit_officials: number;
+    district_officials: number;
+    total: number;
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet('/admin/users/summary', { token });
+  }
+
+  // POST /admin/users/reset-password - Reset single user password
+  async resetUserPassword(data: {
+    user_id: number;
+    new_password: string;
+  }): Promise<{
+    message: string;
+    user_id: number;
+    username: string;
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpPost('/admin/users/reset-password', data, { token });
+  }
+
+  // POST /admin/users/bulk-reset-password - Bulk reset passwords
+  async bulkResetPasswords(data: {
+    user_ids: number[];
+    new_password: string;
+  }): Promise<{
+    message: string;
+    total_requested: number;
+    total_reset: number;
+    reset_users: Array<{
+      user_id: number;
+      username: string;
+      user_type: string;
+    }>;
+    failed_users: Array<{
+      user_id: number;
+      reason: string;
+    }>;
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpPost('/admin/users/bulk-reset-password', data, { token });
+  }
+
+  // POST /admin/users/reset-all-by-type - Reset all passwords by user type
+  async resetAllPasswordsByType(params: {
+    user_type: 'UNIT' | 'DISTRICT_OFFICIAL';
+    new_password: string;
+    district_id?: number;
+  }): Promise<{
+    message: string;
+    total_requested: number;
+    total_reset: number;
+    reset_users: Array<{
+      user_id: number;
+      username: string;
+      user_type: string;
+    }>;
+    failed_users: Array<{
+      user_id: number;
+      reason: string;
+    }>;
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    
+    const query: Record<string, string | number> = {
+      user_type: params.user_type,
+      new_password: params.new_password,
+    };
+    if (params.district_id) query.district_id = params.district_id;
+    
+    return httpPost('/admin/users/reset-all-by-type', null, { token, query });
+  }
+
+  // GET /admin/users/district-officials - List all district officials
+  async getDistrictOfficials(): Promise<Array<{
+    id: number;
+    username: string;
+    email?: string;
+    phone_number?: string;
+    user_type: string;
+    is_active: boolean;
+    district_id?: number;
+    district_name?: string;
+    official_name?: string;
+  }>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet('/admin/users/district-officials', { token });
+  }
+
+  // GET /admin/users/districts - List districts with official status
+  async getDistrictsWithOfficialStatus(): Promise<Array<{
+    id: number;
+    name: string;
+    has_official: boolean;
+    official_id?: number;
+    official_name?: string;
+    official_phone?: string;
+    official_username?: string;
+  }>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet('/admin/users/districts', { token });
+  }
+
+  // POST /admin/users/district-officials - Create a district official
+  async createDistrictOfficial(data: {
+    district_id: number;
+    official_name: string;
+    phone_number: string;
+  }): Promise<{
+    message: string;
+    official_id: number;
+    username: string;
+    district_name: string;
+    default_password_hint: string;
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpPost('/admin/users/district-officials', data, { token });
   }
 }
 

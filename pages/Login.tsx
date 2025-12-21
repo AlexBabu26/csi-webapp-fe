@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
 import { Button } from '../components/ui';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { setAuthTokens, setAuthUser } from '../services/auth';
 import { UserRole } from '../types';
@@ -17,7 +17,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{email?: string; password?: string}>({});
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [formError, setFormError] = useState('');
+
+  // Get the portal context from URL params (kalamela or conference)
+  const portalContext = searchParams.get('portal');
 
   // Check if input is a valid 10-digit phone number
   const isValidPhone = (value: string): boolean => {
@@ -29,13 +33,19 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     return /\S+@\S+\.\S+/.test(value);
   };
 
+  // Check if input is a valid username (alphanumeric, for district officials who use district name)
+  const isValidUsername = (value: string): boolean => {
+    // Allow alphanumeric usernames with minimum 2 characters (e.g., ADOOR, THIRUVALLA)
+    return /^[A-Za-z0-9_-]{2,}$/.test(value);
+  };
+
   const validateForm = (): boolean => {
     const newErrors: {email?: string; password?: string} = {};
     
     if (!email) {
-      newErrors.email = 'Email or phone number is required';
-    } else if (!isValidEmail(email) && !isValidPhone(email) && email !== 'admin') {
-      newErrors.email = 'Please enter a valid email or 10-digit phone number';
+      newErrors.email = 'Username is required';
+    } else if (!isValidEmail(email) && !isValidPhone(email) && !isValidUsername(email)) {
+      newErrors.email = 'Please enter a valid email, phone number, or username';
     }
     
     if (!password) {
@@ -58,7 +68,18 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
     const doLogin = async () => {
       try {
-        const tokens = await api.login({ username: email, password });
+        // Pass portal context to backend so it can return the appropriate redirect_url
+        const loginPayload: { username: string; password: string; portal?: 'kalamela' | 'conference' } = {
+          username: email,
+          password,
+        };
+        
+        // Include portal in payload if it's set (kalamela or conference)
+        if (portalContext === 'kalamela' || portalContext === 'conference') {
+          loginPayload.portal = portalContext;
+        }
+        
+        const tokens = await api.login(loginPayload);
         
         // Store both access and refresh tokens
         setAuthTokens(tokens.access_token, tokens.refresh_token || '');
@@ -84,29 +105,46 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           const role = userType === '1' ? UserRole.ADMIN : userType === '2' || userType === '3' ? UserRole.OFFICIAL : UserRole.PUBLIC;
           onLogin?.(role);
 
-          // Use redirect_url from login response if available, otherwise route based on user role
+          // Use redirect_url from login response if available, otherwise route based on user role AND portal context
           if (tokens.redirect_url) {
             navigate(tokens.redirect_url);
           } else if (userType === '1') {
             navigate('/admin/dashboard');
-          } else if (userType === '2') {
-            // OFFICIAL - redirect to Kalamela official portal
-            navigate('/kalamela/official');
-          } else if (userType === '3') {
-            // DISTRICT_OFFICIAL / Conference Official - redirect to conference official portal
-            navigate('/conference/official/home');
+          } else if (userType === '2' || userType === '3') {
+            // District officials can access both Kalamela and Conference
+            // Route based on the portal context they came from
+            if (portalContext === 'kalamela') {
+              navigate('/kalamela/official');
+            } else if (portalContext === 'conference') {
+              navigate('/conference/official/home');
+            } else {
+              // Default: user_type 2 goes to kalamela, user_type 3 goes to conference
+              if (userType === '2') {
+                navigate('/kalamela/official');
+              } else {
+                navigate('/conference/official/home');
+              }
+            }
           } else {
             // Fallback for other roles
             navigate('/');
           }
         } catch (profileErr) {
-          // If profile fetch fails, use redirect_url from login response or default to home
+          // If profile fetch fails, use redirect_url from login response or route based on portal context
           const userType = tokens.user_type;
           const role = userType === '1' ? UserRole.ADMIN : userType === '2' || userType === '3' ? UserRole.OFFICIAL : UserRole.PUBLIC;
           onLogin?.(role);
           
           if (tokens.redirect_url) {
             navigate(tokens.redirect_url);
+          } else if (portalContext === 'kalamela') {
+            navigate('/kalamela/official');
+          } else if (portalContext === 'conference') {
+            navigate('/conference/official/home');
+          } else if (userType === '2') {
+            navigate('/kalamela/official');
+          } else if (userType === '3') {
+            navigate('/conference/official/home');
           } else {
             navigate('/');
           }
@@ -125,7 +163,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     <form className="space-y-6" onSubmit={handleSubmit}>
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-textDark">
-          Email or Phone Number
+          Username / Email / Phone
         </label>
         <div className="mt-1 relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -144,7 +182,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             className={`block w-full pl-10 pr-3 py-2.5 bg-white border rounded-md shadow-sm focus:ring-2 focus:ring-primary/20 focus:border-primary sm:text-sm transition-all ${
               errors.email ? 'border-danger' : 'border-borderColor'
             }`}
-            placeholder="Email or 10-digit phone number"
+            placeholder="Username, email, or phone number"
           />
         </div>
         {errors.email && (

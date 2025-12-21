@@ -63,7 +63,7 @@ export const Conference: React.FC = () => {
             </div>
             <h1 className="text-xl font-bold text-textDark">Youth <span className="text-orange-500 font-normal">Conference</span></h1>
           </div>
-          <Button variant="primary" size="sm" onClick={() => navigate('/login')}>
+          <Button variant="primary" size="sm" onClick={() => navigate('/login?portal=conference')}>
             Official Login
           </Button>
         </div>

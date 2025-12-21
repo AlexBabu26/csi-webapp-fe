@@ -45,6 +45,7 @@ const MemberAddRequests = lazy(() => import('./pages/UnitAdmin/MemberAddRequests
 const ExportData = lazy(() => import('./pages/UnitAdmin/ExportData').then(module => ({ default: module.ExportData })));
 const PrintForm = lazy(() => import('./pages/UnitAdmin/PrintForm').then(module => ({ default: module.PrintForm })));
 const SiteSettings = lazy(() => import('./pages/UnitAdmin/SiteSettings').then(module => ({ default: module.SiteSettings })));
+const UserManagement = lazy(() => import('./pages/UnitAdmin/UserManagement').then(module => ({ default: module.UserManagement })));
 
 // Unit User Pages (for unit officials)
 const ViewMyRequests = lazy(() => import('./pages/UnitUser/ViewMyRequests').then(module => ({ default: module.ViewMyRequests })));
@@ -229,6 +230,13 @@ const App: React.FC = () => {
                 </AdminRoute>
               } />
 
+              {/* User Management */}
+              <Route path="/admin/user-management" element={
+                <AdminRoute>
+                  <UserManagement />
+                </AdminRoute>
+              } />
+
               {/* Conference Admin Routes */}
               <Route path="/admin/conference/home" element={
                 <AdminRoute>
@@ -402,8 +410,16 @@ const App: React.FC = () => {
               } />
 
               {/* Kalamela Public Routes */}
-              <Route path="/kalamela/results" element={<PublicResults />} />
-              <Route path="/kalamela/top-performers" element={<TopPerformers />} />
+              <Route path="/kalamela/results" element={
+                <AdminRoute>
+                  <PublicResults />
+                </AdminRoute>
+              } />
+              <Route path="/kalamela/top-performers" element={
+                <AdminRoute>
+                  <TopPerformers />
+                </AdminRoute>
+              } />
 
               {/* Legacy Routes */}
               <Route path="/admin/events" element={
