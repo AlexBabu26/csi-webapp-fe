@@ -2136,6 +2136,182 @@ class ApiService {
     return { data: true, message: 'Registration fee deleted successfully', status: 200 };
   }
 
+  // ==================== KALAMELA RULES MASTER ====================
+
+  // GET /kalamela/admin/rules/grouped - Get all rules grouped by category
+  async getKalamelaRulesGrouped(): Promise<{
+    age_restrictions: {
+      senior_dob_start: string;
+      senior_dob_end: string;
+      junior_dob_start: string;
+      junior_dob_end: string;
+    };
+    participation_limits: {
+      max_individual_events_per_person: string;
+      max_participants_per_unit_per_event: string;
+      max_groups_per_unit_per_group_event: string;
+    };
+    fees: {
+      individual_event_fee: string;
+      group_event_fee: string;
+      appeal_fee: string;
+    };
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet('/kalamela/admin/rules/grouped', { token });
+  }
+
+  // GET /kalamela/admin/rules - Get all rules as list
+  async getKalamelaRules(params?: {
+    category?: 'age_restriction' | 'participation_limit' | 'fee';
+    active_only?: boolean;
+  }): Promise<Array<{
+    id: number;
+    rule_key: string;
+    rule_category: 'age_restriction' | 'participation_limit' | 'fee';
+    rule_value: string;
+    display_name: string;
+    description: string | null;
+    is_active: boolean;
+    created_on: string;
+    updated_on: string;
+    updated_by_id: number | null;
+  }>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    
+    const query: Record<string, string | boolean> = {};
+    if (params?.category) query.category = params.category;
+    if (params?.active_only !== undefined) query.active_only = params.active_only;
+    
+    return httpGet('/kalamela/admin/rules', { token, query });
+  }
+
+  // GET /kalamela/admin/rules/{rule_id} - Get single rule
+  async getKalamelaRuleById(ruleId: number): Promise<{
+    id: number;
+    rule_key: string;
+    rule_category: 'age_restriction' | 'participation_limit' | 'fee';
+    rule_value: string;
+    display_name: string;
+    description: string | null;
+    is_active: boolean;
+    created_on: string;
+    updated_on: string;
+    updated_by_id: number | null;
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet(`/kalamela/admin/rules/${ruleId}`, { token });
+  }
+
+  // PUT /kalamela/admin/rules/{rule_id} - Update a rule
+  async updateKalamelaRule(ruleId: number, data: {
+    rule_value?: string;
+    display_name?: string;
+    description?: string;
+    is_active?: boolean;
+  }): Promise<{
+    id: number;
+    rule_key: string;
+    rule_category: string;
+    rule_value: string;
+    display_name: string;
+    description: string | null;
+    is_active: boolean;
+    created_on: string;
+    updated_on: string;
+    updated_by_id: number | null;
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpPut(`/kalamela/admin/rules/${ruleId}`, data, { token });
+  }
+
+  // POST /kalamela/admin/rules - Create a new rule
+  async createKalamelaRule(data: {
+    rule_key: string;
+    rule_category: 'age_restriction' | 'participation_limit' | 'fee';
+    rule_value: string;
+    display_name: string;
+    description?: string;
+    is_active?: boolean;
+  }): Promise<{
+    id: number;
+    rule_key: string;
+    rule_category: string;
+    rule_value: string;
+    display_name: string;
+    description: string | null;
+    is_active: boolean;
+    created_on: string;
+    updated_on: string;
+    updated_by_id: number | null;
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpPost('/kalamela/admin/rules', data, { token });
+  }
+
+  // DELETE /kalamela/admin/rules/{rule_id} - Delete a rule
+  async deleteKalamelaRule(ruleId: number): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpDelete(`/kalamela/admin/rules/${ruleId}`, { token });
+  }
+
+  // ==================== KALAMELA DISTRICT MEMBERS ====================
+
+  // GET /kalamela/official/district-members - Get all district members
+  async getDistrictMembers(params?: {
+    unit_id?: number;
+    participation_category?: 'Junior' | 'Senior' | 'Ineligible';
+    search?: string;
+  }): Promise<{
+    members: Array<{
+      id: number;
+      name: string;
+      phone_number: string;
+      dob: string;
+      age: number;
+      gender: string;
+      unit_id: number;
+      unit_name: string;
+      participation_category: 'Junior' | 'Senior' | 'Ineligible';
+      is_excluded: boolean;
+    }>;
+    total_count: number;
+    summary: {
+      junior_count: number;
+      senior_count: number;
+      ineligible_count: number;
+      excluded_count: number;
+    };
+    units: Array<{ id: number; name: string }>;
+    filters_applied: {
+      unit_id: number | null;
+      participation_category: string | null;
+      search: string | null;
+    };
+    age_restrictions: {
+      junior_dob_start: string;
+      junior_dob_end: string;
+      senior_dob_start: string;
+      senior_dob_end: string;
+    };
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    
+    const query: Record<string, string | number> = {};
+    if (params?.unit_id) query.unit_id = params.unit_id;
+    if (params?.participation_category) query.participation_category = params.participation_category;
+    if (params?.search) query.search = params.search;
+    
+    return httpGet('/kalamela/official/district-members', { token, query });
+  }
+
   // GET /kalamela/admin/units - View all units with stats
   async getKalamelaAdminUnits(): Promise<ApiResponse<any[]>> {
     const token = this.getToken();

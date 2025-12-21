@@ -789,3 +789,121 @@ export const useSubmitScores = () => {
   });
 };
 
+// ============ KALAMELA RULES QUERIES ============
+
+// Get all rules grouped by category
+export const useKalamelaRulesGrouped = () => {
+  return useQuery({
+    queryKey: ['kalamela', 'rules', 'grouped'],
+    queryFn: async () => {
+      return await api.getKalamelaRulesGrouped();
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+};
+
+// Get all rules as list
+export const useKalamelaRules = (params?: {
+  category?: 'age_restriction' | 'participation_limit' | 'fee';
+  active_only?: boolean;
+}) => {
+  return useQuery({
+    queryKey: ['kalamela', 'rules', 'list', params],
+    queryFn: async () => {
+      return await api.getKalamelaRules(params);
+    },
+  });
+};
+
+// Get single rule by ID
+export const useKalamelaRuleById = (ruleId: number) => {
+  return useQuery({
+    queryKey: ['kalamela', 'rules', 'detail', ruleId],
+    queryFn: async () => {
+      return await api.getKalamelaRuleById(ruleId);
+    },
+    enabled: !!ruleId,
+  });
+};
+
+// ============ KALAMELA RULES MUTATIONS ============
+
+// Update rule
+export const useUpdateKalamelaRule = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ ruleId, data }: { 
+      ruleId: number; 
+      data: { rule_value?: string; display_name?: string; description?: string; is_active?: boolean } 
+    }) => {
+      return api.updateKalamelaRule(ruleId, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kalamela', 'rules'] });
+      addToast('Rule updated successfully', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to update rule', 'error');
+    },
+  });
+};
+
+// Create rule
+export const useCreateKalamelaRule = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: {
+      rule_key: string;
+      rule_category: 'age_restriction' | 'participation_limit' | 'fee';
+      rule_value: string;
+      display_name: string;
+      description?: string;
+      is_active?: boolean;
+    }) => {
+      return api.createKalamelaRule(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kalamela', 'rules'] });
+      addToast('Rule created successfully', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to create rule', 'error');
+    },
+  });
+};
+
+// Delete rule
+export const useDeleteKalamelaRule = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (ruleId: number) => {
+      return api.deleteKalamelaRule(ruleId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kalamela', 'rules'] });
+      addToast('Rule deleted successfully', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to delete rule', 'error');
+    },
+  });
+};
+
+// ============ DISTRICT MEMBERS QUERIES ============
+
+// Get all district members for participant selection
+export const useDistrictMembers = () => {
+  return useQuery({
+    queryKey: ['kalamela', 'districtMembers'],
+    queryFn: async () => {
+      return await api.getDistrictMembers();
+    },
+  });
+};
+

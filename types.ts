@@ -1095,3 +1095,93 @@ export interface QuickLinkUpdate {
   enabled?: boolean;
   display_order?: number;
 }
+
+// ==================== KALAMELA RULES TYPES ====================
+
+export interface KalamelaRulesGrouped {
+  age_restrictions: {
+    senior_dob_start: string;
+    senior_dob_end: string;
+    junior_dob_start: string;
+    junior_dob_end: string;
+  };
+  participation_limits: {
+    max_individual_events_per_person: string;
+    max_participants_per_unit_per_event: string;
+    max_groups_per_unit_per_group_event: string;
+  };
+  fees: {
+    individual_event_fee: string;
+    group_event_fee: string;
+    appeal_fee: string;
+  };
+}
+
+export interface KalamelaRule {
+  id: number;
+  rule_key: string;
+  rule_category: 'age_restriction' | 'participation_limit' | 'fee';
+  rule_value: string;
+  display_name: string;
+  description: string | null;
+  is_active: boolean;
+  created_on: string;
+  updated_on: string;
+  updated_by_id: number | null;
+}
+
+export interface KalamelaRuleCreate {
+  rule_key: string;
+  rule_category: 'age_restriction' | 'participation_limit' | 'fee';
+  rule_value: string;
+  display_name: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export interface KalamelaRuleUpdate {
+  rule_value?: string;
+  display_name?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+// ==================== DISTRICT MEMBERS TYPES ====================
+
+export interface DistrictMember {
+  id: number;
+  name: string;
+  phone_number: string;
+  dob: string;
+  age: number;
+  gender: string;
+  unit_id: number;
+  unit_name: string;
+  participation_category: 'Junior' | 'Senior' | 'Ineligible';
+  is_excluded: boolean;
+  is_registered?: boolean;
+  registered_events_count?: number;
+}
+
+export interface DistrictMembersResponse {
+  members: DistrictMember[];
+  total_count: number;
+  summary: {
+    junior_count: number;
+    senior_count: number;
+    ineligible_count: number;
+    excluded_count: number;
+  };
+  units: Array<{ id: number; name: string }>;
+  filters_applied: {
+    unit_id: number | null;
+    participation_category: string | null;
+    search: string | null;
+  };
+  age_restrictions: {
+    junior_dob_start: string;
+    junior_dob_end: string;
+    senior_dob_start: string;
+    senior_dob_end: string;
+  };
+}
