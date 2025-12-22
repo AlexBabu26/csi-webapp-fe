@@ -756,12 +756,21 @@ export interface RegistrationFeeUpdate {
 }
 
 // Kalamela Events
+export type GenderRestriction = 'Male' | 'Female' | null;
+export type SeniorityRestriction = 'Junior' | 'Senior' | null;
+
 export interface IndividualEvent {
   id: number;
   name: string;
   description: string | null;
   category_id?: number | null;
   category_name?: string | null;
+  is_active: boolean;
+  is_mandatory: boolean;
+  gender_restriction: GenderRestriction;
+  seniority_restriction: SeniorityRestriction;
+  registration_fee_id?: number | null;
+  registration_fee_amount?: number | null;
   created_on: string;
 }
 
@@ -769,38 +778,64 @@ export interface IndividualEventCreate {
   name: string;
   category_id?: number;
   description?: string;
+  is_active?: boolean;
+  is_mandatory?: boolean;
+  gender_restriction?: GenderRestriction;
+  seniority_restriction?: SeniorityRestriction;
 }
 
 export interface IndividualEventUpdate {
   name?: string;
   category_id?: number;
   description?: string;
+  is_active?: boolean;
+  is_mandatory?: boolean;
+  gender_restriction?: GenderRestriction;
+  seniority_restriction?: SeniorityRestriction;
 }
 
 export interface GroupEvent {
   id: number;
   name: string;
   description: string | null;
+  category_id?: number | null;
+  category_name?: string | null;
   min_allowed_limit: number;
   max_allowed_limit: number;
   per_unit_allowed_limit: number;
+  is_active: boolean;
+  is_mandatory: boolean;
+  gender_restriction: GenderRestriction;
+  seniority_restriction: SeniorityRestriction;
+  registration_fee_id?: number | null;
+  registration_fee_amount?: number | null;
   created_on: string;
 }
 
 export interface GroupEventCreate {
   name: string;
   description?: string;
+  category_id?: number;
   max_allowed_limit?: number;
   min_allowed_limit?: number;
   per_unit_allowed_limit?: number;
+  is_active?: boolean;
+  is_mandatory?: boolean;
+  gender_restriction?: GenderRestriction;
+  seniority_restriction?: SeniorityRestriction;
 }
 
 export interface GroupEventUpdate {
   name?: string;
   description?: string;
+  category_id?: number;
   max_allowed_limit?: number;
   min_allowed_limit?: number;
   per_unit_allowed_limit?: number;
+  is_active?: boolean;
+  is_mandatory?: boolean;
+  gender_restriction?: GenderRestriction;
+  seniority_restriction?: SeniorityRestriction;
 }
 
 // Kalamela Participants
