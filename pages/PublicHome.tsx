@@ -136,7 +136,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
         navigate('/admin/dashboard');
       } else if (me.user_type === '2') {
         console.log('[PublicHome] Navigating to Kalamela official portal');
-        navigate('/kalamela/official');
+        navigate('/kalamela/official/home');
       } else if (me.user_type === '3') {
         console.log('[PublicHome] Navigating to Conference official portal');
         navigate('/conference/official/home');

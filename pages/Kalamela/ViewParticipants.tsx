@@ -227,7 +227,7 @@ export const ViewParticipants: React.FC = () => {
             )}
           </div>
           <p className="text-textMuted mb-4">No {activeTab} event participants registered yet</p>
-          <Button variant="primary" size="sm" onClick={() => navigate('/kalamela/official')}>
+          <Button variant="primary" size="sm" onClick={() => navigate('/kalamela/official/home')}>
             Register Participants
           </Button>
         </Card>

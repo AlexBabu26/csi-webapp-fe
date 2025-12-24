@@ -114,13 +114,13 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
             // District officials can access both Kalamela and Conference
             // Route based on the portal context they came from
             if (portalContext === 'kalamela') {
-              navigate('/kalamela/official');
+              navigate('/kalamela/official/home');
             } else if (portalContext === 'conference') {
               navigate('/conference/official/home');
             } else {
               // Default: user_type 2 goes to kalamela, user_type 3 goes to conference
               if (userType === '2') {
-                navigate('/kalamela/official');
+                navigate('/kalamela/official/home');
               } else {
                 navigate('/conference/official/home');
               }
@@ -138,11 +138,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           if (tokens.redirect_url) {
             navigate(tokens.redirect_url);
           } else if (portalContext === 'kalamela') {
-            navigate('/kalamela/official');
+            navigate('/kalamela/official/home');
           } else if (portalContext === 'conference') {
             navigate('/conference/official/home');
           } else if (userType === '2') {
-            navigate('/kalamela/official');
+            navigate('/kalamela/official/home');
           } else if (userType === '3') {
             navigate('/conference/official/home');
           } else {

@@ -72,7 +72,7 @@ export const PaymentPreview: React.FC = () => {
     <div className="space-y-6 animate-slide-in">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="sm" onClick={() => navigate('/kalamela/official')}>
+        <Button variant="outline" size="sm" onClick={() => navigate('/kalamela/official/home')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
@@ -177,7 +177,7 @@ export const PaymentPreview: React.FC = () => {
       {!hasParticipants ? (
         <Card className="text-center py-12">
           <p className="text-textMuted mb-4">No participants registered yet</p>
-          <Button variant="primary" size="sm" onClick={() => navigate('/kalamela/official')}>
+          <Button variant="primary" size="sm" onClick={() => navigate('/kalamela/official/home')}>
             Register Participants
           </Button>
         </Card>

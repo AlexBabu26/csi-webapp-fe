@@ -13,7 +13,6 @@ const PublicHome = lazy(() => import('./pages/PublicHome').then(module => ({ def
 const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
 const KalamelaPublic = lazy(() => import('./pages/KalamelaPublic').then(module => ({ default: module.KalamelaPublic })));
-const KalamelaOfficial = lazy(() => import('./pages/KalamelaOfficial').then(module => ({ default: module.KalamelaOfficial })));
 const Conference = lazy(() => import('./pages/Conference').then(module => ({ default: module.Conference })));
 
 // Conference Official Pages
@@ -119,8 +118,8 @@ const App: React.FC = () => {
               {/* Kalamela Public Portal */}
               <Route path="/kalamela" element={<KalamelaPublic />} />
               
-              {/* Kalamela Official Portal (for authenticated district officials) */}
-              <Route path="/kalamela/official" element={<KalamelaOfficial />} />
+              {/* Redirect old Kalamela Official route to new home */}
+              <Route path="/kalamela/official" element={<Navigate to="/kalamela/official/home" replace />} />
               
               {/* Conference Public Portal */}
               <Route path="/conference" element={<Conference />} />

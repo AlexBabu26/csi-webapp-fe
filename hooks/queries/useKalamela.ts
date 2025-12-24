@@ -226,7 +226,7 @@ export const useKalamelaPaymentPreview = () => {
   return useQuery({
     queryKey: ['kalamela', 'paymentPreview'],
     queryFn: async () => {
-      const response = await api.getKalamelaPaymentPreview();
+      const response = await api.getOfficialPreview();
       return response.data;
     },
   });
