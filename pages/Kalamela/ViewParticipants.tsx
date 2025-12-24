@@ -322,35 +322,51 @@ export const ViewParticipants: React.FC = () => {
                             </div>
                           ) : (
                             <div className="space-y-3">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="font-semibold text-textDark">Team {participationId}</p>
-                                <Badge variant="light" className="font-mono text-xs">{participant.chest_number || participant.group_chest_number}</Badge>
-                                <Badge variant="success" className="text-xs">{participant.members?.length || 0} members</Badge>
+                              {/* Team Header with Unit Name */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                    {participant.chest_number || participant.group_chest_number || 'T'}
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-semibold text-textDark">{participant.unit_name || participant.participant_unit || 'Team'}</p>
+                                      <Badge variant="success" className="text-xs">
+                                        <Users className="w-3 h-3 mr-1" />
+                                        {participant.members?.length || 0} members
+                                      </Badge>
+                                    </div>
+                                    <p className="text-xs text-textMuted">
+                                      Chest No: <span className="font-mono font-medium">{participant.chest_number || participant.group_chest_number}</span>
+                                    </p>
+                                  </div>
+                                </div>
                               </div>
+                              
+                              {/* Members Grid */}
                               {participant.members && participant.members.length > 0 && (
-                                <div className="bg-white rounded-md border border-borderColor overflow-hidden">
-                                  <table className="w-full text-sm">
-                                    <thead className="bg-gray-50">
-                                      <tr>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-textMuted">Name</th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-textMuted">Contact</th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-textMuted">Unit</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-borderColor">
-                                      {participant.members.map((member: any, idx: number) => (
-                                        <tr key={idx} className="hover:bg-gray-50">
-                                          <td className="px-3 py-2 font-medium text-textDark">{member.name || member.participant_name}</td>
-                                          <td className="px-3 py-2 text-textMuted">
-                                            {member.phone_number || member.participant_phone || '-'}
-                                          </td>
-                                          <td className="px-3 py-2 text-textMuted">
-                                            {member.unit_name || member.participant_unit || participant.unit_name || '-'}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
+                                  {participant.members.map((member: any, idx: number) => (
+                                    <div 
+                                      key={idx} 
+                                      className="flex items-center gap-2 p-2 bg-white rounded-lg border border-borderColor hover:border-primary/30 hover:shadow-sm transition-all"
+                                    >
+                                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-xs font-semibold text-purple-700 flex-shrink-0">
+                                        {(member.name || member.participant_name || '?').charAt(0).toUpperCase()}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-medium text-textDark truncate">
+                                          {member.name || member.participant_name}
+                                        </p>
+                                        {(member.phone_number || member.participant_phone) && (
+                                          <p className="text-xs text-textMuted flex items-center gap-1">
+                                            <Phone className="w-3 h-3" />
+                                            {member.phone_number || member.participant_phone}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                             </div>
