@@ -1921,6 +1921,14 @@ class ApiService {
     return { data: response, message: `Added ${payload.participant_ids.length} participants successfully`, status: 200 };
   }
 
+  // Alias for addGroupTeam (for compatibility with hooks)
+  async addGroupParticipants(payload: {
+    group_event_id: number;
+    participant_ids: number[];
+  }): Promise<ApiResponse<any>> {
+    return this.addGroupTeam(payload);
+  }
+
   // GET /kalamela/official/participants/group - View all group participants
   async getOfficialGroupParticipants(): Promise<ApiResponse<any>> {
     const token = this.getToken();

@@ -37,7 +37,59 @@ export const ViewParticipants: React.FC = () => {
     queryKey: ['kalamela', 'participants', 'group', 'official'],
     queryFn: async () => {
       const response = await api.getOfficialGroupParticipants();
-      return response.data.group_event_participations || {};
+      const rawData = response.data.group_event_participations || {};
+      
+      // Transform the nested structure: event -> unit -> participants
+      // Into: event -> teams (grouped by chest_number)
+      const transformed: Record<string, any[]> = {};
+      
+      Object.keys(rawData).forEach((eventName) => {
+        const eventData = rawData[eventName];
+        const allParticipants: any[] = [];
+        
+        // Flatten all units into a single array
+        Object.keys(eventData).forEach((unitName) => {
+          const unitParticipants = eventData[unitName];
+          if (Array.isArray(unitParticipants)) {
+            allParticipants.push(...unitParticipants);
+          }
+        });
+        
+        // Group participants by chest_number to form teams
+        const teamsMap = new Map<string, any>();
+        
+        allParticipants.forEach((participant) => {
+          const chestNumber = participant.participant_chest_number || participant.chest_number || 'UNKNOWN';
+          
+          if (!teamsMap.has(chestNumber)) {
+            // Use the first participant's participation_id as the team ID
+            teamsMap.set(chestNumber, {
+              group_event_participation_id: participant.group_event_participation_id,
+              group_event_id: participant.group_event_id,
+              chest_number: chestNumber,
+              group_chest_number: chestNumber,
+              members: [],
+              unit_name: participant.participant_unit,
+              participant_unit: participant.participant_unit,
+            });
+          }
+          
+          const team = teamsMap.get(chestNumber)!;
+          team.members.push({
+            name: participant.participant_name,
+            participant_name: participant.participant_name,
+            phone_number: participant.participant_phone,
+            participant_phone: participant.participant_phone,
+            unit_name: participant.participant_unit,
+            participant_unit: participant.participant_unit,
+          });
+        });
+        
+        // Convert map to array
+        transformed[eventName] = Array.from(teamsMap.values());
+      });
+      
+      return transformed;
     },
   });
   
@@ -74,10 +126,23 @@ export const ViewParticipants: React.FC = () => {
 
   // Count total participants
   const totalIndividualParticipants = Object.values(individualEvents).reduce(
-    (acc: number, participants: any) => acc + (participants?.length || 0), 0
+    (acc: number, participants: any) => acc + (Array.isArray(participants) ? participants.length : 0), 0
   );
   const totalGroupParticipants = Object.values(groupEvents).reduce(
-    (acc: number, participants: any) => acc + (participants?.length || 0), 0
+    (acc: number, teams: any) => {
+      if (!Array.isArray(teams)) return acc;
+      // Count number of teams
+      return acc + teams.length;
+    }, 0
+  );
+  // Count total individual members across all teams
+  const totalGroupMembers = Object.values(groupEvents).reduce(
+    (acc: number, teams: any) => {
+      if (!Array.isArray(teams)) return acc;
+      return acc + teams.reduce((teamAcc: number, team: any) => {
+        return teamAcc + (Array.isArray(team.members) ? team.members.length : 0);
+      }, 0);
+    }, 0
   );
 
   if (loading) {
@@ -173,7 +238,7 @@ export const ViewParticipants: React.FC = () => {
       ) : (
         <div className="space-y-6">
           {eventNames.map((eventName) => {
-            const participants = events[eventName];
+            const participants = Array.isArray(events[eventName]) ? events[eventName] : [];
             
             return (
               <Card key={eventName}>
@@ -181,7 +246,10 @@ export const ViewParticipants: React.FC = () => {
                   <div>
                     <h3 className="text-lg font-bold text-textDark">{eventName}</h3>
                     <p className="text-sm text-textMuted">
-                      {participants.length} participant{participants.length !== 1 ? 's' : ''}
+                      {activeTab === 'individual' 
+                        ? `${participants.length} participant${participants.length !== 1 ? 's' : ''}`
+                        : `${participants.length} team${participants.length !== 1 ? 's' : ''} (${participants.reduce((acc: number, team: any) => acc + (Array.isArray(team.members) ? team.members.length : 0), 0)} members)`
+                      }
                     </p>
                   </div>
                   <Badge variant={activeTab === 'individual' ? 'primary' : 'success'}>
@@ -191,7 +259,10 @@ export const ViewParticipants: React.FC = () => {
 
                 {/* Enhanced participant cards */}
                 <div className="space-y-3">
-                  {participants.map((participant: any) => {
+                  {participants.length === 0 ? (
+                    <p className="text-textMuted text-sm py-4 text-center">No participants registered for this event</p>
+                  ) : (
+                    participants.map((participant: any) => {
                     // Get the correct ID based on event type
                     const participationId = activeTab === 'individual' 
                       ? participant.individual_event_participation_id 
@@ -304,7 +375,8 @@ export const ViewParticipants: React.FC = () => {
                         </Button>
                       </div>
                     );
-                  })}
+                  })
+                  )}
                 </div>
               </Card>
             );
