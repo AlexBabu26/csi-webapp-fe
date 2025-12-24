@@ -810,6 +810,10 @@ export interface GroupEvent {
   registration_fee_id?: number | null;
   registration_fee_amount?: number | null;
   created_on: string;
+  // Registration status fields (from official home API)
+  participation_count?: number;
+  remaining_slots?: number;
+  is_registration_complete?: boolean;
 }
 
 export interface GroupEventCreate {

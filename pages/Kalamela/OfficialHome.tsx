@@ -445,55 +445,97 @@ export const KalamelaOfficialHome: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {groupEvents.map((event: GroupEvent) => (
-            <Card 
-              key={event.id} 
-              className="group hover:shadow-lg hover:border-success/30 transition-all cursor-pointer border-2 border-transparent"
-              onClick={() => navigate(`/kalamela/official/event/group/${event.id}`)}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-bold text-textDark text-lg group-hover:text-success transition-colors">
-                  {event.name}
-                </h3>
-                <Badge variant="success" className="text-xs">Group</Badge>
-              </div>
-              
-              <p className="text-sm text-textMuted mb-4 line-clamp-2">
-                {event.description || 'No description available'}
-              </p>
-              
-              {/* Team Info */}
-              <div className="bg-success/5 rounded-lg p-3 mb-4">
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-textMuted block text-xs">Team Size</span>
-                    <span className="font-semibold text-textDark">
-                      {event.min_allowed_limit} - {event.max_allowed_limit}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-textMuted block text-xs">Per Unit</span>
-                    <span className="font-semibold text-textDark">
-                      {event.per_unit_allowed_limit} team{event.per_unit_allowed_limit !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <Button 
-                variant="success" 
-                size="sm" 
-                className="w-full"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/kalamela/official/event/group/${event.id}`);
-                }}
+          {groupEvents.map((event: GroupEvent) => {
+            const isFull = event.is_registration_complete || event.remaining_slots === 0;
+            const hasRegistrations = (event.participation_count || 0) > 0;
+            
+            return (
+              <Card 
+                key={event.id} 
+                className={`
+                  group transition-all border-2 relative overflow-hidden
+                  ${isFull 
+                    ? 'border-gray-200 opacity-60 cursor-not-allowed' 
+                    : hasRegistrations
+                      ? 'hover:shadow-lg hover:border-success border-success/30 cursor-pointer'
+                      : 'hover:shadow-lg hover:border-success/30 border-transparent cursor-pointer'
+                  }
+                `}
+                onClick={() => !isFull && navigate(`/kalamela/official/event/group/${event.id}`)}
               >
-                Select Team
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Card>
-          ))}
+                {/* Status indicator bar */}
+                <div className={`absolute top-0 left-0 w-1 h-full ${
+                  isFull ? 'bg-gray-300' : hasRegistrations ? 'bg-success' : 'bg-success/30'
+                }`} />
+                
+                <div className="pl-2">
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className={`font-bold text-lg ${isFull ? 'text-gray-400' : 'text-textDark group-hover:text-success'} transition-colors`}>
+                      {event.name}
+                    </h3>
+                    <Badge variant={isFull ? "light" : "success"} className="text-xs">
+                      {isFull ? 'Full' : 'Group'}
+                    </Badge>
+                  </div>
+                  
+                  <p className="text-sm text-textMuted mb-4 line-clamp-2">
+                    {event.description || 'No description available'}
+                  </p>
+                  
+                  {/* Team Info */}
+                  <div className={`${isFull ? 'bg-gray-50' : 'bg-success/5'} rounded-lg p-3 mb-4`}>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-textMuted block text-xs">Team Size</span>
+                        <span className={`font-semibold ${isFull ? 'text-gray-400' : 'text-textDark'}`}>
+                          {event.min_allowed_limit} - {event.max_allowed_limit}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-textMuted block text-xs">Teams Registered</span>
+                        <span className={`font-semibold ${isFull ? 'text-gray-400' : 'text-textDark'}`}>
+                          {event.participation_count || 0} / 2
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Registration Status */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      isFull 
+                        ? 'bg-gray-100 text-gray-500' 
+                        : hasRegistrations 
+                          ? 'bg-success/10 text-success' 
+                          : 'bg-primary/10 text-primary'
+                    }`}>
+                      {event.remaining_slots ?? 2} slot{(event.remaining_slots ?? 2) !== 1 ? 's' : ''} remaining
+                    </span>
+                  </div>
+                  
+                  <Button 
+                    variant={isFull ? "outline" : "success"}
+                    size="sm" 
+                    className="w-full"
+                    disabled={isFull}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isFull) navigate(`/kalamela/official/event/group/${event.id}`);
+                    }}
+                  >
+                    {isFull ? (
+                      'Registration Complete'
+                    ) : (
+                      <>
+                        Select Team
+                        <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
           
           {groupEvents.length === 0 && (
             <Card className="col-span-full text-center py-12 bg-gray-50">
