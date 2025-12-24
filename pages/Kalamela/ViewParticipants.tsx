@@ -161,10 +161,6 @@ export const ViewParticipants: React.FC = () => {
     <div className="space-y-6 animate-slide-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <Button variant="outline" size="sm" onClick={() => navigate('/kalamela/official')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-textDark">Registered Participants</h1>
           <p className="text-sm text-textMuted mt-1">View and manage your event registrations</p>
