@@ -2467,16 +2467,31 @@ class ApiService {
     return { data, message: 'Payment declined', status: 200 };
   }
 
-  // POST /kalamela/admin/scores/individual/event/{event_id} - Bulk add individual scores
-  async bulkAddIndividualScores(eventId: number, scores: Array<{
-    participant_id: number;
-    marks: number;
-    position: number;
+  // POST /kalamela/admin/scores/individual/event/{event_id} - Add individual scores
+  // Backend auto-calculates grades and ranks based on marks
+  async addIndividualEventScores(eventId: number, scores: Array<{
+    event_participation_id: number;
+    awarded_mark: number;
   }>): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpPost<any>(`/kalamela/admin/scores/individual/event/${eventId}`, { scores }, { token });
-    return { data, message: `${scores.length} scores added successfully`, status: 200 };
+    // Send array directly (not wrapped in { scores: ... })
+    const data = await httpPost<any>(`/kalamela/admin/scores/individual/event/${eventId}`, scores, { token });
+    return { data, message: `${scores.length} scores submitted successfully`, status: 200 };
+  }
+
+  // Legacy method - kept for backward compatibility
+  async bulkAddIndividualScores(eventId: number, scores: Array<{
+    participant_id: number;
+    marks: number;
+    position?: number;
+  }>): Promise<ApiResponse<any>> {
+    // Transform to new format
+    const transformedScores = scores.map(s => ({
+      event_participation_id: s.participant_id,
+      awarded_mark: s.marks,
+    }));
+    return this.addIndividualEventScores(eventId, transformedScores);
   }
 
   // GET /kalamela/admin/scores/individual/event/{event_id}/candidates - Get candidates for scoring
@@ -2487,14 +2502,29 @@ class ApiService {
     return { data, status: 200 };
   }
 
-  // POST /kalamela/admin/scores/group/event/{event_id} - Bulk add group scores
-  async bulkAddGroupScores(eventId: number, scores: Array<{
-    participation_id: number;
-    marks: number;
-    position: number;
+  // POST /kalamela/admin/scores/group/event/{event_name} - Add group scores
+  // Backend auto-calculates grades and ranks based on marks
+  async addGroupEventScores(eventName: string, scores: Array<{
+    chest_number: string;
+    awarded_mark: number;
   }>): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
+    // Send array directly, endpoint uses event_name (not event_id)
+    const data = await httpPost<any>(`/kalamela/admin/scores/group/event/${encodeURIComponent(eventName)}`, scores, { token });
+    return { data, message: `${scores.length} scores submitted successfully`, status: 200 };
+  }
+
+  // Legacy method - kept for backward compatibility (uses event_id)
+  async bulkAddGroupScores(eventId: number, scores: Array<{
+    participation_id: number;
+    marks: number;
+    position?: number;
+  }>): Promise<ApiResponse<any>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    // Note: This uses the old endpoint format with event_id
+    // New code should use addGroupEventScores with event_name
     const data = await httpPost<any>(`/kalamela/admin/scores/group/event/${eventId}`, { scores }, { token });
     return { data, message: `${scores.length} scores added successfully`, status: 200 };
   }

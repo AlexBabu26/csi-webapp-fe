@@ -8,14 +8,36 @@ export {
   clearAuth as removeToken 
 } from './auth';
 
+/**
+ * Calculate grade based on marks (out of 100)
+ * 
+ * Grade Thresholds:
+ * - A Grade: 60% and above
+ * - B Grade: 50% to 59%
+ * - C Grade: 40% to 49%
+ * - No Grade: Below 40%
+ */
 export const calculateGrade = (marks: number): 'A' | 'B' | 'C' | 'No Grade' => {
-  const percentage = marks / 100;
-  if (percentage >= 0.6) return 'A';
-  if (percentage > 0.5) return 'B';
-  if (percentage > 0.4) return 'C';
-  return 'No Grade';
+  // Marks are out of 100, so marks = percentage
+  if (marks >= 60) return 'A';      // 60% and above
+  if (marks >= 50) return 'B';      // 50% to 59%
+  if (marks >= 40) return 'C';      // 40% to 49%
+  return 'No Grade';                // Below 40%
 };
 
+/**
+ * Calculate points for grade and rank
+ * 
+ * Point Values:
+ * - 5 Points: A Grade or 1st Rank
+ * - 3 Points: B Grade or 2nd Rank
+ * - 1 Point: C Grade or 3rd Rank
+ * 
+ * Individual Events: Grade Points + Rank Points
+ * Group Events: Rank Points only (no grade points for championship)
+ * 
+ * Note: Backend auto-calculates ranks, this is for UI preview only
+ */
 export const calculatePoints = (
   marks: number,
   position: number,
@@ -30,22 +52,17 @@ export const calculatePoints = (
   let gradePoints = 0;
   let positionPoints = 0;
 
-  // Position points
-  if (isGroup) {
-    // Group events: 10/5/3 for top 3
-    if (position === 1) positionPoints = 10;
-    else if (position === 2) positionPoints = 5;
-    else if (position === 3) positionPoints = 3;
-  } else {
-    // Individual events: 5/3/1 for top 3
-    if (position === 1) positionPoints = 5;
-    else if (position === 2) positionPoints = 3;
-    else if (position === 3) positionPoints = 1;
+  // Rank/Position points (same for both individual and group: 5/3/1)
+  if (position === 1) positionPoints = 5;
+  else if (position === 2) positionPoints = 3;
+  else if (position === 3) positionPoints = 1;
 
-    // Grade bonus points (only for individual)
+  // Grade points (only for individual events, not for group events)
+  if (!isGroup) {
     if (grade === 'A') gradePoints = 5;
     else if (grade === 'B') gradePoints = 3;
     else if (grade === 'C') gradePoints = 1;
+    // No grade points for marks below 40%
   }
 
   return {
@@ -54,6 +71,27 @@ export const calculatePoints = (
     gradePoints,
     totalPoints: positionPoints + gradePoints,
   };
+};
+
+/**
+ * Calculate grade points only (for UI preview before rank is determined)
+ */
+export const calculateGradePoints = (marks: number): number => {
+  const grade = calculateGrade(marks);
+  if (grade === 'A') return 5;
+  if (grade === 'B') return 3;
+  if (grade === 'C') return 1;
+  return 0;
+};
+
+/**
+ * Calculate rank points based on position
+ */
+export const calculateRankPoints = (position: number): number => {
+  if (position === 1) return 5;
+  if (position === 2) return 3;
+  if (position === 3) return 1;
+  return 0;
 };
 
 export const generateChestNumber = (

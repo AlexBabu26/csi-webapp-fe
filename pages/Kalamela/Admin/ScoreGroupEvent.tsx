@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../../components/ui';
-import { ArrowLeft, Save, Calculator, Users } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Users, Info } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
-import { calculateGrade, calculatePoints } from '../../../services/api-helpers';
-import { useGroupEventScoring, useSubmitScores } from '../../../hooks/queries';
+import { api } from '../../../services/api';
+import { calculateGrade } from '../../../services/api-helpers';
+import { useGroupEventScoring } from '../../../hooks/queries';
 
 interface Team {
   participation_id: number;
@@ -15,11 +16,9 @@ interface Team {
 
 interface Score {
   participation_id: number;
+  chest_number: string;
   marks: number;
-  position: number;
   grade?: 'A' | 'B' | 'C' | 'No Grade';
-  positionPoints?: number;
-  totalPoints?: number;
 }
 
 export const ScoreGroupEvent: React.FC = () => {
@@ -31,9 +30,9 @@ export const ScoreGroupEvent: React.FC = () => {
   
   // Use TanStack Query
   const { data, isLoading: loading } = useGroupEventScoring(parsedEventId);
-  const submitScoresMutation = useSubmitScores();
   
   const [scores, setScores] = useState<Record<number, Score>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   // Initialize scores when data loads
   useEffect(() => {
@@ -42,32 +41,30 @@ export const ScoreGroupEvent: React.FC = () => {
       data.teams.forEach((team: Team) => {
         initialScores[team.participation_id] = {
           participation_id: team.participation_id,
+          chest_number: team.chest_number,
           marks: 0,
-          position: 0,
         };
       });
       setScores(initialScores);
     }
   }, [data]);
 
-  const updateScore = (participationId: number, field: 'marks' | 'position', value: number) => {
-    const updatedScore = { ...scores[participationId], [field]: value };
+  const updateScore = (participationId: number, marks: number) => {
+    const score = scores[participationId];
+    const updatedScore = { ...score, marks };
     
-    // Calculate grade and points (no grade bonus for group events)
-    if (updatedScore.marks > 0 && updatedScore.position > 0) {
-      const calculated = calculatePoints(updatedScore.marks, updatedScore.position, true);
-      updatedScore.grade = calculated.grade;
-      updatedScore.positionPoints = calculated.positionPoints;
-      updatedScore.totalPoints = calculated.totalPoints;
+    // Calculate grade preview (backend will calculate final rank)
+    if (marks > 0) {
+      updatedScore.grade = calculateGrade(marks);
+    } else {
+      updatedScore.grade = undefined;
     }
     
     setScores({ ...scores, [participationId]: updatedScore });
   };
 
   const handleSubmit = async () => {
-    const scoresToSubmit = Object.values(scores).filter(
-      (score) => score.marks > 0 && score.position > 0
-    );
+    const scoresToSubmit = Object.values(scores).filter((score) => score.marks > 0);
 
     if (scoresToSubmit.length === 0) {
       addToast("Please enter at least one valid score", "warning");
@@ -81,27 +78,37 @@ export const ScoreGroupEvent: React.FC = () => {
       return;
     }
 
-    // Check for duplicate positions
-    const positions = scoresToSubmit.map((s) => s.position);
-    const hasDuplicates = positions.length !== new Set(positions).size;
-    if (hasDuplicates) {
-      addToast("Cannot have duplicate positions", "error");
+    // Validate marks are >= 0
+    const negativeMarks = scoresToSubmit.find((s) => s.marks < 0);
+    if (negativeMarks) {
+      addToast("Marks cannot be negative", "error");
       return;
     }
 
-    submitScoresMutation.mutate(
-      {
-        eventId: parsedEventId,
-        eventType: 'group',
-        scores: scoresToSubmit,
-      },
-      {
-        onSuccess: () => navigate('/kalamela/admin/scores'),
-      }
-    );
-  };
+    if (!data?.event_name) {
+      addToast("Event name not found", "error");
+      return;
+    }
 
-  const submitting = submitScoresMutation.isPending;
+    try {
+      setSubmitting(true);
+      
+      // Format for new API: array of { chest_number, awarded_mark }
+      // Uses event_name (not event_id) in the endpoint
+      const formattedScores = scoresToSubmit.map((s) => ({
+        chest_number: s.chest_number,
+        awarded_mark: s.marks,
+      }));
+
+      await api.addGroupEventScores(data.event_name, formattedScores);
+      addToast(`${scoresToSubmit.length} scores submitted successfully!`, 'success');
+      navigate('/kalamela/admin/scores');
+    } catch (err: any) {
+      addToast(err.message || 'Failed to submit scores', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -131,7 +138,13 @@ export const ScoreGroupEvent: React.FC = () => {
     );
   }
 
-  const validScores = Object.values(scores).filter((s) => s.marks > 0 && s.position > 0);
+  const validScores = Object.values(scores).filter((s) => s.marks > 0);
+  const gradeDistribution = {
+    A: validScores.filter((s) => s.grade === 'A').length,
+    B: validScores.filter((s) => s.grade === 'B').length,
+    C: validScores.filter((s) => s.grade === 'C').length,
+    NoGrade: validScores.filter((s) => s.grade === 'No Grade').length,
+  };
 
   return (
     <div className="space-y-6 animate-slide-in">
@@ -146,7 +159,7 @@ export const ScoreGroupEvent: React.FC = () => {
             <Users className="w-6 h-6 text-success" />
             {data.event_name}
           </h1>
-          <p className="text-sm text-textMuted mt-1">Enter scores for group event teams</p>
+          <p className="text-sm text-textMuted mt-1">Enter marks for group event teams</p>
         </div>
         <Button
           variant="success"
@@ -155,7 +168,7 @@ export const ScoreGroupEvent: React.FC = () => {
           disabled={submitting || validScores.length === 0}
         >
           <Save className="w-4 h-4 mr-2" />
-          Submit Scores ({validScores.length})
+          {submitting ? 'Submitting...' : `Submit Scores (${validScores.length})`}
         </Button>
       </div>
 
@@ -164,14 +177,25 @@ export const ScoreGroupEvent: React.FC = () => {
         <div className="flex items-start gap-3">
           <Calculator className="w-5 h-5 text-success mt-0.5 flex-shrink-0" />
           <div>
-            <h3 className="font-semibold text-textDark mb-2">Group Event Score Entry</h3>
+            <h3 className="font-semibold text-textDark mb-2">Group Event Scoring System</h3>
             <ul className="text-sm text-textMuted space-y-1 list-disc list-inside">
-              <li>Enter marks out of 100 and position (1, 2, 3, etc.)</li>
-              <li>Grade is automatically calculated: A (&ge;60%), B (&gt;50%), C (&gt;40%)</li>
-              <li>Points: Position only (10/5/3 for 1st/2nd/3rd) - No grade bonus for group events</li>
-              <li>Only teams with both marks and position will be submitted</li>
+              <li>Enter marks out of <strong>100</strong> for each team</li>
+              <li><strong>Grades:</strong> A (≥60%), B (50-59%), C (40-49%), No Grade (&lt;40%)</li>
+              <li><strong>Rank Points:</strong> 1st = 5 pts, 2nd = 3 pts, 3rd = 1 pt</li>
+              <li><strong>Group events only get rank points</strong> (no grade points for championship)</li>
             </ul>
           </div>
+        </div>
+      </Card>
+
+      {/* Info about auto-ranking */}
+      <Card className="bg-warning/5 border-warning/20">
+        <div className="flex items-center gap-3">
+          <Info className="w-5 h-5 text-warning flex-shrink-0" />
+          <p className="text-sm text-textMuted">
+            <strong>Ranks are auto-calculated</strong> by the system based on marks. 
+            Just enter the marks and the system will determine 1st, 2nd, 3rd positions automatically.
+          </p>
         </div>
       </Card>
 
@@ -185,15 +209,15 @@ export const ScoreGroupEvent: React.FC = () => {
                 <th className="text-left p-3 text-sm font-semibold text-textDark">Chest No.</th>
                 <th className="text-left p-3 text-sm font-semibold text-textDark">Unit</th>
                 <th className="text-left p-3 text-sm font-semibold text-textDark">Team Members</th>
-                <th className="text-center p-3 text-sm font-semibold text-textDark">Marks (100)</th>
-                <th className="text-center p-3 text-sm font-semibold text-textDark">Position</th>
+                <th className="text-center p-3 text-sm font-semibold text-textDark">Marks (out of 100)</th>
                 <th className="text-center p-3 text-sm font-semibold text-textDark">Grade</th>
-                <th className="text-center p-3 text-sm font-semibold text-textDark">Points</th>
               </tr>
             </thead>
             <tbody>
-              {data.teams.map((team, index) => {
+              {data.teams.map((team: Team, index: number) => {
                 const score = scores[team.participation_id];
+                if (!score) return null;
+                
                 return (
                   <tr key={team.participation_id} className="border-b border-borderColor hover:bg-bgLight">
                     <td className="p-3 text-sm text-textDark">{index + 1}</td>
@@ -220,21 +244,13 @@ export const ScoreGroupEvent: React.FC = () => {
                         min="0"
                         max="100"
                         value={score.marks || ''}
-                        onChange={(e) => updateScore(team.participation_id, 'marks', parseInt(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 border border-borderColor rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-success/20"
-                      />
-                    </td>
-                    <td className="p-3">
-                      <input
-                        type="number"
-                        min="0"
-                        value={score.position || ''}
-                        onChange={(e) => updateScore(team.participation_id, 'position', parseInt(e.target.value) || 0)}
-                        className="w-16 px-2 py-1 border border-borderColor rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-success/20"
+                        onChange={(e) => updateScore(team.participation_id, parseInt(e.target.value) || 0)}
+                        className="w-24 px-3 py-2 border border-borderColor rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-success/20"
+                        placeholder="0-100"
                       />
                     </td>
                     <td className="p-3 text-center">
-                      {score.grade && score.marks > 0 && score.position > 0 && (
+                      {score.grade && score.marks > 0 && (
                         <Badge variant={
                           score.grade === 'A' ? 'success' :
                           score.grade === 'B' ? 'warning' :
@@ -243,9 +259,6 @@ export const ScoreGroupEvent: React.FC = () => {
                           {score.grade}
                         </Badge>
                       )}
-                    </td>
-                    <td className="p-3 text-center text-sm font-bold text-success">
-                      {score.totalPoints || '-'}
                     </td>
                   </tr>
                 );
@@ -258,35 +271,36 @@ export const ScoreGroupEvent: React.FC = () => {
       {/* Summary */}
       {validScores.length > 0 && (
         <Card className="bg-success/5 border-success/20">
-          <h3 className="font-semibold text-textDark mb-3">Score Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <h3 className="font-semibold text-textDark mb-3">Score Summary (Preview)</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
-              <p className="text-sm text-textMuted">Valid Entries</p>
+              <p className="text-sm text-textMuted">Entries</p>
               <p className="text-2xl font-bold text-textDark">{validScores.length}</p>
             </div>
             <div>
-              <p className="text-sm text-textMuted">Highest Marks</p>
+              <p className="text-sm text-textMuted">Highest</p>
               <p className="text-2xl font-bold text-success">
                 {Math.max(...validScores.map((s) => s.marks))}
               </p>
             </div>
             <div>
               <p className="text-sm text-textMuted">A Grades</p>
-              <p className="text-2xl font-bold text-success">
-                {validScores.filter((s) => s.grade === 'A').length}
-              </p>
+              <p className="text-2xl font-bold text-success">{gradeDistribution.A}</p>
             </div>
             <div>
-              <p className="text-sm text-textMuted">Highest Points</p>
-              <p className="text-2xl font-bold text-success">
-                {Math.max(...validScores.map((s) => s.totalPoints || 0))}
-              </p>
+              <p className="text-sm text-textMuted">B Grades</p>
+              <p className="text-2xl font-bold text-warning">{gradeDistribution.B}</p>
+            </div>
+            <div>
+              <p className="text-sm text-textMuted">C Grades</p>
+              <p className="text-2xl font-bold text-primary">{gradeDistribution.C}</p>
             </div>
           </div>
+          <p className="text-xs text-textMuted mt-3">
+            * Final ranks and points will be calculated by the system after submission
+          </p>
         </Card>
       )}
     </div>
   );
 };
-
-

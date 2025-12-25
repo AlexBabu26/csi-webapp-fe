@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../../components/ui';
-import { ArrowLeft, Save, Calculator } from 'lucide-react';
+import { ArrowLeft, Save, Calculator, Info } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
 import { api } from '../../../services/api';
-import { calculateGrade, calculatePoints } from '../../../services/api-helpers';
-import { useIndividualEventScoring, useSubmitScores } from '../../../hooks/queries';
+import { calculateGrade, calculateGradePoints } from '../../../services/api-helpers';
+import { useIndividualEventScoring } from '../../../hooks/queries';
 
 interface Candidate {
   participant_id: number;
@@ -13,16 +13,15 @@ interface Candidate {
   chest_number: string;
   unit_name: string;
   seniority_category: string;
+  event_participation_id?: number; // For API submission
 }
 
 interface Score {
   participant_id: number;
+  event_participation_id: number;
   marks: number;
-  position: number;
   grade?: 'A' | 'B' | 'C' | 'No Grade';
-  positionPoints?: number;
   gradePoints?: number;
-  totalPoints?: number;
 }
 
 export const ScoreIndividualEvent: React.FC = () => {
@@ -34,9 +33,9 @@ export const ScoreIndividualEvent: React.FC = () => {
   
   // Use TanStack Query
   const { data, isLoading: loading } = useIndividualEventScoring(parsedEventId);
-  const submitScoresMutation = useSubmitScores();
   
   const [scores, setScores] = useState<Record<number, Score>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   // Initialize scores when data loads
   useEffect(() => {
@@ -45,33 +44,32 @@ export const ScoreIndividualEvent: React.FC = () => {
       data.participants.forEach((participant: Candidate) => {
         initialScores[participant.participant_id] = {
           participant_id: participant.participant_id,
+          event_participation_id: participant.event_participation_id || participant.participant_id,
           marks: 0,
-          position: 0,
         };
       });
       setScores(initialScores);
     }
   }, [data]);
 
-  const updateScore = (participantId: number, field: 'marks' | 'position', value: number) => {
-    const updatedScore = { ...scores[participantId], [field]: value };
+  const updateScore = (participantId: number, marks: number) => {
+    const score = scores[participantId];
+    const updatedScore = { ...score, marks };
     
-    // Calculate grade and points
-    if (updatedScore.marks > 0 && updatedScore.position > 0) {
-      const calculated = calculatePoints(updatedScore.marks, updatedScore.position, false);
-      updatedScore.grade = calculated.grade;
-      updatedScore.positionPoints = calculated.positionPoints;
-      updatedScore.gradePoints = calculated.gradePoints;
-      updatedScore.totalPoints = calculated.totalPoints;
+    // Calculate grade preview (backend will calculate final rank)
+    if (marks > 0) {
+      updatedScore.grade = calculateGrade(marks);
+      updatedScore.gradePoints = calculateGradePoints(marks);
+    } else {
+      updatedScore.grade = undefined;
+      updatedScore.gradePoints = undefined;
     }
     
     setScores({ ...scores, [participantId]: updatedScore });
   };
 
   const handleSubmit = async () => {
-    const scoresToSubmit = Object.values(scores).filter(
-      (score) => score.marks > 0 && score.position > 0
-    );
+    const scoresToSubmit = Object.values(scores).filter((score) => score.marks > 0);
 
     if (scoresToSubmit.length === 0) {
       addToast("Please enter at least one valid score", "warning");
@@ -85,27 +83,31 @@ export const ScoreIndividualEvent: React.FC = () => {
       return;
     }
 
-    // Check for duplicate positions
-    const positions = scoresToSubmit.map((s) => s.position);
-    const hasDuplicates = positions.length !== new Set(positions).size;
-    if (hasDuplicates) {
-      addToast("Cannot have duplicate positions", "error");
+    // Validate marks are >= 0
+    const negativeMarks = scoresToSubmit.find((s) => s.marks < 0);
+    if (negativeMarks) {
+      addToast("Marks cannot be negative", "error");
       return;
     }
 
-    submitScoresMutation.mutate(
-      {
-        eventId: parsedEventId,
-        eventType: 'individual',
-        scores: scoresToSubmit,
-      },
-      {
-        onSuccess: () => navigate('/kalamela/admin/scores'),
-      }
-    );
-  };
+    try {
+      setSubmitting(true);
+      
+      // Format for new API: array of { event_participation_id, awarded_mark }
+      const formattedScores = scoresToSubmit.map((s) => ({
+        event_participation_id: s.event_participation_id,
+        awarded_mark: s.marks,
+      }));
 
-  const submitting = submitScoresMutation.isPending;
+      await api.addIndividualEventScores(parsedEventId, formattedScores);
+      addToast(`${scoresToSubmit.length} scores submitted successfully!`, 'success');
+      navigate('/kalamela/admin/scores');
+    } catch (err: any) {
+      addToast(err.message || 'Failed to submit scores', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -135,7 +137,13 @@ export const ScoreIndividualEvent: React.FC = () => {
     );
   }
 
-  const validScores = Object.values(scores).filter((s) => s.marks > 0 && s.position > 0);
+  const validScores = Object.values(scores).filter((s) => s.marks > 0);
+  const gradeDistribution = {
+    A: validScores.filter((s) => s.grade === 'A').length,
+    B: validScores.filter((s) => s.grade === 'B').length,
+    C: validScores.filter((s) => s.grade === 'C').length,
+    NoGrade: validScores.filter((s) => s.grade === 'No Grade').length,
+  };
 
   return (
     <div className="space-y-6 animate-slide-in">
@@ -147,7 +155,7 @@ export const ScoreIndividualEvent: React.FC = () => {
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-textDark">{data.event_name}</h1>
-          <p className="text-sm text-textMuted mt-1">Enter scores for individual event participants</p>
+          <p className="text-sm text-textMuted mt-1">Enter marks for individual event participants</p>
         </div>
         <Button
           variant="success"
@@ -156,7 +164,7 @@ export const ScoreIndividualEvent: React.FC = () => {
           disabled={submitting || validScores.length === 0}
         >
           <Save className="w-4 h-4 mr-2" />
-          Submit Scores ({validScores.length})
+          {submitting ? 'Submitting...' : `Submit Scores (${validScores.length})`}
         </Button>
       </div>
 
@@ -165,14 +173,26 @@ export const ScoreIndividualEvent: React.FC = () => {
         <div className="flex items-start gap-3">
           <Calculator className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
           <div>
-            <h3 className="font-semibold text-textDark mb-2">Score Entry Instructions</h3>
+            <h3 className="font-semibold text-textDark mb-2">Scoring System</h3>
             <ul className="text-sm text-textMuted space-y-1 list-disc list-inside">
-              <li>Enter marks out of 100 and position (1, 2, 3, etc.)</li>
-              <li>Grade is automatically calculated: A (&ge;60%), B (&gt;50%), C (&gt;40%)</li>
-              <li>Points: Position (5/3/1 for 1st/2nd/3rd) + Grade Bonus (5/3/1 for A/B/C)</li>
-              <li>Only participants with both marks and position will be submitted</li>
+              <li>Enter marks out of <strong>100</strong> for each participant</li>
+              <li><strong>Grades:</strong> A (≥60%), B (50-59%), C (40-49%), No Grade (&lt;40%)</li>
+              <li><strong>Grade Points:</strong> A = 5 pts, B = 3 pts, C = 1 pt</li>
+              <li><strong>Rank Points:</strong> 1st = 5 pts, 2nd = 3 pts, 3rd = 1 pt</li>
+              <li><strong>Total Points = Grade Points + Rank Points</strong></li>
             </ul>
           </div>
+        </div>
+      </Card>
+
+      {/* Info about auto-ranking */}
+      <Card className="bg-warning/5 border-warning/20">
+        <div className="flex items-center gap-3">
+          <Info className="w-5 h-5 text-warning flex-shrink-0" />
+          <p className="text-sm text-textMuted">
+            <strong>Ranks are auto-calculated</strong> by the system based on marks. 
+            Just enter the marks and the system will determine 1st, 2nd, 3rd positions automatically.
+          </p>
         </div>
       </Card>
 
@@ -187,17 +207,16 @@ export const ScoreIndividualEvent: React.FC = () => {
                 <th className="text-left p-3 text-sm font-semibold text-textDark">Participant</th>
                 <th className="text-left p-3 text-sm font-semibold text-textDark">Unit</th>
                 <th className="text-left p-3 text-sm font-semibold text-textDark">Category</th>
-                <th className="text-center p-3 text-sm font-semibold text-textDark">Marks (100)</th>
-                <th className="text-center p-3 text-sm font-semibold text-textDark">Position</th>
+                <th className="text-center p-3 text-sm font-semibold text-textDark">Marks (out of 100)</th>
                 <th className="text-center p-3 text-sm font-semibold text-textDark">Grade</th>
-                <th className="text-center p-3 text-sm font-semibold text-textDark">Pos Pts</th>
-                <th className="text-center p-3 text-sm font-semibold text-textDark">Grade Pts</th>
-                <th className="text-center p-3 text-sm font-semibold text-textDark">Total Pts</th>
+                <th className="text-center p-3 text-sm font-semibold text-textDark">Grade Points</th>
               </tr>
             </thead>
             <tbody>
-              {data.participants.map((candidate, index) => {
+              {data.participants.map((candidate: Candidate, index: number) => {
                 const score = scores[candidate.participant_id];
+                if (!score) return null;
+                
                 return (
                   <tr key={candidate.participant_id} className="border-b border-borderColor hover:bg-bgLight">
                     <td className="p-3 text-sm text-textDark">{index + 1}</td>
@@ -215,21 +234,13 @@ export const ScoreIndividualEvent: React.FC = () => {
                         min="0"
                         max="100"
                         value={score.marks || ''}
-                        onChange={(e) => updateScore(candidate.participant_id, 'marks', parseInt(e.target.value) || 0)}
-                        className="w-20 px-2 py-1 border border-borderColor rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                    </td>
-                    <td className="p-3">
-                      <input
-                        type="number"
-                        min="0"
-                        value={score.position || ''}
-                        onChange={(e) => updateScore(candidate.participant_id, 'position', parseInt(e.target.value) || 0)}
-                        className="w-16 px-2 py-1 border border-borderColor rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        onChange={(e) => updateScore(candidate.participant_id, parseInt(e.target.value) || 0)}
+                        className="w-24 px-3 py-2 border border-borderColor rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="0-100"
                       />
                     </td>
                     <td className="p-3 text-center">
-                      {score.grade && score.marks > 0 && score.position > 0 && (
+                      {score.grade && score.marks > 0 && (
                         <Badge variant={
                           score.grade === 'A' ? 'success' :
                           score.grade === 'B' ? 'warning' :
@@ -240,13 +251,7 @@ export const ScoreIndividualEvent: React.FC = () => {
                       )}
                     </td>
                     <td className="p-3 text-center text-sm font-semibold text-textDark">
-                      {score.positionPoints || '-'}
-                    </td>
-                    <td className="p-3 text-center text-sm font-semibold text-textDark">
-                      {score.gradePoints || '-'}
-                    </td>
-                    <td className="p-3 text-center text-sm font-bold text-primary">
-                      {score.totalPoints || '-'}
+                      {score.gradePoints !== undefined && score.marks > 0 ? score.gradePoints : '-'}
                     </td>
                   </tr>
                 );
@@ -259,35 +264,36 @@ export const ScoreIndividualEvent: React.FC = () => {
       {/* Summary */}
       {validScores.length > 0 && (
         <Card className="bg-success/5 border-success/20">
-          <h3 className="font-semibold text-textDark mb-3">Score Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <h3 className="font-semibold text-textDark mb-3">Score Summary (Preview)</h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
-              <p className="text-sm text-textMuted">Valid Entries</p>
+              <p className="text-sm text-textMuted">Entries</p>
               <p className="text-2xl font-bold text-textDark">{validScores.length}</p>
             </div>
             <div>
-              <p className="text-sm text-textMuted">Highest Marks</p>
+              <p className="text-sm text-textMuted">Highest</p>
               <p className="text-2xl font-bold text-success">
                 {Math.max(...validScores.map((s) => s.marks))}
               </p>
             </div>
             <div>
               <p className="text-sm text-textMuted">A Grades</p>
-              <p className="text-2xl font-bold text-success">
-                {validScores.filter((s) => s.grade === 'A').length}
-              </p>
+              <p className="text-2xl font-bold text-success">{gradeDistribution.A}</p>
             </div>
             <div>
-              <p className="text-sm text-textMuted">Highest Points</p>
-              <p className="text-2xl font-bold text-primary">
-                {Math.max(...validScores.map((s) => s.totalPoints || 0))}
-              </p>
+              <p className="text-sm text-textMuted">B Grades</p>
+              <p className="text-2xl font-bold text-warning">{gradeDistribution.B}</p>
+            </div>
+            <div>
+              <p className="text-sm text-textMuted">C Grades</p>
+              <p className="text-2xl font-bold text-primary">{gradeDistribution.C}</p>
             </div>
           </div>
+          <p className="text-xs text-textMuted mt-3">
+            * Final ranks and total points will be calculated by the system after submission
+          </p>
         </Card>
       )}
     </div>
   );
 };
-
-
