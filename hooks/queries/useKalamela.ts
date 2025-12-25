@@ -81,6 +81,8 @@ export const useKalamelaPayments = () => {
       const response = await api.getKalamelaAdminPayments();
       return response.data;
     },
+    retry: 1,
+    staleTime: 30000, // 30 seconds
   });
 };
 

@@ -19,14 +19,14 @@ export const PaymentPreview: React.FC = () => {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
 
-  // Open upload dialog without creating payment first
+  // Open upload dialog
   const handleOpenPaymentDialog = () => {
     setPaymentFile(null);
     setShowUploadDialog(true);
   };
 
-  // Create payment AND upload proof in one operation
-  const handleCreatePaymentAndUpload = async () => {
+  // Create payment with proof in single request (new flow)
+  const handleCreatePaymentWithProof = async () => {
     if (!paymentFile) {
       addToast("Please select a payment proof file", "warning");
       return;
@@ -34,51 +34,19 @@ export const PaymentPreview: React.FC = () => {
 
     try {
       setUploading(true);
-      
-      // Step 1: Create payment record
-      const createResponse = await api.createKalamelaPayment();
-      const paymentId = createResponse.data?.id || createResponse.data?.payment_id;
-      
-      if (!paymentId) {
-        // If we already have a payment_id from the preview data, use that
-        const existingPaymentId = data?.payment_id;
-        if (existingPaymentId) {
-          // Upload to existing payment
-          await api.uploadKalamelaPaymentProof(existingPaymentId, paymentFile);
-        } else {
-          throw new Error("Failed to get payment ID");
-        }
-      } else {
-        // Step 2: Upload proof to the new payment
-        await api.uploadKalamelaPaymentProof(paymentId, paymentFile);
-      }
-      
+      await api.createKalamelaPayment(paymentFile);
       addToast("Payment submitted successfully!", "success");
       setShowUploadDialog(false);
       setPaymentFile(null);
       refetch();
     } catch (err: any) {
-      // If payment creation fails but we have an existing payment, try uploading to it
-      if (err.message?.includes('active payment') && data?.payment_id) {
-        try {
-          await api.uploadKalamelaPaymentProof(data.payment_id, paymentFile);
-          addToast("Payment proof uploaded successfully!", "success");
-          setShowUploadDialog(false);
-          setPaymentFile(null);
-          refetch();
-          return;
-        } catch (uploadErr: any) {
-          addToast(uploadErr.message || "Failed to upload proof", "error");
-        }
-      } else {
-        addToast(err.message || "Failed to submit payment", "error");
-      }
+      addToast(err.message || "Failed to submit payment", "error");
     } finally {
       setUploading(false);
     }
   };
 
-  // For re-uploading proof to existing declined payment
+  // Re-upload proof for declined payment
   const handleReuploadProof = async () => {
     if (!paymentFile) {
       addToast("Please select a payment proof file", "warning");
@@ -92,13 +60,13 @@ export const PaymentPreview: React.FC = () => {
 
     try {
       setUploading(true);
-      await api.uploadKalamelaPaymentProof(data.payment_id, paymentFile);
-      addToast("Payment proof uploaded successfully!", "success");
+      await api.reuploadKalamelaPaymentProof(data.payment_id, paymentFile);
+      addToast("Payment proof re-uploaded successfully!", "success");
       setShowUploadDialog(false);
       setPaymentFile(null);
       refetch();
     } catch (err: any) {
-      addToast(err.message || "Failed to upload proof", "error");
+      addToast(err.message || "Failed to re-upload proof", "error");
     } finally {
       setUploading(false);
     }
@@ -118,9 +86,9 @@ export const PaymentPreview: React.FC = () => {
 
   if (!data) return null;
 
-  const isPaid = data.payment_status === 'Approved';
-  const isPending = data.payment_status === 'Pending';
-  const isDeclined = data.payment_status === 'Declined';
+  const isPaid = data.payment_status === 'Paid' || data.payment_status === 'Approved';
+  const isPending = data.payment_status === 'Pending' || data.payment_status === 'PENDING';
+  const isDeclined = data.payment_status === 'Declined' || data.payment_status === 'DECLINED';
   const hasParticipants = data.individual_events_count > 0 || data.group_events_count > 0;
 
   return (
@@ -330,7 +298,7 @@ export const PaymentPreview: React.FC = () => {
                     </Button>
                     <Button
                       variant="primary"
-                      onClick={isDeclined ? handleReuploadProof : handleCreatePaymentAndUpload}
+                      onClick={isDeclined ? handleReuploadProof : handleCreatePaymentWithProof}
                       disabled={!paymentFile || uploading}
                     >
                       {uploading ? 'Submitting...' : 'Submit Payment'}

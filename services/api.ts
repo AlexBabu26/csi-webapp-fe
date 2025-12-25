@@ -109,6 +109,21 @@ class ApiService {
   }
 
   // -------------------------
+  // Files / Storage
+  // -------------------------
+  
+  // GET /files/url - Get pre-signed URL for file access
+  async getFileUrl(key: string, expiresIn: number = 3600): Promise<ApiResponse<{ url: string; key: string; expires_in: number }>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpGet<{ url: string; key: string; expires_in: number }>(
+      `/files/url?key=${encodeURIComponent(key)}&expires_in=${expiresIn}`,
+      { token }
+    );
+    return { data, status: 200 };
+  }
+
+  // -------------------------
   // Auth
   // -------------------------
   async login(payload: { username: string; password: string; portal?: 'kalamela' | 'conference' }) {
@@ -1953,22 +1968,29 @@ class ApiService {
     return { data, status: 200 };
   }
 
-  // POST /kalamela/official/payment - Create payment
-  async createKalamelaPayment(): Promise<ApiResponse<any>> {
+  // POST /kalamela/official/payment - Create payment with proof (multipart/form-data)
+  async createKalamelaPayment(file: File): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpPost<any>('/kalamela/official/payment', {}, { token });
-    return { data, message: 'Payment record created successfully', status: 200 };
+    const formData = new FormData();
+    formData.append('file', file);
+    const data = await httpPost<any>('/kalamela/official/payment', formData, { token });
+    return { data, message: 'Payment submitted successfully', status: 200 };
   }
 
-  // POST /kalamela/official/payment/{payment_id}/proof - Upload payment proof
-  async uploadKalamelaPaymentProof(paymentId: number, file: File): Promise<ApiResponse<any>> {
+  // POST /kalamela/official/payment/{payment_id}/proof - Re-upload payment proof (only for declined payments)
+  async reuploadKalamelaPaymentProof(paymentId: number, file: File): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     const formData = new FormData();
     formData.append('file', file);
     const data = await httpPost<any>(`/kalamela/official/payment/${paymentId}/proof`, formData, { token });
-    return { data, message: 'Payment proof uploaded successfully', status: 200 };
+    return { data, message: 'Payment proof re-uploaded successfully', status: 200 };
+  }
+
+  // Alias for backward compatibility
+  async uploadKalamelaPaymentProof(paymentId: number, file: File): Promise<ApiResponse<any>> {
+    return this.reuploadKalamelaPaymentProof(paymentId, file);
   }
 
   // GET /kalamela/official/print - Print view

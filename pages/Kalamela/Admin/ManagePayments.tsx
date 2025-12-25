@@ -1,24 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Card, Badge, Button } from '../../../components/ui';
-import { CheckCircle, XCircle, Eye, Download, Search, Filter, Calendar, CreditCard, TrendingUp, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Download, Search, Filter, Calendar, CreditCard, TrendingUp, FileText, X, User, MapPin, Hash, Clock, FileImage, Loader2 } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
 import { Portal } from '../../../components/Portal';
 import { useKalamelaPayments, useApproveKalamelaPayment, useDeclineKalamelaPayment } from '../../../hooks/queries';
+import { api } from '../../../services/api';
 
 type StatusFilter = 'all' | 'Pending' | 'Approved' | 'Declined';
-
-// Helper to get full URL for proof files
-const getProofUrl = (path: string | null): string | null => {
-  if (!path) return null;
-  // If it's already a full URL, return as-is
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  // Get base URL from environment or use default
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-  // Remove trailing slash from base URL and leading slash from path to avoid double slashes
-  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${cleanBaseUrl}${cleanPath}`;
-};
 
 // Normalize API response to consistent field names
 interface NormalizedPayment {
@@ -69,9 +57,12 @@ export const ManagePayments: React.FC = () => {
   const { addToast } = useToast();
   
   // Use TanStack Query
-  const { data: paymentsData, isLoading: loading } = useKalamelaPayments();
+  const { data: paymentsData, isLoading: loading, error, isError } = useKalamelaPayments();
   const approveMutation = useApproveKalamelaPayment();
   const declineMutation = useDeclineKalamelaPayment();
+  
+  // Log for debugging
+  console.log('ManagePayments - loading:', loading, 'error:', error, 'data:', paymentsData);
   
   // Normalize API data to consistent field names
   const payments: NormalizedPayment[] = (paymentsData ?? []).map(normalizePayment);
@@ -85,10 +76,52 @@ export const ManagePayments: React.FC = () => {
   
   // Dialog states
   const [showDialog, setShowDialog] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<NormalizedPayment | null>(null);
   const [actionType, setActionType] = useState<'approve' | 'decline'>('approve');
   const [declineReason, setDeclineReason] = useState('');
+  
+  // Payment Details Dialog state
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [detailsPayment, setDetailsPayment] = useState<NormalizedPayment | null>(null);
+  
+  // Proof modal state
+  const [showProofModal, setShowProofModal] = useState(false);
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
+  const [proofPayment, setProofPayment] = useState<NormalizedPayment | null>(null);
+  const [loadingProofId, setLoadingProofId] = useState<number | null>(null);
 
+  // Open payment details dialog
+  const openDetailsDialog = (payment: NormalizedPayment) => {
+    setDetailsPayment(payment);
+    setShowDetailsDialog(true);
+  };
+
+  // Handle viewing payment proof - fetches pre-signed URL and shows in modal
+  const handleViewProof = async (payment: NormalizedPayment) => {
+    if (!payment.proof_file_url) {
+      addToast('No payment proof available', 'warning');
+      return;
+    }
+
+    try {
+      setLoadingProofId(payment.id);
+      const response = await api.getFileUrl(payment.proof_file_url);
+      setProofUrl(response.data.url);
+      setProofPayment(payment);
+      setShowProofModal(true);
+    } catch (err: any) {
+      addToast(err.message || 'Failed to load payment proof', 'error');
+    } finally {
+      setLoadingProofId(null);
+    }
+  };
+
+  // Check if proof is a PDF based on file extension
+  const isPdfProof = (url: string | null): boolean => {
+    if (!url) return false;
+    const lowerUrl = url.toLowerCase();
+    return lowerUrl.includes('.pdf') || lowerUrl.includes('application/pdf');
+  };
   // Get unique districts for filter dropdown
   const districts = useMemo(() => {
     const uniqueDistricts = [...new Set(payments.map(p => p.district_name).filter(Boolean))];
@@ -270,6 +303,24 @@ export const ManagePayments: React.FC = () => {
         </div>
         <Card className="animate-pulse">
           <div className="h-6 bg-gray-200 rounded w-full mb-3"></div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="space-y-6 animate-slide-in">
+        <h1 className="text-2xl font-bold text-textDark">Payment Management</h1>
+        <Card className="text-center py-12 border-danger/20 bg-danger/5">
+          <XCircle className="w-12 h-12 text-danger mx-auto mb-4" />
+          <p className="text-danger font-semibold mb-2">Failed to load payments</p>
+          <p className="text-textMuted text-sm mb-4">
+            {error instanceof Error ? error.message : 'An error occurred while fetching payments'}
+          </p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
         </Card>
       </div>
     );
@@ -488,10 +539,18 @@ export const ManagePayments: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(getProofUrl(payment.proof_file_url), '_blank')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewProof(payment);
+                        }}
+                        disabled={loadingProofId === payment.id}
                       >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View Proof
+                        {loadingProofId === payment.id ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Eye className="w-4 h-4 mr-2" />
+                        )}
+                        {loadingProofId === payment.id ? 'Loading...' : 'View Proof'}
                       </Button>
                     )}
                     <Button
@@ -527,7 +586,11 @@ export const ManagePayments: React.FC = () => {
           </h2>
           <div className="space-y-3">
             {groupedPayments.approved.map((payment) => (
-              <Card key={payment.id} className="bg-success/5 border-success/20 hover:shadow-md transition-shadow">
+              <Card 
+                key={payment.id} 
+                className="bg-success/5 border-success/20 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => openDetailsDialog(payment)}
+              >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -544,16 +607,37 @@ export const ManagePayments: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {payment.proof_file_url && (
+                  <div className="flex gap-2">
+                    {payment.proof_file_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewProof(payment);
+                        }}
+                        disabled={loadingProofId === payment.id}
+                      >
+                        {loadingProofId === payment.id ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Eye className="w-4 h-4 mr-2" />
+                        )}
+                        {loadingProofId === payment.id ? 'Loading...' : 'View Proof'}
+                      </Button>
+                    )}
                     <Button
-                      variant="outline"
+                      variant="light"
                       size="sm"
-                      onClick={() => window.open(getProofUrl(payment.proof_file_url), '_blank')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDetailsDialog(payment);
+                      }}
                     >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Proof
+                      <FileText className="w-4 h-4 mr-2" />
+                      Details
                     </Button>
-                  )}
+                  </div>
                 </div>
               </Card>
             ))}
@@ -570,7 +654,11 @@ export const ManagePayments: React.FC = () => {
           </h2>
           <div className="space-y-3">
             {groupedPayments.declined.map((payment) => (
-              <Card key={payment.id} className="bg-danger/5 border-danger/20 hover:shadow-md transition-shadow">
+              <Card 
+                key={payment.id} 
+                className="bg-danger/5 border-danger/20 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => openDetailsDialog(payment)}
+              >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -587,6 +675,37 @@ export const ManagePayments: React.FC = () => {
                         Declined: {new Date(payment.declined_at).toLocaleString('en-IN')}
                       </p>
                     )}
+                  </div>
+                  <div className="flex gap-2">
+                    {payment.proof_file_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewProof(payment);
+                        }}
+                        disabled={loadingProofId === payment.id}
+                      >
+                        {loadingProofId === payment.id ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Eye className="w-4 h-4 mr-2" />
+                        )}
+                        {loadingProofId === payment.id ? 'Loading...' : 'View Proof'}
+                      </Button>
+                    )}
+                    <Button
+                      variant="light"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDetailsDialog(payment);
+                      }}
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      Details
+                    </Button>
                   </div>
                 </div>
               </Card>
@@ -667,6 +786,314 @@ export const ManagePayments: React.FC = () => {
                   </Button>
                 </div>
               </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Payment Details Dialog */}
+      {showDetailsDialog && detailsPayment && (
+        <Portal>
+          <div 
+            className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" 
+            onClick={() => setShowDetailsDialog(false)} 
+            aria-hidden="true" 
+          />
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full pointer-events-auto animate-slide-in max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className={`p-5 border-b ${
+                detailsPayment.status === 'Approved' 
+                  ? 'bg-gradient-to-r from-success/10 to-success/5' 
+                  : detailsPayment.status === 'Declined'
+                    ? 'bg-gradient-to-r from-danger/10 to-danger/5'
+                    : 'bg-gradient-to-r from-warning/10 to-warning/5'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-textDark">Payment Details</h3>
+                    <p className="text-sm text-textMuted mt-1">Payment ID: #{detailsPayment.id}</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowDetailsDialog(false)}
+                    className="p-2 hover:bg-black/5 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 text-textMuted" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-5 overflow-y-auto flex-1">
+                {/* Status Badge */}
+                <div className="flex justify-center mb-5">
+                  <Badge 
+                    variant={
+                      detailsPayment.status === 'Approved' 
+                        ? 'success' 
+                        : detailsPayment.status === 'Declined' 
+                          ? 'danger' 
+                          : 'warning'
+                    }
+                    className="text-base px-4 py-1.5"
+                  >
+                    {detailsPayment.status === 'Approved' && <CheckCircle className="w-4 h-4 mr-2" />}
+                    {detailsPayment.status === 'Declined' && <XCircle className="w-4 h-4 mr-2" />}
+                    {detailsPayment.status === 'Pending' && <Clock className="w-4 h-4 mr-2" />}
+                    {detailsPayment.status}
+                  </Badge>
+                </div>
+
+                {/* Unit & District Info */}
+                <div className="grid grid-cols-2 gap-4 mb-5">
+                  <div className="p-3 bg-bgLight rounded-lg">
+                    <div className="flex items-center gap-2 text-textMuted mb-1">
+                      <User className="w-4 h-4" />
+                      <span className="text-xs font-medium">Unit Name</span>
+                    </div>
+                    <p className="font-semibold text-textDark">{detailsPayment.unit_name}</p>
+                  </div>
+                  <div className="p-3 bg-bgLight rounded-lg">
+                    <div className="flex items-center gap-2 text-textMuted mb-1">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-xs font-medium">District</span>
+                    </div>
+                    <p className="font-semibold text-textDark">{detailsPayment.district_name}</p>
+                  </div>
+                </div>
+
+                {/* Amount Card */}
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg mb-5">
+                  <p className="text-sm text-textMuted mb-1">Total Amount</p>
+                  <p className="text-3xl font-bold text-primary">₹{detailsPayment.amount?.toLocaleString('en-IN')}</p>
+                </div>
+
+                {/* Event Breakdown */}
+                <div className="mb-5">
+                  <h4 className="text-sm font-semibold text-textDark mb-3">Event Breakdown</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center p-3 bg-bgLight rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="w-4 h-4 text-primary" />
+                        </div>
+                        <span className="text-textDark">Individual Events</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-textDark">{detailsPayment.individual_events_count || 0}</span>
+                        <span className="text-xs text-textMuted ml-2">× ₹50 = ₹{(detailsPayment.individual_events_count || 0) * 50}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-bgLight rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
+                          <Hash className="w-4 h-4 text-success" />
+                        </div>
+                        <span className="text-textDark">Group Events</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-textDark">{detailsPayment.group_events_count || 0}</span>
+                        <span className="text-xs text-textMuted ml-2">× ₹100 = ₹{(detailsPayment.group_events_count || 0) * 100}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Timeline / Dates */}
+                <div className="mb-5">
+                  <h4 className="text-sm font-semibold text-textDark mb-3">Timeline</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      <div className="flex-1">
+                        <p className="text-sm text-textDark">Submitted</p>
+                        <p className="text-xs text-textMuted">
+                          {detailsPayment.created_on 
+                            ? new Date(detailsPayment.created_on).toLocaleString('en-IN', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short'
+                              })
+                            : 'N/A'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    {detailsPayment.approved_at && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-success"></div>
+                        <div className="flex-1">
+                          <p className="text-sm text-textDark">Approved</p>
+                          <p className="text-xs text-textMuted">
+                            {new Date(detailsPayment.approved_at).toLocaleString('en-IN', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {detailsPayment.declined_at && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-danger"></div>
+                        <div className="flex-1">
+                          <p className="text-sm text-textDark">Declined</p>
+                          <p className="text-xs text-textMuted">
+                            {new Date(detailsPayment.declined_at).toLocaleString('en-IN', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Decline Reason */}
+                {detailsPayment.decline_reason && (
+                  <div className="mb-5 p-4 bg-danger/5 border border-danger/20 rounded-lg">
+                    <h4 className="text-sm font-semibold text-danger mb-2">Decline Reason</h4>
+                    <p className="text-sm text-textDark">{detailsPayment.decline_reason}</p>
+                  </div>
+                )}
+
+                {/* Payment Proof */}
+                {detailsPayment.proof_file_url && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-textDark mb-3">Payment Proof</h4>
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => handleViewProof(detailsPayment)}
+                      disabled={loadingProofId === detailsPayment.id}
+                    >
+                      {loadingProofId === detailsPayment.id ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileImage className="w-4 h-4 mr-2" />
+                      )}
+                      {loadingProofId === detailsPayment.id ? 'Loading...' : 'View Payment Proof'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-4 border-t bg-bgLight">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setShowDetailsDialog(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Payment Proof Modal */}
+      {showProofModal && proofUrl && (
+        <Portal>
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] transition-opacity" 
+            onClick={() => {
+              setShowProofModal(false);
+              setProofUrl(null);
+              setProofPayment(null);
+            }} 
+            aria-hidden="true" 
+          />
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] pointer-events-auto animate-slide-in flex flex-col">
+              {/* Header */}
+              <div className="p-4 border-b flex items-center justify-between bg-bgLight rounded-t-xl">
+                <div>
+                  <h3 className="text-lg font-bold text-textDark">Payment Proof</h3>
+                  {proofPayment && (
+                    <p className="text-sm text-textMuted">
+                      {proofPayment.unit_name} • ₹{proofPayment.amount?.toLocaleString('en-IN')}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(proofUrl, '_blank')}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Open in New Tab
+                  </Button>
+                  <button 
+                    onClick={() => {
+                      setShowProofModal(false);
+                      setProofUrl(null);
+                      setProofPayment(null);
+                    }}
+                    className="p-2 hover:bg-black/5 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 text-textMuted" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-auto p-4 bg-gray-100 flex items-center justify-center min-h-[400px]">
+                {isPdfProof(proofPayment?.proof_file_url || proofUrl) ? (
+                  <iframe
+                    src={proofUrl}
+                    className="w-full h-full min-h-[500px] rounded-lg border border-borderColor"
+                    title="Payment Proof PDF"
+                  />
+                ) : (
+                  <img
+                    src={proofUrl}
+                    alt="Payment Proof"
+                    className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                    onError={(e) => {
+                      // If image fails to load, show error message
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.parentElement?.insertAdjacentHTML(
+                        'beforeend',
+                        '<div class="text-center p-8"><p class="text-danger">Failed to load image</p><p class="text-sm text-textMuted mt-2">Try opening in a new tab</p></div>'
+                      );
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Footer with payment info */}
+              {proofPayment && (
+                <div className="p-4 border-t bg-bgLight rounded-b-xl">
+                  <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
+                    <div className="flex items-center gap-4">
+                      <span className="text-textMuted">
+                        District: <span className="font-medium text-textDark">{proofPayment.district_name}</span>
+                      </span>
+                      <span className="text-textMuted">
+                        Individual: <span className="font-medium text-textDark">{proofPayment.individual_events_count}</span>
+                      </span>
+                      <span className="text-textMuted">
+                        Group: <span className="font-medium text-textDark">{proofPayment.group_events_count}</span>
+                      </span>
+                    </div>
+                    <Badge 
+                      variant={
+                        proofPayment.status === 'Approved' 
+                          ? 'success' 
+                          : proofPayment.status === 'Declined' 
+                            ? 'danger' 
+                            : 'warning'
+                      }
+                    >
+                      {proofPayment.status}
+                    </Badge>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Portal>
