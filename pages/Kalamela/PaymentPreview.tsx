@@ -66,6 +66,7 @@ export const PaymentPreview: React.FC = () => {
 
   const isPaid = data.payment_status === 'Approved';
   const isPending = data.payment_status === 'Pending';
+  const isDeclined = data.payment_status === 'Declined';
   const hasParticipants = data.individual_events_count > 0 || data.group_events_count > 0;
 
   return (
@@ -104,9 +105,14 @@ export const PaymentPreview: React.FC = () => {
               {isPending && (
                 <p className="text-sm text-textMuted mt-1">Your payment is under review. You'll be notified once approved.</p>
               )}
-              {isPaid && (
-                <p className="text-sm text-textMuted mt-1">Your payment has been approved. You can now print your registration form.</p>
-              )}
+            {isPaid && (
+              <p className="text-sm text-textMuted mt-1">Your payment has been approved. You can now print your registration form.</p>
+            )}
+            {isDeclined && (
+              <p className="text-sm text-danger mt-1">
+                Your payment was declined. {data.decline_reason && `Reason: ${data.decline_reason}`}
+              </p>
+            )}
             </div>
           </div>
         </Card>
@@ -199,6 +205,20 @@ export const PaymentPreview: React.FC = () => {
           <p className="text-sm text-textMuted mt-2">
             You'll receive a notification once it's approved.
           </p>
+        </Card>
+      ) : isDeclined ? (
+        <Card className="border-danger/20">
+          <div className="text-center py-4">
+            <XCircle className="w-12 h-12 text-danger mx-auto mb-3" />
+            <h3 className="font-semibold text-textDark mb-2">Payment Declined</h3>
+            <p className="text-sm text-textMuted mb-4">
+              Please upload a new payment proof to continue with your registration.
+            </p>
+            <Button variant="primary" onClick={() => setShowUploadDialog(true)}>
+              <Upload className="w-4 h-4 mr-2" />
+              Re-upload Payment Proof
+            </Button>
+          </div>
         </Card>
       ) : null}
 
