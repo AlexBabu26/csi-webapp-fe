@@ -2429,19 +2429,19 @@ class ApiService {
     return { data, status: 200 };
   }
 
-  // PUT /kalamela/admin/payment/{payment_id}/approve
+  // PUT /kalamela/admin/payments/{payment_id}/approve
   async approveKalamelaPayment(paymentId: number): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpPut<any>(`/kalamela/admin/payment/${paymentId}/approve`, {}, { token });
+    const data = await httpPut<any>(`/kalamela/admin/payments/${paymentId}/approve`, {}, { token });
     return { data, message: 'Payment approved successfully', status: 200 };
   }
 
-  // PUT /kalamela/admin/payment/{payment_id}/decline
+  // PUT /kalamela/admin/payments/{payment_id}/decline
   async declineKalamelaPayment(paymentId: number, reason: string): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpPut<any>(`/kalamela/admin/payment/${paymentId}/decline`, { reason }, { token });
+    const data = await httpPut<any>(`/kalamela/admin/payments/${paymentId}/decline`, { reason }, { token });
     return { data, message: 'Payment declined', status: 200 };
   }
 
@@ -2734,14 +2734,14 @@ class ApiService {
   async approvePayment(paymentId: number): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    await httpPut<any>(`/kalamela/admin/payment/${paymentId}/approve`, {}, { token });
+    await httpPut<any>(`/kalamela/admin/payments/${paymentId}/approve`, {}, { token });
     return { data: true, message: 'Payment approved successfully', status: 200 };
   }
 
   async rejectPayment(paymentId: number, reason?: string): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    await httpPut<any>(`/kalamela/admin/payment/${paymentId}/decline`, { reason }, { token });
+    await httpPut<any>(`/kalamela/admin/payments/${paymentId}/decline`, { reason }, { token });
     return { data: true, message: 'Payment marked as invalid', status: 200 };
   }
 
