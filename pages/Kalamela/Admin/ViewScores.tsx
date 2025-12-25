@@ -240,8 +240,7 @@ export const ViewScores: React.FC = () => {
             {eventsWithoutScores.map((event: any) => (
               <Card 
                 key={event.id} 
-                className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-warning bg-gradient-to-r from-warning/5 to-transparent cursor-pointer"
-                onClick={() => navigate(`/kalamela/admin/scores/${activeTab}/${event.id}/add`)}
+                className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-warning bg-gradient-to-r from-warning/5 to-transparent"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -263,6 +262,10 @@ export const ViewScores: React.FC = () => {
                     variant="success"
                     size="sm"
                     className="group-hover:shadow-md transition-shadow"
+                    onClick={() => {
+                      console.log('Navigating to:', `/kalamela/admin/scores/${activeTab}/${event.id}/add`);
+                      navigate(`/kalamela/admin/scores/${activeTab}/${event.id}/add`);
+                    }}
                   >
                     <Plus className="w-4 h-4 mr-1" />
                     Add Scores

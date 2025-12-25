@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost' | 'warning';
+  variant?: 'primary' | 'secondary' | 'danger' | 'outline' | 'ghost' | 'warning' | 'success';
   size?: 'sm' | 'md' | 'lg' | 'block';
   isLoading?: boolean;
 }
@@ -23,6 +23,7 @@ export const Button: React.FC<ButtonProps> = memo(({
     outline: "border-2 border-gray-300 text-textDark bg-white hover:bg-gray-50 hover:border-gray-400 focus:ring-primary",
     ghost: "text-textMuted hover:bg-bgLight hover:text-textDark",
     warning: "bg-warning text-white hover:bg-yellow-600 focus:ring-warning shadow-sm",
+    success: "bg-success text-white hover:bg-green-600 focus:ring-success shadow-sm",
   };
 
   const sizes = {

@@ -164,27 +164,99 @@ export const useEligibleGroupMembers = (eventId: number) => {
 
 // ============ SCORING QUERIES ============
 
-// Get individual event scoring data
-export const useIndividualEventScoring = (eventId: number) => {
+// Get all admin individual participants (grouped by event name)
+export const useAdminIndividualParticipants = () => {
   return useQuery({
-    queryKey: ['kalamela', 'scoring', 'individual', eventId],
+    queryKey: ['kalamela', 'admin', 'participants', 'individual'],
     queryFn: async () => {
-      const response = await api.getIndividualEventForScoring(eventId);
+      const response = await api.getAdminIndividualParticipants();
       return response.data;
     },
-    enabled: !!eventId,
+    retry: 1,
+    staleTime: 30000,
   });
 };
 
-// Get group event scoring data
-export const useGroupEventScoring = (eventId: number) => {
+// Get all admin group participants (grouped by event name and team)
+export const useAdminGroupParticipants = () => {
   return useQuery({
-    queryKey: ['kalamela', 'scoring', 'group', eventId],
+    queryKey: ['kalamela', 'admin', 'participants', 'group'],
     queryFn: async () => {
-      const response = await api.getGroupEventForScoring(eventId);
+      const response = await api.getAdminGroupParticipants();
       return response.data;
     },
-    enabled: !!eventId,
+    retry: 1,
+    staleTime: 30000,
+  });
+};
+
+// Get individual event scoring data - fetches all participants and filters by event
+export const useIndividualEventScoring = (eventId: number, eventName?: string) => {
+  const eventsQuery = useIndividualEvents();
+  const participantsQuery = useAdminIndividualParticipants();
+  
+  // Find event name from eventId if not provided
+  const resolvedEventName = eventName || eventsQuery.data?.find((e: any) => e.id === eventId)?.name;
+  
+  return useQuery({
+    queryKey: ['kalamela', 'scoring', 'individual', eventId, resolvedEventName],
+    queryFn: async () => {
+      // Get participants for this specific event
+      const allParticipants = participantsQuery.data || {};
+      const eventParticipants = resolvedEventName ? allParticipants[resolvedEventName] || [] : [];
+      
+      return {
+        event_id: eventId,
+        event_name: resolvedEventName || 'Unknown Event',
+        participants: eventParticipants.map((p: any) => ({
+          participant_id: p.participant_id,
+          event_participation_id: p.individual_event_participation_id,
+          participant_name: p.participant_name,
+          chest_number: p.participant_chest_number || '-',
+          unit_name: p.participant_unit || 'Unknown Unit',
+          district_name: p.participant_district || 'Unknown District',
+          seniority_category: p.seniority_category || 'N/A',
+        })),
+      };
+    },
+    enabled: !!eventId && !!resolvedEventName && !participantsQuery.isLoading && !eventsQuery.isLoading,
+  });
+};
+
+// Get group event scoring data - fetches all participants and filters by event
+export const useGroupEventScoring = (eventId: number, eventName?: string) => {
+  const eventsQuery = useGroupEvents();
+  const participantsQuery = useAdminGroupParticipants();
+  
+  // Find event name from eventId if not provided
+  const resolvedEventName = eventName || eventsQuery.data?.find((e: any) => e.id === eventId)?.name;
+  
+  return useQuery({
+    queryKey: ['kalamela', 'scoring', 'group', eventId, resolvedEventName],
+    queryFn: async () => {
+      // Get participants for this specific event
+      const allParticipants = participantsQuery.data || {};
+      const eventTeams = resolvedEventName ? allParticipants[resolvedEventName] || {} : {};
+      
+      // Transform teams data
+      const teams = Object.entries(eventTeams).map(([chestNumber, members]: [string, any]) => ({
+        participation_id: members[0]?.group_event_participation_id || 0,
+        chest_number: chestNumber,
+        unit_name: members[0]?.participant_unit || 'Unknown Unit',
+        district_name: members[0]?.participant_district || 'Unknown District',
+        members: members.map((m: any) => ({
+          name: m.participant_name,
+          participant_id: m.participant_id,
+        })),
+      }));
+      
+      return {
+        event_id: eventId,
+        event_name: resolvedEventName || 'Unknown Event',
+        teams,
+      };
+    },
+    enabled: !!eventId && !!resolvedEventName && !participantsQuery.isLoading && !eventsQuery.isLoading,
   });
 };
 
