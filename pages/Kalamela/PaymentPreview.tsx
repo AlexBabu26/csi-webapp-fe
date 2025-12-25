@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
-import { ArrowLeft, CreditCard, Upload, CheckCircle, XCircle, Printer } from 'lucide-react';
+import { ArrowLeft, CreditCard, Upload, CheckCircle, XCircle, Printer, AlertCircle } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { FileUpload } from '../../components/FileUpload';
@@ -19,27 +19,81 @@ export const PaymentPreview: React.FC = () => {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
 
-  const handleCreatePayment = async () => {
+  // Open upload dialog without creating payment first
+  const handleOpenPaymentDialog = () => {
+    setPaymentFile(null);
+    setShowUploadDialog(true);
+  };
+
+  // Create payment AND upload proof in one operation
+  const handleCreatePaymentAndUpload = async () => {
+    if (!paymentFile) {
+      addToast("Please select a payment proof file", "warning");
+      return;
+    }
+
     try {
-      const response = await api.createKalamelaPayment();
-      addToast(response.message || "Payment record created", "success");
-      refetch(); // Reload to get payment ID
-      setShowUploadDialog(true);
+      setUploading(true);
+      
+      // Step 1: Create payment record
+      const createResponse = await api.createKalamelaPayment();
+      const paymentId = createResponse.data?.id || createResponse.data?.payment_id;
+      
+      if (!paymentId) {
+        // If we already have a payment_id from the preview data, use that
+        const existingPaymentId = data?.payment_id;
+        if (existingPaymentId) {
+          // Upload to existing payment
+          await api.uploadKalamelaPaymentProof(existingPaymentId, paymentFile);
+        } else {
+          throw new Error("Failed to get payment ID");
+        }
+      } else {
+        // Step 2: Upload proof to the new payment
+        await api.uploadKalamelaPaymentProof(paymentId, paymentFile);
+      }
+      
+      addToast("Payment submitted successfully!", "success");
+      setShowUploadDialog(false);
+      setPaymentFile(null);
+      refetch();
     } catch (err: any) {
-      addToast(err.message || "Failed to create payment", "error");
+      // If payment creation fails but we have an existing payment, try uploading to it
+      if (err.message?.includes('active payment') && data?.payment_id) {
+        try {
+          await api.uploadKalamelaPaymentProof(data.payment_id, paymentFile);
+          addToast("Payment proof uploaded successfully!", "success");
+          setShowUploadDialog(false);
+          setPaymentFile(null);
+          refetch();
+          return;
+        } catch (uploadErr: any) {
+          addToast(uploadErr.message || "Failed to upload proof", "error");
+        }
+      } else {
+        addToast(err.message || "Failed to submit payment", "error");
+      }
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleUploadProof = async () => {
-    if (!paymentFile || !data?.payment_id) {
-      addToast("Please select a file", "warning");
+  // For re-uploading proof to existing declined payment
+  const handleReuploadProof = async () => {
+    if (!paymentFile) {
+      addToast("Please select a payment proof file", "warning");
+      return;
+    }
+
+    if (!data?.payment_id) {
+      addToast("No payment record found", "error");
       return;
     }
 
     try {
       setUploading(true);
       await api.uploadKalamelaPaymentProof(data.payment_id, paymentFile);
-      addToast("Payment proof uploaded successfully", "success");
+      addToast("Payment proof uploaded successfully!", "success");
       setShowUploadDialog(false);
       setPaymentFile(null);
       refetch();
@@ -192,7 +246,7 @@ export const PaymentPreview: React.FC = () => {
           <Button variant="outline" onClick={() => navigate('/kalamela/official/participants')}>
             View Participants
           </Button>
-          <Button variant="primary" onClick={handleCreatePayment}>
+          <Button variant="primary" onClick={handleOpenPaymentDialog}>
             <CreditCard className="w-4 h-4 mr-2" />
             Proceed to Payment
           </Button>
@@ -212,9 +266,9 @@ export const PaymentPreview: React.FC = () => {
             <XCircle className="w-12 h-12 text-danger mx-auto mb-3" />
             <h3 className="font-semibold text-textDark mb-2">Payment Declined</h3>
             <p className="text-sm text-textMuted mb-4">
-              Please upload a new payment proof to continue with your registration.
+              Your previous payment was declined. Please upload a new payment proof to continue.
             </p>
-            <Button variant="primary" onClick={() => setShowUploadDialog(true)}>
+            <Button variant="primary" onClick={handleOpenPaymentDialog}>
               <Upload className="w-4 h-4 mr-2" />
               Re-upload Payment Proof
             </Button>
@@ -225,11 +279,13 @@ export const PaymentPreview: React.FC = () => {
       {/* Upload Dialog - Using Portal to render at body level */}
       {showUploadDialog && (
         <Portal>
-          <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" onClick={() => setShowUploadDialog(false)} aria-hidden="true" />
+          <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" aria-hidden="true" />
           <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full pointer-events-auto animate-slide-in">
               <div className="p-6">
-                <h3 className="text-xl font-bold text-textDark mb-4">Upload Payment Proof</h3>
+                <h3 className="text-xl font-bold text-textDark mb-4">
+                  {isDeclined ? 'Re-upload Payment Proof' : 'Upload Payment Proof'}
+                </h3>
                 
                 <div className="space-y-4">
                   <div>
@@ -238,6 +294,14 @@ export const PaymentPreview: React.FC = () => {
                     </p>
                     <p className="text-sm text-textMuted mb-4">
                       Please upload a clear image or PDF of your payment receipt.
+                    </p>
+                  </div>
+
+                  {/* Warning message */}
+                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-textMuted">
+                      Payment will only be submitted after you upload the proof. Make sure you have completed the payment before uploading.
                     </p>
                   </div>
 
@@ -261,15 +325,15 @@ export const PaymentPreview: React.FC = () => {
                     <Button variant="outline" onClick={() => {
                       setShowUploadDialog(false);
                       setPaymentFile(null);
-                    }}>
+                    }} disabled={uploading}>
                       Cancel
                     </Button>
                     <Button
                       variant="primary"
-                      onClick={handleUploadProof}
+                      onClick={isDeclined ? handleReuploadProof : handleCreatePaymentAndUpload}
                       disabled={!paymentFile || uploading}
                     >
-                      {uploading ? 'Uploading...' : 'Upload Proof'}
+                      {uploading ? 'Submitting...' : 'Submit Payment'}
                     </Button>
                   </div>
                 </div>

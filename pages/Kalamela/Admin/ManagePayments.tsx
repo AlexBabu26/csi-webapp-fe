@@ -7,6 +7,19 @@ import { useKalamelaPayments, useApproveKalamelaPayment, useDeclineKalamelaPayme
 
 type StatusFilter = 'all' | 'Pending' | 'Approved' | 'Declined';
 
+// Helper to get full URL for proof files
+const getProofUrl = (path: string | null): string | null => {
+  if (!path) return null;
+  // If it's already a full URL, return as-is
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  // Get base URL from environment or use default
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  // Remove trailing slash from base URL and leading slash from path to avoid double slashes
+  const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${cleanBaseUrl}${cleanPath}`;
+};
+
 // Normalize API response to consistent field names
 interface NormalizedPayment {
   id: number;
@@ -25,22 +38,32 @@ interface NormalizedPayment {
   decline_reason?: string;
 }
 
-const normalizePayment = (raw: any): NormalizedPayment => ({
-  id: raw.id,
-  payment_id: raw.id, // Use id as payment_id for mutations
-  paid_by_id: raw.paid_by_id,
-  unit_name: raw.unit_name || `Unit #${raw.paid_by_id}`, // Fallback if not provided
-  district_name: raw.district_name || 'Unknown District', // Fallback if not provided
-  individual_events_count: raw.individual_events_count || 0,
-  group_events_count: raw.group_events_count || 0,
-  amount: raw.total_amount_to_pay || 0,
-  proof_file_url: raw.payment_proof_path || null,
-  status: raw.payment_status || 'Pending', // Map payment_status to status
-  created_on: raw.created_on,
-  approved_at: raw.approved_at,
-  declined_at: raw.declined_at,
-  decline_reason: raw.decline_reason,
-});
+const normalizePayment = (raw: any): NormalizedPayment => {
+  // Normalize payment_status: backend uses "Paid", frontend expects "Approved"
+  let status = raw.payment_status || 'Pending';
+  if (status === 'Paid') status = 'Approved';
+  if (status === 'PENDING') status = 'Pending';
+  if (status === 'DECLINED') status = 'Declined';
+  if (status === 'PAID') status = 'Approved';
+  if (status === 'PROOF_UPLOADED') status = 'Pending'; // Treat as pending review
+  
+  return {
+    id: raw.id,
+    payment_id: raw.id, // Use id as payment_id for mutations
+    paid_by_id: raw.paid_by_id,
+    unit_name: raw.paid_by_name || raw.unit_name || `Unit #${raw.paid_by_id}`, // Use paid_by_name first
+    district_name: raw.district_name || 'Unknown District',
+    individual_events_count: raw.individual_events_count || 0,
+    group_events_count: raw.group_events_count || 0,
+    amount: raw.total_amount_to_pay || 0,
+    proof_file_url: raw.payment_proof_path || null,
+    status,
+    created_on: raw.created_on,
+    approved_at: raw.approved_at,
+    declined_at: raw.declined_at,
+    decline_reason: raw.decline_reason,
+  };
+};
 
 export const ManagePayments: React.FC = () => {
   const { addToast } = useToast();
@@ -465,7 +488,7 @@ export const ManagePayments: React.FC = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(payment.proof_file_url, '_blank')}
+                        onClick={() => window.open(getProofUrl(payment.proof_file_url), '_blank')}
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         View Proof
@@ -525,7 +548,7 @@ export const ManagePayments: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => window.open(payment.proof_file_url, '_blank')}
+                      onClick={() => window.open(getProofUrl(payment.proof_file_url), '_blank')}
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       View Proof
