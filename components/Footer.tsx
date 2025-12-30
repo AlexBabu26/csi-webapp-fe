@@ -83,7 +83,7 @@ export const Footer: React.FC<FooterProps> = ({ siteSettings }) => {
               {/* Always show these default links */}
               <li>
                 <a href="#/kalamela" className="text-sm text-textMuted hover:text-primary transition-colors">
-                  Kalamela 2024
+                  Kalamela 2025
                 </a>
               </li>
               <li>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Trophy, Users, ChevronRight } from 'lucide-react';
 
 const announcements = [
-  { id: 1, urgent: true, text: 'Kalamela 2024 Registration closes on December 31st.' },
+  { id: 1, urgent: true, text: 'Kalamela 2025 Registration closes on December 31st.' },
   { id: 2, urgent: false, text: 'Unit Presidents meeting scheduled for next Saturday at 10 AM.' },
   { id: 3, urgent: false, text: 'Youth Conference 2025 dates announced - February 14-16.' },
 ];
@@ -143,7 +143,7 @@ export const Homepage: React.FC = () => {
       {/* Footer */}
       <footer className="bg-white border-t border-border-color py-6 px-4">
         <div className="max-w-6xl mx-auto text-center text-sm text-secondary">
-          <p>© 2024 CSI Madhya Kerala Diocese Youth Movement. All rights reserved.</p>
+          <p>© 2025 CSI Madhya Kerala Diocese Youth Movement. All rights reserved.</p>
         </div>
       </footer>
     </div>

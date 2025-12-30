@@ -112,7 +112,7 @@ export const KalamelaPublic: React.FC = () => {
                         <div className="h-10 w-10 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xl">
                             K
                         </div>
-                        <h1 className="text-xl font-bold text-textDark">Kalamela '24 <span className="text-primary font-normal">Results</span></h1>
+                        <h1 className="text-xl font-bold text-textDark">Kalamela '25 <span className="text-primary font-normal">Results</span></h1>
                     </div>
                     <Button variant="secondary" size="sm" onClick={() => navigate('/login?portal=kalamela')}>
                         Official Login
