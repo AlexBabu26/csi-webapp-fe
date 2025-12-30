@@ -11,10 +11,10 @@ import { useKalamelaPaymentPreview } from '../../hooks/queries';
 export const PaymentPreview: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  
+
   // Use TanStack Query
   const { data, isLoading: loading, refetch } = useKalamelaPaymentPreview();
-  
+
   const [uploading, setUploading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
@@ -127,14 +127,14 @@ export const PaymentPreview: React.FC = () => {
               {isPending && (
                 <p className="text-sm text-textMuted mt-1">Your payment is under review. You'll be notified once approved.</p>
               )}
-            {isPaid && (
-              <p className="text-sm text-textMuted mt-1">Your payment has been approved. You can now print your registration form.</p>
-            )}
-            {isDeclined && (
-              <p className="text-sm text-danger mt-1">
-                Your payment was declined. {data.decline_reason && `Reason: ${data.decline_reason}`}
-              </p>
-            )}
+              {isPaid && (
+                <p className="text-sm text-textMuted mt-1">Your payment has been approved. You can now print your registration form.</p>
+              )}
+              {isDeclined && (
+                <p className="text-sm text-danger mt-1">
+                  Your payment was declined. {data.decline_reason && `Reason: ${data.decline_reason}`}
+                </p>
+              )}
             </div>
           </div>
         </Card>
@@ -143,7 +143,7 @@ export const PaymentPreview: React.FC = () => {
       {/* Summary Card */}
       <Card>
         <h2 className="text-lg font-bold text-textDark mb-4">Registration Summary</h2>
-        
+
         <div className="space-y-3">
           <div className="flex justify-between items-center pb-3 border-b border-borderColor">
             <div>
@@ -249,12 +249,12 @@ export const PaymentPreview: React.FC = () => {
         <Portal>
           <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" aria-hidden="true" />
           <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full pointer-events-auto animate-slide-in">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto pointer-events-auto animate-slide-in">
               <div className="p-6">
                 <h3 className="text-xl font-bold text-textDark mb-4">
                   {isDeclined ? 'Re-upload Payment Proof' : 'Upload Payment Proof'}
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm text-textMuted mb-3">
@@ -262,6 +262,19 @@ export const PaymentPreview: React.FC = () => {
                     </p>
                     <p className="text-sm text-textMuted mb-4">
                       Please upload a clear image or PDF of your payment receipt.
+                    </p>
+                  </div>
+
+                  {/* Payment QR Code */}
+                  <div className="flex flex-col items-center p-4 bg-bgLight rounded-lg border border-borderColor">
+                    <p className="text-sm font-medium text-textDark mb-3">Scan to Pay</p>
+                    <img
+                      src="https://infynox-assets.s3.eu-central-003.backblazeb2.com/WhatsApp+Image+2025-12-30+at+13.10.09.jpeg"
+                      alt="Payment QR Code"
+                      className="w-40 h-40 object-contain rounded-md border border-borderColor"
+                    />
+                    <p className="text-xs text-textMuted mt-2 text-center">
+                      Scan this QR code using any UPI app to make payment
                     </p>
                   </div>
 
