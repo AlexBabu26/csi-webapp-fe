@@ -111,7 +111,7 @@ class ApiService {
   // -------------------------
   // Files / Storage
   // -------------------------
-  
+
   // GET /files/url - Get pre-signed URL for file access
   async getFileUrl(key: string, expiresIn: number = 3600): Promise<ApiResponse<{ url: string; key: string; expires_in: number }>> {
     const token = this.getToken();
@@ -151,8 +151,8 @@ class ApiService {
   }
 
   getUnitNames(districtId?: number) {
-    return httpGet<UnitName[]>('/auth/unit-names', { 
-      query: districtId ? { district_id: districtId } : undefined 
+    return httpGet<UnitName[]>('/auth/unit-names', {
+      query: districtId ? { district_id: districtId } : undefined
     });
   }
 
@@ -190,20 +190,20 @@ class ApiService {
     if (!refreshToken) {
       throw new Error('No refresh token available');
     }
-    
+
     try {
       console.log('[API] refreshToken: Attempting to refresh access token...');
-      const result = await httpPost<AuthTokens>('/auth/refresh', { 
-        refresh_token: refreshToken 
+      const result = await httpPost<AuthTokens>('/auth/refresh', {
+        refresh_token: refreshToken
       });
       console.log('[API] refreshToken: Success, new tokens received');
-      
+
       // Store new tokens
       localStorage.setItem('auth_token', result.access_token);
       if (result.refresh_token) {
         localStorage.setItem('refresh_token', result.refresh_token);
       }
-      
+
       return result;
     } catch (err) {
       console.error('[API] refreshToken: Failed:', err);
@@ -242,7 +242,7 @@ class ApiService {
   // -------------------------
   // Conference - Public Endpoints
   // -------------------------
-  
+
   // GET /conference/public/list - List all public conferences
   getPublicConferences() {
     return httpGet<Array<{
@@ -273,9 +273,9 @@ class ApiService {
   async getConferenceOfficialView(): Promise<ConferenceOfficialView> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     const rawData = await httpGet<any>('/conference/official/view', { token });
-    
+
     // Transform API response to frontend format
     return {
       conference: {
@@ -317,9 +317,9 @@ class ApiService {
   async getConferenceDelegatesOfficial() {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     const rawData = await httpGet<any>('/conference/official/delegates', { token });
-    
+
     // Return the full response structure for the delegates page to use
     return {
       delegate_members: rawData.delegate_members || [],
@@ -598,7 +598,7 @@ class ApiService {
   // -------------------------
   // Conference - Legacy/Backward Compatible Endpoints
   // -------------------------
-  
+
   // Legacy: Get conferences (old endpoint)
   getConferences(token: string) {
     return httpGet<ConferenceItem[]>('/conference/', { token });
@@ -743,7 +743,7 @@ class ApiService {
   async getRecentRegistrations(token?: string): Promise<ApiResponse<Participant[]>> {
     const authToken = token || this.getToken();
     if (!authToken) throw new Error('Authentication required');
-    
+
     const participations = await this.getKalamelaIndividualParticipations();
     const mapped: Participant[] = participations.map((p: any) => ({
       id: String(p.id),
@@ -760,7 +760,7 @@ class ApiService {
   async getChartData(token?: string): Promise<ApiResponse<any[]>> {
     const authToken = token || this.getToken();
     if (!authToken) throw new Error('Authentication required');
-    
+
     const stats = await this.getDistrictStatistics(authToken);
     const chartData = stats.map((s: any) => ({
       name: s.district_name,
@@ -774,7 +774,7 @@ class ApiService {
       this.getKalamelaIndividualEvents(),
       this.getKalamelaGroupEvents()
     ]);
-    
+
     const mapped: EventItem[] = [
       ...individual.map((e: any) => ({
         id: String(e.id),
@@ -799,7 +799,7 @@ class ApiService {
   async getScores(eventId: string, token?: string): Promise<ApiResponse<ScoreEntry[]>> {
     const authToken = token || this.getToken();
     if (!authToken) throw new Error('Authentication required');
-    
+
     const results = await this.getKalamelaIndividualResults();
     const mapped: ScoreEntry[] = results.map((r: any) => ({
       chestNumber: String(r.id),
@@ -817,10 +817,10 @@ class ApiService {
     if (scores.some(s => s.total > 100)) {
       throw new Error('Validation Error: Score cannot exceed 100');
     }
-    
+
     const authToken = token || this.getToken();
     if (!authToken) throw new Error('Authentication required');
-    
+
     for (const score of scores) {
       await this.addAdminIndividualScore({
         participation_id: Number(eventId),
@@ -835,13 +835,13 @@ class ApiService {
   async searchParticipant(query: string, token?: string): Promise<ApiResponse<Participant | null>> {
     const authToken = token || this.getToken();
     if (!authToken) throw new Error('Authentication required');
-    
+
     const participations = await this.getKalamelaIndividualParticipations();
-    const found = participations.find((p: any) => 
-      p.chest_number === query || 
+    const found = participations.find((p: any) =>
+      p.chest_number === query ||
       p.chest_number.toLowerCase().includes(query.toLowerCase())
     );
-    
+
     if (found) {
       return {
         data: {
@@ -867,7 +867,7 @@ class ApiService {
   async getUnitStats(options?: { refresh?: boolean }): Promise<ApiResponse<UnitStats>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns snake_case fields
     interface ApiUnitStats {
       total_dist_count: number;
@@ -883,10 +883,10 @@ class ApiService {
       max_member_unit_count: number;
       pending_requests?: number;
     }
-    
+
     const endpoint = options?.refresh ? '/admin/units/dashboard?refresh=true' : '/admin/units/dashboard';
     const rawData = await httpGet<ApiUnitStats>(endpoint, { token });
-    
+
     // Transform API response to match UnitStats interface
     const data: UnitStats = {
       totalDistricts: rawData.total_dist_count,
@@ -900,7 +900,7 @@ class ApiService {
       maxMemberUnit: rawData.max_member_unit,
       maxMemberCount: rawData.max_member_unit_count,
     };
-    
+
     return { data, status: 200 };
   }
 
@@ -908,7 +908,7 @@ class ApiService {
   async getUnits(): Promise<ApiResponse<Unit[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns: { id, user_id, username, unit_name, status }
     interface ApiUnit {
       id: number;
@@ -917,7 +917,7 @@ class ApiService {
       unit_name: string;
       status: string;
     }
-    
+
     // API may return paginated response or direct array
     interface PaginatedResponse {
       data?: ApiUnit[];
@@ -926,15 +926,15 @@ class ApiService {
       page?: number;
       page_size?: number;
     }
-    
-    const rawResponse = await httpGet<ApiUnit[] | PaginatedResponse>('/admin/units', { 
+
+    const rawResponse = await httpGet<ApiUnit[] | PaginatedResponse>('/admin/units', {
       token,
       query: { page: 1, page_size: 1000 }
     });
-    
+
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiUnit[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
-    
+
     // Transform API response to match Unit interface
     const data: Unit[] = rawData.map(unit => ({
       id: unit.id,
@@ -947,16 +947,16 @@ class ApiService {
       officialsCount: 0, // API doesn't provide this
       councilorsCount: 0, // API doesn't provide this
     }));
-    
+
     return { data, status: 200 };
   }
-  
+
   // Helper to extract clergy district code from username (e.g., "MKDYM/MAV/002" -> "MAV")
   private extractClergyDistrict(username: string): string {
     const parts = username.split('/');
     return parts.length >= 2 ? parts[1] : 'Unknown';
   }
-  
+
   // Helper to map API status to Unit status
   private mapUnitStatus(apiStatus: string): 'Completed' | 'Pending' | 'Not Registered' {
     if (apiStatus === 'Registration Completed') return 'Completed';
@@ -976,7 +976,7 @@ class ApiService {
   async getUnitMembers(unitId?: number): Promise<ApiResponse<UnitMember[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     interface ApiMember {
       id: number;
       registered_user_id: number;
@@ -990,12 +990,12 @@ class ApiService {
       qualification: string;
       blood_group: string;
     }
-    
-    const response = await httpGet<{ data: ApiMember[], total: number, page: number, page_size: number, pages: number }>('/admin/units/members', { 
+
+    const response = await httpGet<{ data: ApiMember[], total: number, page: number, page_size: number, pages: number }>('/admin/units/members', {
       token,
-      query: unitId ? { unit_id: unitId } : undefined 
+      query: unitId ? { unit_id: unitId } : undefined
     });
-    
+
     // Transform snake_case API response to camelCase
     const members: UnitMember[] = response.data.map(m => ({
       id: m.id,
@@ -1009,7 +1009,7 @@ class ApiService {
       unitId: m.registered_user_id,
       unitName: m.unit_name,
     }));
-    
+
     return { data: members, status: 200 };
   }
 
@@ -1018,7 +1018,7 @@ class ApiService {
   async getUnitOfficials(unitId?: number): Promise<ApiResponse<UnitOfficial[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns snake_case fields
     interface ApiUnitOfficial {
       id: number;
@@ -1037,7 +1037,7 @@ class ApiService {
       treasurer_name: string;
       treasurer_phone: string;
     }
-    
+
     // API may return paginated response or direct array
     interface PaginatedResponse {
       data?: ApiUnitOfficial[];
@@ -1046,20 +1046,20 @@ class ApiService {
       page?: number;
       page_size?: number;
     }
-    
+
     const query: Record<string, any> = unitId ? { unit_id: unitId } : {};
     // Request large page size to get all records
     query.page = 1;
     query.page_size = 1000;
-    
-    const rawResponse = await httpGet<ApiUnitOfficial[] | PaginatedResponse>('/admin/units/officials', { 
+
+    const rawResponse = await httpGet<ApiUnitOfficial[] | PaginatedResponse>('/admin/units/officials', {
       token,
-      query 
+      query
     });
-    
+
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiUnitOfficial[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
-    
+
     // Transform API response to match UnitOfficial interface
     const data: UnitOfficial[] = rawData.map(official => ({
       id: official.id,
@@ -1077,7 +1077,7 @@ class ApiService {
       treasurerName: official.treasurer_name,
       treasurerPhone: official.treasurer_phone,
     }));
-    
+
     return { data, status: 200 };
   }
 
@@ -1086,7 +1086,7 @@ class ApiService {
   async getUnitCouncilors(unitId?: number): Promise<ApiResponse<UnitCouncilor[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns snake_case fields
     interface ApiUnitCouncilor {
       id: number;
@@ -1098,7 +1098,7 @@ class ApiService {
       member_gender: string;
       member_phone: string;
     }
-    
+
     // API may return paginated response or direct array
     interface PaginatedResponse {
       data?: ApiUnitCouncilor[];
@@ -1107,20 +1107,20 @@ class ApiService {
       page?: number;
       page_size?: number;
     }
-    
+
     const query: Record<string, any> = unitId ? { unit_id: unitId } : {};
     // Request large page size to get all records
     query.page = 1;
     query.page_size = 1000;
-    
-    const rawResponse = await httpGet<ApiUnitCouncilor[] | PaginatedResponse>('/admin/units/councilors', { 
+
+    const rawResponse = await httpGet<ApiUnitCouncilor[] | PaginatedResponse>('/admin/units/councilors', {
       token,
-      query 
+      query
     });
-    
+
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiUnitCouncilor[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
-    
+
     // Transform API response to match UnitCouncilor interface
     const data: UnitCouncilor[] = rawData.map(councilor => ({
       id: councilor.id,
@@ -1133,7 +1133,7 @@ class ApiService {
       memberDob: '', // API doesn't provide this
       memberQualification: undefined, // API doesn't provide this
     }));
-    
+
     return { data, status: 200 };
   }
 
@@ -1141,7 +1141,7 @@ class ApiService {
   async getTransferRequests(): Promise<ApiResponse<TransferRequest[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns snake_case fields
     interface ApiTransferRequest {
       id: number;
@@ -1158,7 +1158,7 @@ class ApiService {
       current_unit_name?: string;
       destination_unit_name?: string;
     }
-    
+
     // API may return paginated response or direct array
     interface PaginatedResponse {
       data?: ApiTransferRequest[];
@@ -1167,15 +1167,15 @@ class ApiService {
       page?: number;
       page_size?: number;
     }
-    
-    const rawResponse = await httpGet<ApiTransferRequest[] | PaginatedResponse>('/admin/units/transfer-requests', { 
+
+    const rawResponse = await httpGet<ApiTransferRequest[] | PaginatedResponse>('/admin/units/transfer-requests', {
       token,
       query: { page: 1, page_size: 1000 }
     });
-    
+
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiTransferRequest[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
-    
+
     // Transform API response to match TransferRequest interface
     const data: TransferRequest[] = rawData.map(request => ({
       id: request.id,
@@ -1190,7 +1190,7 @@ class ApiService {
       status: request.status as RequestStatus,
       proof: request.proof,
     }));
-    
+
     return { data, status: 200 };
   }
 
@@ -1198,7 +1198,7 @@ class ApiService {
   async getMemberInfoChangeRequests(): Promise<ApiResponse<MemberInfoChangeRequest[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns snake_case fields with original values and requested changes
     interface ApiMemberInfoChangeRequest {
       id: number;
@@ -1220,7 +1220,7 @@ class ApiService {
       updated_at: string;
       unit_name?: string;
     }
-    
+
     // API may return paginated response or direct array
     interface PaginatedResponse {
       data?: ApiMemberInfoChangeRequest[];
@@ -1229,15 +1229,15 @@ class ApiService {
       page?: number;
       page_size?: number;
     }
-    
-    const rawResponse = await httpGet<ApiMemberInfoChangeRequest[] | PaginatedResponse>('/admin/units/member-change-requests', { 
+
+    const rawResponse = await httpGet<ApiMemberInfoChangeRequest[] | PaginatedResponse>('/admin/units/member-change-requests', {
       token,
       query: { page: 1, page_size: 1000 }
     });
-    
+
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiMemberInfoChangeRequest[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
-    
+
     // Transform API response to match MemberInfoChangeRequest interface
     const data: MemberInfoChangeRequest[] = rawData.map(request => ({
       id: request.id,
@@ -1256,7 +1256,7 @@ class ApiService {
       status: request.status as RequestStatus,
       proof: request.proof,
     }));
-    
+
     return { data, status: 200 };
   }
 
@@ -1264,7 +1264,7 @@ class ApiService {
   async getOfficialsChangeRequests(): Promise<ApiResponse<OfficialsChangeRequest[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns flat snake_case fields with original_ prefix for current values
     interface ApiOfficialsChangeRequest {
       id: number;
@@ -1300,7 +1300,7 @@ class ApiService {
       updated_at: string;
       unit_name?: string;
     }
-    
+
     // API may return paginated response or direct array
     interface PaginatedResponse {
       data?: ApiOfficialsChangeRequest[];
@@ -1309,15 +1309,15 @@ class ApiService {
       page?: number;
       page_size?: number;
     }
-    
-    const rawResponse = await httpGet<ApiOfficialsChangeRequest[] | PaginatedResponse>('/admin/units/officials-change-requests', { 
+
+    const rawResponse = await httpGet<ApiOfficialsChangeRequest[] | PaginatedResponse>('/admin/units/officials-change-requests', {
       token,
       query: { page: 1, page_size: 1000 }
     });
-    
+
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiOfficialsChangeRequest[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
-    
+
     // Transform API response to match OfficialsChangeRequest interface
     const data: OfficialsChangeRequest[] = rawData.map(request => ({
       id: request.id,
@@ -1354,7 +1354,7 @@ class ApiService {
       status: request.status as RequestStatus,
       proof: request.proof,
     }));
-    
+
     return { data, status: 200 };
   }
 
@@ -1362,7 +1362,7 @@ class ApiService {
   async getCouncilorChangeRequests(): Promise<ApiResponse<CouncilorChangeRequest[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns snake_case fields
     interface ApiCouncilorChangeRequest {
       id: number;
@@ -1379,7 +1379,7 @@ class ApiService {
       new_member_name?: string;
       original_member_name?: string;
     }
-    
+
     // API may return paginated response or direct array
     interface PaginatedResponse {
       data?: ApiCouncilorChangeRequest[];
@@ -1388,15 +1388,15 @@ class ApiService {
       page?: number;
       page_size?: number;
     }
-    
-    const rawResponse = await httpGet<ApiCouncilorChangeRequest[] | PaginatedResponse>('/admin/units/councilor-change-requests', { 
+
+    const rawResponse = await httpGet<ApiCouncilorChangeRequest[] | PaginatedResponse>('/admin/units/councilor-change-requests', {
       token,
       query: { page: 1, page_size: 1000 }
     });
-    
+
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiCouncilorChangeRequest[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
-    
+
     // Transform API response to match CouncilorChangeRequest interface
     const data: CouncilorChangeRequest[] = rawData.map(request => ({
       id: request.id,
@@ -1412,7 +1412,7 @@ class ApiService {
       status: request.status as RequestStatus,
       proof: request.proof,
     }));
-    
+
     return { data, status: 200 };
   }
 
@@ -1420,7 +1420,7 @@ class ApiService {
   async getMemberAddRequests(): Promise<ApiResponse<MemberAddRequest[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns snake_case fields
     interface ApiMemberAddRequest {
       id: number;
@@ -1438,7 +1438,7 @@ class ApiService {
       updated_at: string;
       unit_name?: string;
     }
-    
+
     // API may return paginated response or direct array
     interface PaginatedResponse {
       data?: ApiMemberAddRequest[];
@@ -1447,15 +1447,15 @@ class ApiService {
       page?: number;
       page_size?: number;
     }
-    
-    const rawResponse = await httpGet<ApiMemberAddRequest[] | PaginatedResponse>('/admin/units/member-add-requests', { 
+
+    const rawResponse = await httpGet<ApiMemberAddRequest[] | PaginatedResponse>('/admin/units/member-add-requests', {
       token,
       query: { page: 1, page_size: 1000 }
     });
-    
+
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiMemberAddRequest[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
-    
+
     // Transform API response to match MemberAddRequest interface
     const data: MemberAddRequest[] = rawData.map(request => ({
       id: request.id,
@@ -1472,7 +1472,7 @@ class ApiService {
       status: request.status as RequestStatus,
       proof: request.proof || undefined,
     }));
-    
+
     return { data, status: 200 };
   }
 
@@ -1553,7 +1553,7 @@ class ApiService {
   async getDistrictWiseData(options?: { refresh?: boolean }): Promise<ApiResponse<DistrictWiseData[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns detailed district data
     interface ApiDistrictData {
       id: number;
@@ -1565,7 +1565,7 @@ class ApiService {
       male_members: number;
       female_members: number;
     }
-    
+
     // API may return paginated response or direct array
     interface PaginatedResponse {
       data?: ApiDistrictData[];
@@ -1574,26 +1574,26 @@ class ApiService {
       page?: number;
       page_size?: number;
     }
-    
+
     const query: Record<string, any> = { page: 1, page_size: 1000 };
     if (options?.refresh) {
       query.refresh = 'true';
     }
-    
-    const rawResponse = await httpGet<ApiDistrictData[] | PaginatedResponse>('/admin/district-wise-data', { 
+
+    const rawResponse = await httpGet<ApiDistrictData[] | PaginatedResponse>('/admin/district-wise-data', {
       token,
       query
     });
-    
+
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiDistrictData[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
-    
+
     // Transform to match DistrictWiseData interface (name + participants for the bar chart)
     const data: DistrictWiseData[] = rawData.map(district => ({
       name: district.name,
       participants: district.total_members,
     }));
-    
+
     return { data, status: 200 };
   }
 
@@ -1649,7 +1649,7 @@ class ApiService {
   async getArchivedMembers(unitId?: number): Promise<ApiResponse<ArchivedMember[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     // API returns snake_case fields
     interface ApiArchivedMember {
       id: number;
@@ -1666,7 +1666,7 @@ class ApiService {
       archive_reason?: string;
       unit_name?: string;
     }
-    
+
     // API may return paginated response or direct array
     interface PaginatedResponse {
       data?: ApiArchivedMember[];
@@ -1675,20 +1675,20 @@ class ApiService {
       page?: number;
       page_size?: number;
     }
-    
+
     const query: Record<string, any> = unitId ? { unit_id: unitId } : {};
     // Request large page size to get all records
     query.page = 1;
     query.page_size = 1000;
-    
-    const rawResponse = await httpGet<ApiArchivedMember[] | PaginatedResponse>('/admin/units/archived-members', { 
+
+    const rawResponse = await httpGet<ApiArchivedMember[] | PaginatedResponse>('/admin/units/archived-members', {
       token,
-      query 
+      query
     });
-    
+
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiArchivedMember[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
-    
+
     // Transform API response to match ArchivedMember interface
     const data: ArchivedMember[] = rawData.map(member => ({
       id: member.id,
@@ -1706,7 +1706,7 @@ class ApiService {
       archivedBy: member.archived_by || 'System',
       archiveReason: member.archive_reason,
     }));
-    
+
     return { data, status: 200 };
   }
 
@@ -1780,7 +1780,7 @@ class ApiService {
     const grade = this.calculateGrade(marks);
     let gradePoints = 0;
     let positionPoints = 0;
-    
+
     // Position points
     if (isGroup) {
       if (position === 1) positionPoints = 10;
@@ -1790,13 +1790,13 @@ class ApiService {
       if (position === 1) positionPoints = 5;
       else if (position === 2) positionPoints = 3;
       else if (position === 3) positionPoints = 1;
-      
+
       // Grade bonus points (only for individual)
       if (grade === 'A') gradePoints = 5;
       else if (grade === 'B') gradePoints = 3;
       else if (grade === 'C') gradePoints = 1;
     }
-    
+
     return {
       grade,
       positionPoints,
@@ -2010,18 +2010,18 @@ class ApiService {
   }>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     const rawData = await httpGet<{
       individual_events: IndividualEvent[];
       group_events: GroupEvent[];
     }>('/kalamela/admin/home', { token });
-    
-    return { 
-      data: { 
-        individual_events: rawData.individual_events || [], 
-        group_events: rawData.group_events || [] 
-      }, 
-      status: 200 
+
+    return {
+      data: {
+        individual_events: rawData.individual_events || [],
+        group_events: rawData.group_events || []
+      },
+      status: 200
     };
   }
 
@@ -2075,7 +2075,7 @@ class ApiService {
   async deleteEvent(id: number, type: 'INDIVIDUAL' | 'GROUP'): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const endpoint = type === 'INDIVIDUAL' 
+    const endpoint = type === 'INDIVIDUAL'
       ? `/kalamela/admin/events/individual/${id}`
       : `/kalamela/admin/events/group/${id}`;
     await httpDelete<any>(endpoint, { token });
@@ -2210,11 +2210,11 @@ class ApiService {
   }>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     const query: Record<string, string | boolean> = {};
     if (params?.category) query.category = params.category;
     if (params?.active_only !== undefined) query.active_only = params.active_only;
-    
+
     return httpGet('/kalamela/admin/rules', { token, query });
   }
 
@@ -2348,14 +2348,14 @@ class ApiService {
   }> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     const query: Record<string, string | number> = {};
     if (params?.unit_id) query.unit_id = params.unit_id;
     if (params?.participation_category) query.participation_category = params.participation_category;
     if (params?.search) query.search = params.search;
     if (params?.event_id) query.event_id = params.event_id;
     if (params?.event_type) query.event_type = params.event_type;
-    
+
     return httpGet('/kalamela/official/district-members', { token, query });
   }
 
@@ -2628,18 +2628,27 @@ class ApiService {
     return { data, status: 200 };
   }
 
-  // GET /kalamela/admin/export/events - Export events
-  async exportKalamelaEvents(): Promise<Blob> {
+  // POST /kalamela/admin/export/events - Export events call sheet
+  // Accepts optional district_id filter to export specific district's call sheet
+  async exportKalamelaEvents(params?: {
+    district_id?: number | null;
+    individual_event_id?: number | null;
+    group_event_id?: number | null;
+  }): Promise<Blob> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<Blob>('/kalamela/admin/export/events', { token, asBlob: true });
+    return httpPost<Blob>('/kalamela/admin/export/events', {
+      district_id: params?.district_id ?? null,
+      individual_event_id: params?.individual_event_id ?? null,
+      group_event_id: params?.group_event_id ?? null,
+    }, { token, asBlob: true });
   }
 
-  // GET /kalamela/admin/export/chest-numbers - Export chest numbers
+  // POST /kalamela/admin/export/chest-numbers - Export chest numbers
   async exportKalamelaChestNumbers(): Promise<Blob> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<Blob>('/kalamela/admin/export/chest-numbers', { token, asBlob: true });
+    return httpPost<Blob>('/kalamela/admin/export/chest-numbers', {}, { token, asBlob: true });
   }
 
   // GET /kalamela/admin/export/results - Export results
@@ -2674,7 +2683,7 @@ class ApiService {
   async getEventParticipants(eventId: number, type: 'INDIVIDUAL' | 'GROUP'): Promise<ApiResponse<EventParticipant[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const endpoint = type === 'INDIVIDUAL' 
+    const endpoint = type === 'INDIVIDUAL'
       ? `/kalamela/admin/scores/individual/event/${eventId}/candidates`
       : `/kalamela/admin/scores/group/event/${eventId}/candidates`;
     const data = await httpGet<any>(endpoint, { token });
@@ -2715,17 +2724,17 @@ class ApiService {
   async submitEventScores(eventId: number, eventType: 'INDIVIDUAL' | 'GROUP', scores: ScoreSubmission[]): Promise<ApiResponse<EventScore[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     const endpoint = eventType === 'INDIVIDUAL'
       ? `/kalamela/admin/scores/individual/event/${eventId}`
       : `/kalamela/admin/scores/group/event/${eventId}`;
-    
+
     const formattedScores = scores.map((score, index) => ({
       participant_id: score.eventParticipationId,
       marks: score.awardedMarks,
       position: index + 1,
     }));
-    
+
     const data = await httpPost<EventScore[]>(endpoint, { scores: formattedScores }, { token });
     return { data, message: 'Scores submitted successfully', status: 200 };
   }
@@ -2918,13 +2927,13 @@ class ApiService {
   }>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     const query: Record<string, string | number | boolean | undefined> = {};
     if (params?.user_type) query.user_type = params.user_type;
     if (params?.district_id) query.district_id = params.district_id;
     if (params?.search) query.search = params.search;
     if (params?.is_active !== undefined) query.is_active = params.is_active;
-    
+
     return httpGet('/admin/users', { token, query });
   }
 
@@ -2997,13 +3006,13 @@ class ApiService {
   }> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    
+
     const query: Record<string, string | number> = {
       user_type: params.user_type,
       new_password: params.new_password,
     };
     if (params.district_id) query.district_id = params.district_id;
-    
+
     return httpPost('/admin/users/reset-all-by-type', null, { token, query });
   }
 

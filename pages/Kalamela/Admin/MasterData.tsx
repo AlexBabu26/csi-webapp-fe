@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Card, Badge, Button } from '../../../components/ui';
-import { Plus, Edit2, Trash2, X, Tag, AlertCircle, DollarSign, Database, Settings, Save, Calendar, Users, CheckCircle, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Tag, AlertCircle, DollarSign, Database, Settings, Save, Calendar, Users, CheckCircle, RefreshCw, FileDown, Download } from 'lucide-react';
+import { api } from '../../../services/api';
+import { useDistrictsWithOfficialStatus } from '../../../hooks/queries';
 import { useToast } from '../../../components/Toast';
 import { KalamelaCategory, RegistrationFee } from '../../../types';
 import { Portal } from '../../../components/Portal';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
-import { 
+import {
   useKalamelaCategories,
   useCreateKalamelaCategory,
   useUpdateKalamelaCategory,
@@ -19,7 +21,7 @@ import {
 } from '../../../hooks/queries';
 import { getRuleCategoryDisplayName, getRuleInputType } from '../../../utils/kalamelaValidation';
 
-type TabType = 'categories' | 'registration-fees' | 'rules';
+type TabType = 'categories' | 'registration-fees' | 'rules' | 'exports';
 
 interface KalamelaRule {
   id: number;
@@ -37,15 +39,15 @@ interface KalamelaRule {
 export const MasterData: React.FC = () => {
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('categories');
-  
+
   // ============ CATEGORIES STATE ============
   const { data: categoriesData, isLoading: loadingCategories, error: categoriesError } = useKalamelaCategories();
   const categories = categoriesData ?? [];
-  
+
   const createCategoryMutation = useCreateKalamelaCategory();
   const updateCategoryMutation = useUpdateKalamelaCategory();
   const deleteCategoryMutation = useDeleteKalamelaCategory();
-  
+
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categoryModalType, setCategoryModalType] = useState<'add' | 'edit'>('add');
   const [selectedCategory, setSelectedCategory] = useState<KalamelaCategory | null>(null);
@@ -56,31 +58,86 @@ export const MasterData: React.FC = () => {
   // ============ REGISTRATION FEES STATE ============
   const { data: feesData, isLoading: loadingFees, error: feesError } = useRegistrationFees();
   const fees = feesData ?? [];
-  
+
   const createFeeMutation = useCreateRegistrationFee();
   const updateFeeMutation = useUpdateRegistrationFee();
   const deleteFeeMutation = useDeleteRegistrationFee();
-  
+
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [feeModalType, setFeeModalType] = useState<'add' | 'edit'>('add');
   const [selectedFee, setSelectedFee] = useState<RegistrationFee | null>(null);
   const [showFeeDeleteConfirm, setShowFeeDeleteConfirm] = useState(false);
   const [feeToDelete, setFeeToDelete] = useState<RegistrationFee | null>(null);
-  const [feeFormData, setFeeFormData] = useState({ 
-    name: '', 
-    event_type: 'individual' as 'individual' | 'group', 
-    amount: 0 
+  const [feeFormData, setFeeFormData] = useState({
+    name: '',
+    event_type: 'individual' as 'individual' | 'group',
+    amount: 0
   });
 
   // ============ RULES STATE ============
   const { data: rulesData, isLoading: loadingRules, error: rulesError, refetch: refetchRules } = useKalamelaRules();
   const rules = rulesData ?? [];
   const updateRuleMutation = useUpdateKalamelaRule();
-  
+
   const [editingRule, setEditingRule] = useState<number | null>(null);
   const [editRuleValue, setEditRuleValue] = useState<string>('');
   const [editRuleDisplayName, setEditRuleDisplayName] = useState<string>('');
   const [editRuleDescription, setEditRuleDescription] = useState<string>('');
+
+
+  // ============ EXPORTS STATE ============
+  const { data: districtsData } = useDistrictsWithOfficialStatus();
+  const districts = districtsData ?? [];
+  const [selectedExportDistrict, setSelectedExportDistrict] = useState<number | ''>('');
+  const [exportingEvents, setExportingEvents] = useState(false);
+  const [exportingChestNumbers, setExportingChestNumbers] = useState(false);
+
+  const handleExportEvents = async () => {
+    try {
+      setExportingEvents(true);
+      const blob = await api.exportKalamelaEvents({
+        district_id: selectedExportDistrict ? Number(selectedExportDistrict) : null
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const districtName = selectedExportDistrict
+        ? districts.find(d => d.id === Number(selectedExportDistrict))?.name || 'District'
+        : 'All_Districts';
+      a.download = `kalamela_call_sheet_${districtName}_${new Date().getTime()}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      addToast("Call sheet exported successfully", "success");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to export call sheet", "error");
+    } finally {
+      setExportingEvents(false);
+    }
+  };
+
+  const handleExportChestNumbers = async () => {
+    try {
+      setExportingChestNumbers(true);
+      const blob = await api.exportKalamelaChestNumbers();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kalamela_chest_numbers_${new Date().getTime()}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      addToast("Chest numbers exported successfully", "success");
+    } catch (err) {
+      console.error(err);
+      addToast("Failed to export chest numbers", "error");
+    } finally {
+      setExportingChestNumbers(false);
+    }
+  };
 
   // Group rules by category
   const groupedRules = React.useMemo(() => {
@@ -119,7 +176,7 @@ export const MasterData: React.FC = () => {
       addToast('Category name is required', 'error');
       return;
     }
-    
+
     if (categoryModalType === 'add') {
       createCategoryMutation.mutate(
         { name: categoryFormData.name.trim(), description: categoryFormData.description.trim() || undefined },
@@ -175,7 +232,7 @@ export const MasterData: React.FC = () => {
       addToast('Amount cannot be negative', 'error');
       return;
     }
-    
+
     if (feeModalType === 'add') {
       createFeeMutation.mutate(
         { name: feeFormData.name.trim(), event_type: feeFormData.event_type, amount: feeFormData.amount },
@@ -282,7 +339,7 @@ export const MasterData: React.FC = () => {
 
   // ============ RENDER ============
   const hasError = activeTab === 'categories' ? categoriesError : activeTab === 'registration-fees' ? feesError : rulesError;
-  
+
   if (hasError) {
     return (
       <div className="space-y-6 animate-slide-in">
@@ -306,10 +363,10 @@ export const MasterData: React.FC = () => {
           </h1>
           <p className="mt-1 text-sm text-textMuted">Manage categories, registration fees, and rules for Kalamela events</p>
         </div>
-        {activeTab !== 'rules' && (
-          <Button 
-            variant="primary" 
-            size="sm" 
+        {activeTab !== 'rules' && activeTab !== 'exports' && (
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => activeTab === 'categories' ? openCategoryModal('add') : openFeeModal('add')}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -319,47 +376,61 @@ export const MasterData: React.FC = () => {
         {activeTab === 'rules' && (
           <Button variant="outline" size="sm" onClick={() => refetchRules()}>
             <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
           </Button>
         )}
       </div>
 
-      {/* Tabs */}
-      <Card className="p-1 inline-flex gap-1 flex-wrap">
-        <button
-          onClick={() => setActiveTab('categories')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
-            activeTab === 'categories'
-              ? 'bg-primary text-white'
-              : 'text-textMuted hover:bg-bgLight'
-          }`}
-        >
-          <Tag className="w-4 h-4" />
-          Categories ({categories.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('registration-fees')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
-            activeTab === 'registration-fees'
-              ? 'bg-primary text-white'
-              : 'text-textMuted hover:bg-bgLight'
-          }`}
-        >
-          <DollarSign className="w-4 h-4" />
-          Registration Fees ({fees.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('rules')}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
-            activeTab === 'rules'
-              ? 'bg-primary text-white'
-              : 'text-textMuted hover:bg-bgLight'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          Rules ({rules.length})
-        </button>
-      </Card>
+      {/* Modern Horizontal Tabs */}
+      <div className="border-b border-borderColor mb-6">
+        <div className="flex space-x-8 overflow-x-auto pb-1">
+          <button
+            onClick={() => setActiveTab('categories')}
+            className={`flex items-center gap-2 pb-3 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === 'categories'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-textMuted hover:text-textDark hover:border-gray-300'
+              }`}
+          >
+            <Tag className="w-4 h-4" />
+            Categories
+            <Badge variant="light" className="ml-1 text-xs">{categories.length}</Badge>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('registration-fees')}
+            className={`flex items-center gap-2 pb-3 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === 'registration-fees'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-textMuted hover:text-textDark hover:border-gray-300'
+              }`}
+          >
+            <DollarSign className="w-4 h-4" />
+            Registration Fees
+            <Badge variant="light" className="ml-1 text-xs">{fees.length}</Badge>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('rules')}
+            className={`flex items-center gap-2 pb-3 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === 'rules'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-textMuted hover:text-textDark hover:border-gray-300'
+              }`}
+          >
+            <Settings className="w-4 h-4" />
+            Rules
+            <Badge variant="light" className="ml-1 text-xs">{rules.length}</Badge>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('exports')}
+            className={`flex items-center gap-2 pb-3 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === 'exports'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-textMuted hover:text-textDark hover:border-gray-300'
+              }`}
+          >
+            <FileDown className="w-4 h-4" />
+            Exports
+          </button>
+        </div>
+      </div>
 
       {/* Content based on active tab */}
       {activeTab === 'categories' ? (
@@ -402,9 +473,9 @@ export const MasterData: React.FC = () => {
                   <Button variant="warning" size="sm" onClick={() => openCategoryModal('edit', category)}>
                     <Edit2 className="w-4 h-4 mr-1" /> Edit
                   </Button>
-                  <Button 
-                    variant="danger" 
-                    size="sm" 
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => handleCategoryDeleteClick(category)}
                     disabled={deleteCategoryMutation.isPending}
                   >
@@ -457,9 +528,9 @@ export const MasterData: React.FC = () => {
                   <Button variant="warning" size="sm" onClick={() => openFeeModal('edit', fee)}>
                     <Edit2 className="w-4 h-4 mr-1" /> Edit
                   </Button>
-                  <Button 
-                    variant="danger" 
-                    size="sm" 
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => handleFeeDeleteClick(fee)}
                     disabled={deleteFeeMutation.isPending}
                   >
@@ -480,7 +551,7 @@ export const MasterData: React.FC = () => {
               <div>
                 <h3 className="font-semibold text-amber-800 text-sm mb-1">Important</h3>
                 <p className="text-xs text-amber-700">
-                  Changes to these rules will affect participant eligibility and fee calculations. 
+                  Changes to these rules will affect participant eligibility and fee calculations.
                   Make sure to verify the values before saving.
                 </p>
               </div>
@@ -521,13 +592,12 @@ export const MasterData: React.FC = () => {
 
                   <div className="space-y-4">
                     {categoryRules.map((rule) => (
-                      <div 
-                        key={rule.id} 
-                        className={`p-3 rounded-lg border ${
-                          editingRule === rule.id 
-                            ? 'border-primary bg-primary/5' 
-                            : 'border-borderColor bg-bgLight hover:border-gray-300'
-                        } transition-all`}
+                      <div
+                        key={rule.id}
+                        className={`p-3 rounded-lg border ${editingRule === rule.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-borderColor bg-bgLight hover:border-gray-300'
+                          } transition-all`}
                       >
                         {editingRule === rule.id ? (
                           // Edit Mode
@@ -602,16 +672,15 @@ export const MasterData: React.FC = () => {
                                 <Edit2 className="w-4 h-4 text-textMuted hover:text-primary" />
                               </Button>
                             </div>
-                            
+
                             <div className="flex items-center justify-between">
-                              <span className={`text-lg font-bold ${
-                                category === 'fee' ? 'text-green-600' : 
-                                category === 'age_restriction' ? 'text-blue-600' : 
-                                'text-purple-600'
-                              }`}>
+                              <span className={`text-lg font-bold ${category === 'fee' ? 'text-green-600' :
+                                category === 'age_restriction' ? 'text-blue-600' :
+                                  'text-purple-600'
+                                }`}>
                                 {formatRuleValue(rule)}
                               </span>
-                              <Badge 
+                              <Badge
                                 variant={rule.is_active ? 'success' : 'light'}
                                 className="text-xs"
                               >
@@ -669,147 +738,250 @@ export const MasterData: React.FC = () => {
             </Card>
           )}
         </div>
-      ) : null}
+      ) : activeTab === 'exports' ? (
+        // ============ EXPORTS TAB ============
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Call Sheet Export Card */}
+          <Card>
+            <div className="flex items-start gap-4 mb-4">
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
+                <FileDown className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-textDark text-lg">Events Call Sheet</h3>
+                <p className="text-textMuted text-sm">
+                  Export the official call sheet for event attendance and management.
+                  Includes participant details sorted by event.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-textDark mb-1">
+                  Filter by District (Optional)
+                </label>
+                <select
+                  value={selectedExportDistrict}
+                  onChange={(e) => setSelectedExportDistrict(e.target.value ? Number(e.target.value) : '')}
+                  className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white"
+                >
+                  <option value="">All Districts</option>
+                  {districts.map((district) => (
+                    <option key={district.id} value={district.id}>
+                      {district.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <Button
+                variant="primary"
+                className="w-full justify-center"
+                onClick={handleExportEvents}
+                disabled={exportingEvents}
+              >
+                {exportingEvents ? (
+                  <>Downloading...</>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Call Sheet
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+
+          {/* Chest Numbers Export Card */}
+          <Card>
+            <div className="flex items-start gap-4 mb-4">
+              <div className="p-3 bg-purple-50 text-purple-600 rounded-lg">
+                <Tag className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-textDark text-lg">Chest Numbers List</h3>
+                <p className="text-textMuted text-sm">
+                  Export a complete list of assigned chest numbers for all participants.
+                  Useful for distribution and verification.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 bg-gray-50 rounded-md text-sm text-textMuted">
+                <p>This export includes:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1 ml-2">
+                  <li>Individual Event Chest Numbers</li>
+                  <li>Participant Names & Districts</li>
+                  <li>Event Categories</li>
+                </ul>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full justify-center hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200"
+                onClick={handleExportChestNumbers}
+                disabled={exportingChestNumbers}
+              >
+                {exportingChestNumbers ? (
+                  <>Downloading...</>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Chest Numbers
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : null
+      }
 
       {/* Category Modal */}
-      {showCategoryModal && (
-        <Portal>
-          <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" onClick={closeCategoryModal} aria-hidden="true" />
-          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full pointer-events-auto animate-slide-in" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between p-6 border-b border-borderColor">
-                <h3 className="text-xl font-bold text-textDark">
-                  {categoryModalType === 'add' ? 'Add New Category' : `Edit ${selectedCategory?.name}`}
-                </h3>
-                <button onClick={closeCategoryModal} className="p-1 rounded hover:bg-bgLight">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-6">
-                <form onSubmit={handleCategorySubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-textDark mb-2">
-                      Category Name <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={categoryFormData.name}
-                      onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="e.g., Literary, Music, Dance"
-                      maxLength={255}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-textDark mb-2">Description</label>
-                    <textarea
-                      value={categoryFormData.description}
-                      onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
-                      className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
-                      rows={3}
-                      placeholder="Enter category description..."
-                      maxLength={1000}
-                    />
-                    <p className="text-xs text-textMuted mt-1">{categoryFormData.description.length}/1000 characters</p>
-                  </div>
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button type="button" variant="outline" onClick={closeCategoryModal}>Cancel</Button>
-                    <Button 
-                      type="submit" 
-                      variant="primary"
-                      disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
-                    >
-                      {(createCategoryMutation.isPending || updateCategoryMutation.isPending) 
-                        ? 'Saving...' 
-                        : categoryModalType === 'add' ? 'Create Category' : 'Update Category'
-                      }
-                    </Button>
-                  </div>
-                </form>
+      {
+        showCategoryModal && (
+          <Portal>
+            <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" onClick={closeCategoryModal} aria-hidden="true" />
+            <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full pointer-events-auto animate-slide-in" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between p-6 border-b border-borderColor">
+                  <h3 className="text-xl font-bold text-textDark">
+                    {categoryModalType === 'add' ? 'Add New Category' : `Edit ${selectedCategory?.name}`}
+                  </h3>
+                  <button onClick={closeCategoryModal} className="p-1 rounded hover:bg-bgLight">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-6">
+                  <form onSubmit={handleCategorySubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-textDark mb-2">
+                        Category Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={categoryFormData.name}
+                        onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
+                        className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="e.g., Literary, Music, Dance"
+                        maxLength={255}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-textDark mb-2">Description</label>
+                      <textarea
+                        value={categoryFormData.description}
+                        onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
+                        className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                        rows={3}
+                        placeholder="Enter category description..."
+                        maxLength={1000}
+                      />
+                      <p className="text-xs text-textMuted mt-1">{categoryFormData.description.length}/1000 characters</p>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4">
+                      <Button type="button" variant="outline" onClick={closeCategoryModal}>Cancel</Button>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
+                      >
+                        {(createCategoryMutation.isPending || updateCategoryMutation.isPending)
+                          ? 'Saving...'
+                          : categoryModalType === 'add' ? 'Create Category' : 'Update Category'
+                        }
+                      </Button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
-          </div>
-        </Portal>
-      )}
+          </Portal>
+        )
+      }
 
       {/* Registration Fee Modal */}
-      {showFeeModal && (
-        <Portal>
-          <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" onClick={closeFeeModal} aria-hidden="true" />
-          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full pointer-events-auto animate-slide-in" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between p-6 border-b border-borderColor">
-                <h3 className="text-xl font-bold text-textDark">
-                  {feeModalType === 'add' ? 'Add New Registration Fee' : `Edit ${selectedFee?.name}`}
-                </h3>
-                <button onClick={closeFeeModal} className="p-1 rounded hover:bg-bgLight">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-6">
-                <form onSubmit={handleFeeSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-textDark mb-2">
-                      Fee Name <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={feeFormData.name}
-                      onChange={(e) => setFeeFormData({ ...feeFormData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="e.g., Individual Event Fee, Group Event Fee"
-                      maxLength={255}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-textDark mb-2">
-                      Event Type <span className="text-danger">*</span>
-                    </label>
-                    <select
-                      value={feeFormData.event_type}
-                      onChange={(e) => setFeeFormData({ ...feeFormData, event_type: e.target.value as 'individual' | 'group' })}
-                      className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white"
-                      required
-                    >
-                      <option value="individual">Individual</option>
-                      <option value="group">Group</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-textDark mb-2">
-                      Amount (₹) <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      value={feeFormData.amount}
-                      onChange={(e) => setFeeFormData({ ...feeFormData, amount: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      placeholder="Enter amount"
-                      min={0}
-                      required
-                    />
-                  </div>
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button type="button" variant="outline" onClick={closeFeeModal}>Cancel</Button>
-                    <Button 
-                      type="submit" 
-                      variant="primary"
-                      disabled={createFeeMutation.isPending || updateFeeMutation.isPending}
-                    >
-                      {(createFeeMutation.isPending || updateFeeMutation.isPending) 
-                        ? 'Saving...' 
-                        : feeModalType === 'add' ? 'Create Fee' : 'Update Fee'
-                      }
-                    </Button>
-                  </div>
-                </form>
+      {
+        showFeeModal && (
+          <Portal>
+            <div className="fixed inset-0 bg-black/35 backdrop-blur z-[100] transition-opacity" onClick={closeFeeModal} aria-hidden="true" />
+            <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 pointer-events-none">
+              <div className="bg-white rounded-lg shadow-xl max-w-md w-full pointer-events-auto animate-slide-in" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between p-6 border-b border-borderColor">
+                  <h3 className="text-xl font-bold text-textDark">
+                    {feeModalType === 'add' ? 'Add New Registration Fee' : `Edit ${selectedFee?.name}`}
+                  </h3>
+                  <button onClick={closeFeeModal} className="p-1 rounded hover:bg-bgLight">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="p-6">
+                  <form onSubmit={handleFeeSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-textDark mb-2">
+                        Fee Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={feeFormData.name}
+                        onChange={(e) => setFeeFormData({ ...feeFormData, name: e.target.value })}
+                        className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="e.g., Individual Event Fee, Group Event Fee"
+                        maxLength={255}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-textDark mb-2">
+                        Event Type <span className="text-danger">*</span>
+                      </label>
+                      <select
+                        value={feeFormData.event_type}
+                        onChange={(e) => setFeeFormData({ ...feeFormData, event_type: e.target.value as 'individual' | 'group' })}
+                        className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white"
+                        required
+                      >
+                        <option value="individual">Individual</option>
+                        <option value="group">Group</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-textDark mb-2">
+                        Amount (₹) <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        value={feeFormData.amount}
+                        onChange={(e) => setFeeFormData({ ...feeFormData, amount: parseInt(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="Enter amount"
+                        min={0}
+                        required
+                      />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4">
+                      <Button type="button" variant="outline" onClick={closeFeeModal}>Cancel</Button>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        disabled={createFeeMutation.isPending || updateFeeMutation.isPending}
+                      >
+                        {(createFeeMutation.isPending || updateFeeMutation.isPending)
+                          ? 'Saving...'
+                          : feeModalType === 'add' ? 'Create Fee' : 'Update Fee'
+                        }
+                      </Button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
-          </div>
-        </Portal>
-      )}
+          </Portal>
+        )
+      }
 
       {/* Category Delete Confirmation */}
       <ConfirmDialog
@@ -836,7 +1008,7 @@ export const MasterData: React.FC = () => {
         onCancel={() => { setShowFeeDeleteConfirm(false); setFeeToDelete(null); }}
         isLoading={deleteFeeMutation.isPending}
       />
-    </div>
+    </div >
   );
 };
 

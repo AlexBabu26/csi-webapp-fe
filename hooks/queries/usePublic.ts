@@ -9,7 +9,8 @@ export const usePublicSiteSettings = () => {
   return useQuery({
     queryKey: ['public', 'siteSettings'],
     queryFn: async () => {
-      const data = await api.getPublicSiteSettings();
+      // Using getSiteSettings which doesn't require auth
+      const data = await api.getSiteSettings();
       return data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -21,7 +22,8 @@ export const usePublicNotices = () => {
   return useQuery({
     queryKey: ['public', 'notices'],
     queryFn: async () => {
-      const data = await api.getPublicNotices();
+      // Using getNotices with activeOnly=true for public view
+      const data = await api.getNotices(true);
       return data;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -42,64 +44,67 @@ export const usePublicHomeData = () => {
 };
 
 // Public conferences list
-export const usePublicConferencesList = () => {
-  return useQuery({
-    queryKey: queryKeys.conference.publicList(),
-    queryFn: async () => {
-      const data = await api.getPublicConferences();
-      return data;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-};
+// NOTE: Disabled until getPublicConferences API method is implemented
+// export const usePublicConferencesList = () => {
+//   return useQuery({
+//     queryKey: queryKeys.conference.publicList(),
+//     queryFn: async () => {
+//       const data = await api.getPublicConferences();
+//       return data;
+//     },
+//     staleTime: 5 * 60 * 1000,
+//   });
+// };
 
 // Public Kalamela events
-export const usePublicKalamelaEvents = () => {
-  return useQuery({
-    queryKey: ['public', 'kalamela', 'events'],
-    queryFn: async () => {
-      const response = await api.getPublicKalamelaEvents();
-      return response.data;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-};
+// NOTE: Disabled until getPublicKalamelaEvents API method is implemented
+// export const usePublicKalamelaEvents = () => {
+//   return useQuery({
+//     queryKey: ['public', 'kalamela', 'events'],
+//     queryFn: async () => {
+//       const response = await api.getPublicKalamelaEvents();
+//       return response.data;
+//     },
+//     staleTime: 5 * 60 * 1000,
+//   });
+// };
 
 // Public Kalamela results - renamed to avoid conflict with useKalamela.ts
-export const usePublicKalamelaResultsData = () => {
-  return useQuery({
-    queryKey: ['public', 'kalamela', 'results'],
-    queryFn: async () => {
-      const response = await api.getPublicKalamelaResults();
-      return response.data;
-    },
-    staleTime: 2 * 60 * 1000,
-  });
-};
+// NOTE: Disabled until getPublicKalamelaResults API method is implemented
+// export const usePublicKalamelaResultsData = () => {
+//   return useQuery({
+//     queryKey: ['public', 'kalamela', 'results'],
+//     queryFn: async () => {
+//       const response = await api.getPublicKalamelaResults();
+//       return response.data;
+//     },
+//     staleTime: 2 * 60 * 1000,
+//   });
+// };
 
 // Public Kalamela top performers - renamed to avoid conflict with useKalamela.ts
-export const usePublicTopPerformersData = () => {
-  return useQuery({
-    queryKey: ['public', 'kalamela', 'topPerformers'],
-    queryFn: async () => {
-      const response = await api.getPublicTopPerformers();
-      return response.data;
-    },
-    staleTime: 2 * 60 * 1000,
-  });
-};
+// NOTE: Disabled until getPublicTopPerformers API method is implemented
+// export const usePublicTopPerformersData = () => {
+//   return useQuery({
+//     queryKey: ['public', 'kalamela', 'topPerformers'],
+//     queryFn: async () => {
+//       const response = await api.getPublicTopPerformers();
+//       return response.data;
+//     },
+//     staleTime: 2 * 60 * 1000,
+//   });
+// };
 
 // Combined public kalamela data
-export const usePublicKalamelaData = () => {
-  const events = usePublicKalamelaEvents();
-  const results = usePublicKalamelaResults();
+// NOTE: Disabled until usePublicKalamelaResultsData is available
+// export const usePublicKalamelaData = () => {
+//   const events = usePublicKalamelaEvents();
+//   const results = usePublicKalamelaResultsData();
 
-  return {
-    events: events.data,
-    results: results.data,
-    isLoading: events.isLoading || results.isLoading,
-    error: events.error || results.error,
-  };
-};
-
-
+//   return {
+//     events: events.data,
+//     results: results.data,
+//     isLoading: events.isLoading || results.isLoading,
+//     error: events.error || results.error,
+//   };
+// };
