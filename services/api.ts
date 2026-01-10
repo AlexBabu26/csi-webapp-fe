@@ -2636,7 +2636,13 @@ class ApiService {
   }>): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpPut<any>(`/kalamela/admin/scores/individual/event/${eventId}`, { scores }, { token });
+    // Map marks to awarded_mark for API compatibility
+    const formattedScores = scores.map(s => ({
+      score_id: s.score_id,
+      awarded_mark: s.marks,
+      position: s.position,
+    }));
+    const data = await httpPut<any>(`/kalamela/admin/scores/individual/event/${eventId}`, { scores: formattedScores }, { token });
     return { data, message: `${scores.length} scores updated successfully`, status: 200 };
   }
 
@@ -2648,7 +2654,13 @@ class ApiService {
   }>): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpPut<any>(`/kalamela/admin/scores/group/event/${eventId}`, { scores }, { token });
+    // Map marks to awarded_mark for API compatibility
+    const formattedScores = scores.map(s => ({
+      score_id: s.score_id,
+      awarded_mark: s.marks,
+      position: s.position,
+    }));
+    const data = await httpPut<any>(`/kalamela/admin/scores/group/event/${eventId}`, { scores: formattedScores }, { token });
     return { data, message: `${scores.length} scores updated successfully`, status: 200 };
   }
 

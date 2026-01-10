@@ -11,6 +11,12 @@ export const PublicResults: React.FC = () => {
   // Use TanStack Query
   const { data, isLoading: loading } = usePublicKalamelaResults();
 
+  // Format mark to 2 decimal places
+  const formatMark = (mark: number | null | undefined): string => {
+    if (mark === null || mark === undefined) return '-';
+    return parseFloat(mark.toString()).toFixed(2);
+  };
+
   const getPositionIcon = (position: number) => {
     if (position === 1) return <Trophy className="w-5 h-5 text-yellow-500" />;
     if (position === 2) return <Medal className="w-5 h-5 text-gray-400" />;
@@ -145,7 +151,7 @@ export const PublicResults: React.FC = () => {
                           <div className="mt-4 pt-3 border-t border-borderColor/50">
                             <div className="flex justify-between items-center">
                               <span className="text-sm text-textMuted">Score:</span>
-                              <span className="text-lg font-bold text-primary">{winner.awarded_mark}/100</span>
+                              <span className="text-lg font-bold text-primary">{formatMark(winner.awarded_mark)}/100</span>
                             </div>
                             <div className="flex justify-between items-center mt-1">
                               <span className="text-sm text-textMuted">Grade:</span>

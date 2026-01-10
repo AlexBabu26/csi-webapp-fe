@@ -26,6 +26,7 @@ interface Team {
 interface Score {
   participation_id: number;
   chest_number: string;
+  score_id?: number; // For tracking existing scores to update
   marks: number;
   grade?: 'A' | 'B' | 'C' | 'No Grade';
 }
@@ -45,6 +46,8 @@ export const ScoreGroupEvent: React.FC = () => {
   const [scores, setScores] = useState<Record<string, Score>>({});
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loadingExistingScores, setLoadingExistingScores] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Find event from eventId
   const event = useMemo(() => {
@@ -81,34 +84,96 @@ export const ScoreGroupEvent: React.FC = () => {
     );
   }, [teams, searchTerm]);
 
-  // Initialize scores when teams load
+  // Load existing scores when event and teams are ready
   useEffect(() => {
-    if (teams.length > 0) {
-      const initialScores: Record<string, Score> = {};
-      teams.forEach((team) => {
-        if (!scores[team.chest_number]) {
+    const loadExistingScores = async () => {
+      if (!parsedEventId || !event?.name || teams.length === 0) return;
+      
+      setLoadingExistingScores(true);
+      try {
+        const response = await api.getGroupEventScoresForEdit(parsedEventId);
+        const existingScores = response.data?.event_scores || [];
+        
+        if (existingScores.length > 0) {
+          setIsEditMode(true);
+          // Map existing scores to our format
+          const scoresMap: Record<string, Score> = {};
+          
+          existingScores.forEach((score: any) => {
+            const team = teams.find(t => t.chest_number === score.chest_number);
+            
+            if (team) {
+              scoresMap[team.chest_number] = {
+                participation_id: team.participation_id,
+                chest_number: score.chest_number,
+                score_id: score.id, // Store score_id for updates
+                marks: score.awarded_mark || 0,
+                grade: score.grade,
+              };
+            }
+          });
+          
+          // Initialize missing teams with 0 marks
+          teams.forEach((team) => {
+            if (!scoresMap[team.chest_number]) {
+              scoresMap[team.chest_number] = {
+                participation_id: team.participation_id,
+                chest_number: team.chest_number,
+                marks: 0,
+              };
+            }
+          });
+          
+          setScores(scoresMap);
+        } else {
+          // No existing scores, initialize with 0
+          setIsEditMode(false);
+          const initialScores: Record<string, Score> = {};
+          teams.forEach((team) => {
+            initialScores[team.chest_number] = {
+              participation_id: team.participation_id,
+              chest_number: team.chest_number,
+              marks: 0,
+            };
+          });
+          setScores(initialScores);
+        }
+      } catch (err: any) {
+        // If error, assume no scores exist and initialize with 0
+        setIsEditMode(false);
+        const initialScores: Record<string, Score> = {};
+        teams.forEach((team) => {
           initialScores[team.chest_number] = {
             participation_id: team.participation_id,
             chest_number: team.chest_number,
             marks: 0,
           };
-        }
-      });
-      if (Object.keys(initialScores).length > 0) {
-        setScores(prev => ({ ...prev, ...initialScores }));
+        });
+        setScores(initialScores);
+      } finally {
+        setLoadingExistingScores(false);
       }
-    }
-  }, [teams]);
+    };
+
+    loadExistingScores();
+  }, [parsedEventId, event, teams]);
+
+  // Helper function to round to 2 decimal places
+  const roundToTwoDecimals = (value: number): number => {
+    return Math.round(value * 100) / 100;
+  };
 
   const updateScore = (chestNumber: string, marks: number) => {
     const score = scores[chestNumber];
     if (!score) return;
     
-    const updatedScore = { ...score, marks };
+    // Round to 2 decimal places
+    const roundedMarks = roundToTwoDecimals(marks);
+    const updatedScore = { ...score, marks: roundedMarks };
     
     // Calculate grade preview
-    if (marks > 0) {
-      updatedScore.grade = calculateGrade(marks);
+    if (roundedMarks > 0) {
+      updatedScore.grade = calculateGrade(roundedMarks);
     } else {
       updatedScore.grade = undefined;
     }
@@ -124,15 +189,21 @@ export const ScoreGroupEvent: React.FC = () => {
       return;
     }
 
+    // Round all marks to 2 decimal places before validation
+    const roundedScores = scoresToSubmit.map((s) => ({
+      ...s,
+      marks: Math.round(s.marks * 100) / 100,
+    }));
+
     // Validate marks are <= 100
-    const invalidMarks = scoresToSubmit.find((s) => s.marks > 100);
+    const invalidMarks = roundedScores.find((s) => s.marks > 100);
     if (invalidMarks) {
       addToast("Marks cannot exceed 100", "error");
       return;
     }
 
     // Validate marks are >= 0
-    const negativeMarks = scoresToSubmit.find((s) => s.marks < 0);
+    const negativeMarks = roundedScores.find((s) => s.marks < 0);
     if (negativeMarks) {
       addToast("Marks cannot be negative", "error");
       return;
@@ -146,14 +217,48 @@ export const ScoreGroupEvent: React.FC = () => {
     try {
       setSubmitting(true);
       
-      // Format for API: array of { chest_number, awarded_mark }
-      const formattedScores = scoresToSubmit.map((s) => ({
-        chest_number: s.chest_number,
-        awarded_mark: s.marks,
-      }));
+      if (isEditMode) {
+        // Update existing scores using PUT endpoint
+        const scoresToUpdate = roundedScores
+          .filter(s => s.score_id) // Only update scores that have score_id
+          .map((s) => ({
+            score_id: s.score_id!,
+            marks: s.marks,
+          }));
 
-      await api.addGroupEventScores(event.name, formattedScores);
-      addToast(`${scoresToSubmit.length} scores submitted successfully!`, 'success');
+        // Add new scores (teams without score_id)
+        const newScores = roundedScores
+          .filter(s => !s.score_id)
+          .map((s) => ({
+            chest_number: s.chest_number,
+            awarded_mark: s.marks,
+          }));
+
+        // Update existing scores
+        if (scoresToUpdate.length > 0) {
+          await api.bulkUpdateGroupScores(parsedEventId, scoresToUpdate);
+        }
+
+        // Add new scores
+        if (newScores.length > 0) {
+          await api.addGroupEventScores(event.name, newScores);
+        }
+
+        const updateMsg = scoresToUpdate.length > 0 ? `${scoresToUpdate.length} updated` : '';
+        const addMsg = newScores.length > 0 ? `${newScores.length} added` : '';
+        const separator = scoresToUpdate.length > 0 && newScores.length > 0 ? ' and ' : '';
+        addToast(`${updateMsg}${separator}${addMsg} successfully!`, 'success');
+      } else {
+        // Create new scores using POST endpoint
+        const formattedScores = roundedScores.map((s) => ({
+          chest_number: s.chest_number,
+          awarded_mark: s.marks,
+        }));
+
+        await api.addGroupEventScores(event.name, formattedScores);
+        addToast(`${formattedScores.length} scores submitted successfully!`, 'success');
+      }
+      
       navigate('/kalamela/admin/scores');
     } catch (err: any) {
       addToast(err.message || 'Failed to submit scores', 'error');
@@ -162,7 +267,7 @@ export const ScoreGroupEvent: React.FC = () => {
     }
   };
 
-  const loading = loadingEvents || loadingParticipants;
+  const loading = loadingEvents || loadingParticipants || loadingExistingScores;
 
   // Show error if API calls failed
   if (eventsError || participantsError) {
@@ -271,8 +376,13 @@ export const ScoreGroupEvent: React.FC = () => {
               <Users className="w-5 h-5 text-white" />
             </div>
             {event.name}
+            {isEditMode && (
+              <Badge variant="warning" className="ml-2">Editing</Badge>
+            )}
           </h1>
-          <p className="text-sm text-textMuted mt-1">Enter marks for {teams.length} teams</p>
+          <p className="text-sm text-textMuted mt-1">
+            {isEditMode ? 'Edit marks for' : 'Enter marks for'} {teams.length} teams
+          </p>
         </div>
         <Button
           variant="success"
@@ -280,7 +390,7 @@ export const ScoreGroupEvent: React.FC = () => {
           disabled={submitting || validScores.length === 0}
         >
           <Save className="w-4 h-4 mr-2" />
-          {submitting ? 'Submitting...' : `Submit Scores (${validScores.length})`}
+          {submitting ? 'Submitting...' : isEditMode ? `Update Scores (${validScores.length})` : `Submit Scores (${validScores.length})`}
         </Button>
       </div>
 
@@ -428,11 +538,15 @@ export const ScoreGroupEvent: React.FC = () => {
                     <label className="text-sm text-textMuted whitespace-nowrap">Marks:</label>
                     <input
                       type="number"
+                      step="0.01"
                       min="0"
                       max="100"
                       value={score.marks || ''}
-                      onChange={(e) => updateScore(team.chest_number, parseInt(e.target.value) || 0)}
-                      className="w-20 px-3 py-2 border border-borderColor rounded-lg text-center text-sm font-medium focus:outline-none focus:ring-2 focus:ring-success/20 focus:border-success"
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 0;
+                        updateScore(team.chest_number, value);
+                      }}
+                      className="w-24 px-3 py-2 border border-borderColor rounded-lg text-center text-sm font-medium focus:outline-none focus:ring-2 focus:ring-success/20 focus:border-success"
                       placeholder="0-100"
                     />
                   </div>
@@ -511,7 +625,7 @@ export const ScoreGroupEvent: React.FC = () => {
           disabled={submitting || validScores.length === 0}
         >
           <Save className="w-4 h-4 mr-2" />
-          {submitting ? 'Submitting...' : `Submit ${validScores.length} Scores`}
+          {submitting ? 'Submitting...' : isEditMode ? `Update ${validScores.length} Scores` : `Submit ${validScores.length} Scores`}
         </Button>
       </div>
       

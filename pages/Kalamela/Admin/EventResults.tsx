@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, Badge, Button } from '../../../components/ui';
-import { ArrowLeft, Download, Trophy, Medal, Award, Users, Calendar, Building, MapPin } from 'lucide-react';
+import { ArrowLeft, Download, Trophy, Medal, Award, Users, Calendar, Building, MapPin, Edit } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
 import { useIndividualEventScoresByName, useGroupEventScoresByName, useIndividualEvents, useGroupEvents } from '../../../hooks/queries';
 import { api } from '../../../services/api';
@@ -23,9 +23,35 @@ export const EventResults: React.FC = () => {
     decodedEventName
   );
 
+  // Fetch events to get event ID from event name
+  const { data: individualEvents } = useIndividualEvents();
+  const { data: groupEvents } = useGroupEvents();
+
   const scores = eventType === 'individual' ? individualScores : groupScores;
   const loading = eventType === 'individual' ? loadingIndividual : loadingGroup;
   const eventScores = scores?.event_scores || [];
+
+  // Find event ID from event name
+  const eventId = useMemo(() => {
+    const events = eventType === 'individual' ? individualEvents : groupEvents;
+    const event = events?.find((e: any) => e.name === decodedEventName);
+    return event?.id;
+  }, [decodedEventName, eventType, individualEvents, groupEvents]);
+
+  // Handle edit navigation
+  const handleEdit = () => {
+    if (!eventId) {
+      addToast('Event ID not found', 'error');
+      return;
+    }
+    navigate(`/kalamela/admin/scores/${eventType}/${eventId}/edit`);
+  };
+
+  // Format mark to 2 decimal places
+  const formatMark = (mark: number | null | undefined): string => {
+    if (mark === null || mark === undefined) return '-';
+    return parseFloat(mark.toString()).toFixed(2);
+  };
 
   // Get grade badge variant
   const getGradeBadgeVariant = (grade: string | null) => {
@@ -177,10 +203,16 @@ export const EventResults: React.FC = () => {
             </p>
           </div>
         </div>
-        <Button variant="success" size="sm" onClick={handleExport} disabled={exporting}>
-          <Download className="w-4 h-4 mr-2" />
-          {exporting ? 'Exporting...' : 'Export CSV'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="warning" size="sm" onClick={handleEdit} disabled={!eventId}>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Scores
+          </Button>
+          <Button variant="success" size="sm" onClick={handleExport} disabled={exporting}>
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -296,7 +328,7 @@ export const EventResults: React.FC = () => {
                     </td>
                     <td className="p-3 text-center">
                       <span className="text-sm font-semibold text-textDark">
-                        {score.awarded_mark ?? '-'}
+                        {formatMark(score.awarded_mark)}
                       </span>
                     </td>
                     <td className="p-3 text-center">
@@ -306,7 +338,7 @@ export const EventResults: React.FC = () => {
                     </td>
                     <td className="p-3 text-center">
                       <span className="text-sm font-bold text-primary">
-                        {score.total_points ?? score.awarded_mark ?? 0}
+                        {score.total_points ?? formatMark(score.awarded_mark) ?? '0.00'}
                       </span>
                     </td>
                   </tr>
