@@ -271,6 +271,17 @@ export const useKalamelaAdminHome = () => {
   });
 };
 
+// Get events with schedules
+export const useEventsWithSchedules = () => {
+  return useQuery({
+    queryKey: ['kalamela', 'events', 'with-schedules'],
+    queryFn: async () => {
+      const response = await api.getEventsWithSchedules();
+      return response.data;
+    },
+  });
+};
+
 // Get admin individual scores
 export const useAdminIndividualScores = () => {
   return useQuery({

@@ -24,7 +24,8 @@ import {
   MessageSquare,
   BarChart3,
   Tag,
-  KeyRound
+  KeyRound,
+  Clock
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '../constants';
@@ -117,6 +118,7 @@ const NAV_GROUPS: NavGroup[] = [
     roles: ['admin'],
     items: [
       { label: 'Events', path: '/kalamela/admin/events', icon: <Calendar size={18} /> },
+      { label: 'Schedules', path: '/kalamela/admin/schedules', icon: <Clock size={18} /> },
       { label: 'Master Data', path: '/kalamela/admin/master-data', icon: <Tag size={18} /> },
       { label: 'Score Entry', path: '/kalamela/admin/scores', icon: <Star size={18} /> },
       { label: 'Results', path: '/kalamela/admin/results', icon: <Trophy size={18} /> },

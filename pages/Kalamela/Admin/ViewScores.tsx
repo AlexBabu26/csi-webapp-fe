@@ -41,8 +41,9 @@ export const ViewScores: React.FC = () => {
   
   const loading = loadingIndividual || loadingGroup || loadingIndScores || loadingGroupScores;
   
-  const individualEvents = individualEventsData ?? [];
-  const groupEvents = groupEventsData ?? [];
+  // Filter to only show active events
+  const individualEvents = (individualEventsData ?? []).filter((event: any) => event.is_active === true);
+  const groupEvents = (groupEventsData ?? []).filter((event: any) => event.is_active === true);
   const individualScores = individualScoresData ?? {};
   const groupScores = groupScoresData ?? {};
   

@@ -842,6 +842,37 @@ export interface GroupEventUpdate {
   seniority_restriction?: SeniorityRestriction;
 }
 
+// Kalamela Event Schedules
+export type ScheduleStatus = 'Scheduled' | 'Ongoing' | 'Completed' | 'Cancelled' | 'Postponed';
+
+export interface EventSchedule {
+  id: number;
+  event_id: number;
+  event_type: 'individual' | 'group';
+  stage_name: string;
+  start_time: string;
+  end_time: string;
+  status: ScheduleStatus;
+  created_on: string;
+  updated_on: string;
+  created_by_id: number;
+  event_name: string;
+}
+
+// Extend IndividualEvent and GroupEvent to include schedules
+export interface IndividualEventWithSchedules extends IndividualEvent {
+  schedules?: EventSchedule[];
+}
+
+export interface GroupEventWithSchedules extends GroupEvent {
+  schedules?: EventSchedule[];
+}
+
+export interface EventsWithSchedulesResponse {
+  individual_events: IndividualEventWithSchedules[];
+  group_events: GroupEventWithSchedules[];
+}
+
 // Kalamela Participants
 export interface EventParticipant {
   id: number;

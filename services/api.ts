@@ -57,6 +57,7 @@ import {
   RegistrationFee,
   RegistrationFeeCreate,
   RegistrationFeeUpdate,
+  EventsWithSchedulesResponse,
   // Site Settings types
   SiteSettings,
   SiteSettingsUpdate,
@@ -2015,6 +2016,25 @@ class ApiService {
       individual_events: IndividualEvent[];
       group_events: GroupEvent[];
     }>('/kalamela/admin/home', { token });
+
+    return {
+      data: {
+        individual_events: rawData.individual_events || [],
+        group_events: rawData.group_events || []
+      },
+      status: 200
+    };
+  }
+
+  // GET /kalamela/admin/events/with-schedules - Get all events with schedules
+  async getEventsWithSchedules(): Promise<ApiResponse<EventsWithSchedulesResponse>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+
+    const rawData = await httpGet<EventsWithSchedulesResponse>(
+      '/kalamela/admin/events/with-schedules',
+      { token }
+    );
 
     return {
       data: {
