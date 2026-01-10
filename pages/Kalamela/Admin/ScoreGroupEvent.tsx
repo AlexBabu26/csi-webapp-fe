@@ -91,7 +91,7 @@ export const ScoreGroupEvent: React.FC = () => {
       
       setLoadingExistingScores(true);
       try {
-        const response = await api.getGroupEventScoresForEdit(parsedEventId);
+        const response = await api.getGroupEventScoresForEdit(event.name);
         const existingScores = response.data?.event_scores || [];
         
         if (existingScores.length > 0) {
@@ -218,12 +218,12 @@ export const ScoreGroupEvent: React.FC = () => {
       setSubmitting(true);
       
       if (isEditMode) {
-        // Update existing scores using PUT endpoint
+        // Update existing scores using POST endpoint
         const scoresToUpdate = roundedScores
           .filter(s => s.score_id) // Only update scores that have score_id
           .map((s) => ({
-            score_id: s.score_id!,
-            marks: s.marks,
+            chest_number: s.chest_number,
+            awarded_mark: s.marks,
           }));
 
         // Add new scores (teams without score_id)
@@ -236,7 +236,7 @@ export const ScoreGroupEvent: React.FC = () => {
 
         // Update existing scores
         if (scoresToUpdate.length > 0) {
-          await api.bulkUpdateGroupScores(parsedEventId, scoresToUpdate);
+          await api.bulkUpdateGroupScores(scoresToUpdate);
         }
 
         // Add new scores

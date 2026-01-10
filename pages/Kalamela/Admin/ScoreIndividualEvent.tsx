@@ -87,7 +87,7 @@ export const ScoreIndividualEvent: React.FC = () => {
       
       setLoadingExistingScores(true);
       try {
-        const response = await api.getIndividualEventScoresForEdit(parsedEventId);
+        const response = await api.getIndividualEventScoresForEdit(event.name);
         const existingScores = response.data?.event_scores || [];
         
         if (existingScores.length > 0) {
@@ -214,12 +214,12 @@ export const ScoreIndividualEvent: React.FC = () => {
       setSubmitting(true);
       
       if (isEditMode) {
-        // Update existing scores using PUT endpoint
+        // Update existing scores using POST endpoint
         const scoresToUpdate = roundedScores
           .filter(s => s.score_id) // Only update scores that have score_id
           .map((s) => ({
-            score_id: s.score_id!,
-            marks: s.marks,
+            event_participation_id: s.event_participation_id,
+            awarded_mark: s.marks,
           }));
 
         // Add new scores (participants without score_id)
@@ -232,7 +232,7 @@ export const ScoreIndividualEvent: React.FC = () => {
 
         // Update existing scores
         if (scoresToUpdate.length > 0) {
-          await api.bulkUpdateIndividualScores(parsedEventId, scoresToUpdate);
+          await api.bulkUpdateIndividualScores(scoresToUpdate);
         }
 
         // Add new scores

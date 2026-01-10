@@ -2628,55 +2628,51 @@ class ApiService {
     return { data, status: 200 };
   }
 
-  // PUT /kalamela/admin/scores/individual/event/{event_id} - Bulk update individual scores
-  async bulkUpdateIndividualScores(eventId: number, scores: Array<{
-    score_id: number;
-    marks?: number;
-    position?: number;
+  // POST /kalamela/admin/scores/individual/update - Bulk update individual scores
+  async bulkUpdateIndividualScores(scores: Array<{
+    event_participation_id: number;
+    awarded_mark: number;
   }>): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    // Map marks to awarded_mark for API compatibility
-    const formattedScores = scores.map(s => ({
-      score_id: s.score_id,
-      awarded_mark: s.marks,
-      position: s.position,
-    }));
-    const data = await httpPut<any>(`/kalamela/admin/scores/individual/event/${eventId}`, { scores: formattedScores }, { token });
-    return { data, message: `${scores.length} scores updated successfully`, status: 200 };
+    const data = await httpPost<any>('/kalamela/admin/scores/individual/update', {
+      participants: scores
+    }, { token });
+    return { data, message: `Updated ${scores.length} scores successfully`, status: 200 };
   }
 
-  // PUT /kalamela/admin/scores/group/event/{event_id} - Bulk update group scores
-  async bulkUpdateGroupScores(eventId: number, scores: Array<{
-    score_id: number;
-    marks?: number;
-    position?: number;
+  // POST /kalamela/admin/scores/group/update - Bulk update group scores
+  async bulkUpdateGroupScores(scores: Array<{
+    chest_number: string;
+    awarded_mark: number;
   }>): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    // Map marks to awarded_mark for API compatibility
-    const formattedScores = scores.map(s => ({
-      score_id: s.score_id,
-      awarded_mark: s.marks,
-      position: s.position,
-    }));
-    const data = await httpPut<any>(`/kalamela/admin/scores/group/event/${eventId}`, { scores: formattedScores }, { token });
-    return { data, message: `${scores.length} scores updated successfully`, status: 200 };
+    const data = await httpPost<any>('/kalamela/admin/scores/group/update', {
+      participants: scores
+    }, { token });
+    return { data, message: `Updated ${scores.length} scores successfully`, status: 200 };
   }
 
-  // GET /kalamela/admin/scores/individual/event/{event_id}/edit - Get scores for editing
-  async getIndividualEventScoresForEdit(eventId: number): Promise<ApiResponse<any>> {
+  // POST /kalamela/admin/scores/individual/event - Get scores for editing
+  async getIndividualEventScoresForEdit(eventName: string): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<any>(`/kalamela/admin/scores/individual/event/${eventId}/edit`, { token });
+    const data = await httpPost<any>('/kalamela/admin/scores/individual/event', {}, { 
+      token,
+      query: { event_name: eventName }
+    });
     return { data, status: 200 };
   }
 
-  // GET /kalamela/admin/scores/group/event/{event_id}/edit - Get scores for editing
-  async getGroupEventScoresForEdit(eventId: number): Promise<ApiResponse<any>> {
+  // POST /kalamela/admin/scores/group/event - Get scores for editing
+  async getGroupEventScoresForEdit(eventName: string): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<any>(`/kalamela/admin/scores/group/event/${eventId}/edit`, { token });
+    const data = await httpPost<any>('/kalamela/admin/scores/group/event', {}, { 
+      token,
+      query: { event_name: eventName }
+    });
     return { data, status: 200 };
   }
 
