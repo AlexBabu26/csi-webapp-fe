@@ -4,7 +4,7 @@ import { Card, Badge, Button } from '../../../components/ui';
 import { 
   Plus, Calendar, Users, Trophy, 
   CheckCircle2, Clock, BarChart3, Award, Search,
-  ChevronRight
+  ChevronRight, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useIndividualEvents, useGroupEvents } from '../../../hooks/queries';
 import { api } from '../../../services/api';
@@ -12,11 +12,19 @@ import { useQuery } from '@tanstack/react-query';
 
 type TabType = 'individual' | 'group';
 
+// Number of pending items to show initially before "View More"
+const PENDING_ITEMS_LIMIT = 6;
+
 export const ViewScores: React.FC = () => {
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState<TabType>('individual');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Collapsible section states
+  const [isResultsExpanded, setIsResultsExpanded] = useState(true);
+  const [isPendingExpanded, setIsPendingExpanded] = useState(true);
+  const [showAllPending, setShowAllPending] = useState(false);
   
   // Use TanStack Query for events
   const { data: individualEventsData, isLoading: loadingIndividual } = useIndividualEvents();
@@ -250,112 +258,183 @@ export const ViewScores: React.FC = () => {
         </div>
       </div>
 
-      {/* Events Pending Score Entry */}
-      {eventsWithoutScores.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-5 h-5 text-warning" />
-            <h2 className="text-lg font-bold text-textDark">Pending Score Entry</h2>
-            <Badge variant="warning">{eventsWithoutScores.length}</Badge>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {eventsWithoutScores.map((event: any) => (
-              <Card 
-                key={event.id} 
-                className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-warning bg-gradient-to-r from-warning/5 to-transparent"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-textDark group-hover:text-primary transition-colors">
-                      {event.name}
-                    </h3>
-                    {event.description && (
-                      <p className="text-xs text-textMuted mt-1 line-clamp-1">{event.description}</p>
-                    )}
-                  </div>
-                  <Badge variant="warning" className="flex-shrink-0">Pending</Badge>
-                </div>
-                
-                <div className="flex items-center justify-between pt-3 border-t border-borderColor/50">
-                  <span className="text-xs text-textMuted">
-                    {activeTab === 'individual' ? 'Individual Event' : 'Group Event'}
-                  </span>
-                  <Button
-                    variant="success"
-                    size="sm"
-                    className="group-hover:shadow-md transition-shadow"
-                    onClick={() => {
-                      console.log('Navigating to:', `/kalamela/admin/scores/${activeTab}/${event.id}/add`);
-                      navigate(`/kalamela/admin/scores/${activeTab}/${event.id}/add`);
-                    }}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Scores
-                    <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+      {/* Event Results - SHOWN FIRST for easier access */}
+      {eventsWithScores.length > 0 && (
+        <div className="bg-white rounded-xl border border-borderColor overflow-hidden shadow-sm">
+          {/* Collapsible Header */}
+          <button
+            onClick={() => setIsResultsExpanded(!isResultsExpanded)}
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-success/10 to-success/5 hover:from-success/15 hover:to-success/10 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-success/20 rounded-lg">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+              </div>
+              <h2 className="text-lg font-bold text-textDark">Event Results</h2>
+              <Badge variant="success">{eventsWithScores.length}</Badge>
+            </div>
+            <div className="flex items-center gap-2 text-textMuted">
+              <span className="text-sm hidden sm:inline">
+                {isResultsExpanded ? 'Click to collapse' : 'Click to expand'}
+              </span>
+              {isResultsExpanded ? (
+                <ChevronUp className="w-5 h-5" />
+              ) : (
+                <ChevronDown className="w-5 h-5" />
+              )}
+            </div>
+          </button>
+          
+          {/* Collapsible Content */}
+          {isResultsExpanded && (
+            <div className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {eventsWithScores.map((event: any) => {
+                  const eventScores = scores[event.name] || [];
+                  const scoreCount = Array.isArray(eventScores) ? eventScores.length : 0;
+                  
+                  return (
+                    <Card 
+                      key={event.id} 
+                      className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-success bg-gradient-to-r from-success/5 to-transparent"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-textDark group-hover:text-success transition-colors">
+                            {event.name}
+                          </h3>
+                          {event.description && (
+                            <p className="text-xs text-textMuted mt-1 line-clamp-1">{event.description}</p>
+                          )}
+                        </div>
+                        <Badge variant="success" className="flex-shrink-0">Scored</Badge>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 mb-3 text-xs text-textMuted">
+                        <Award className="w-4 h-4" />
+                        <span>{scoreCount} {activeTab === 'individual' ? 'participants' : 'teams'} scored</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-3 border-t border-borderColor/50">
+                        <span className="text-xs text-textMuted">
+                          {activeTab === 'individual' ? 'Individual Event' : 'Group Event'}
+                        </span>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="group-hover:shadow-md transition-shadow"
+                          onClick={() => {
+                            const encodedEventName = encodeURIComponent(event.name);
+                            navigate(`/kalamela/admin/scores/results/${activeTab}/${encodedEventName}`);
+                          }}
+                        >
+                          View Results
+                          <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Events With Scores - View Results */}
-      {eventsWithScores.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <CheckCircle2 className="w-5 h-5 text-success" />
-            <h2 className="text-lg font-bold text-textDark">Event Results</h2>
-            <Badge variant="success">{eventsWithScores.length}</Badge>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {eventsWithScores.map((event: any) => {
-              const eventScores = scores[event.name] || [];
-              const scoreCount = Array.isArray(eventScores) ? eventScores.length : 0;
-              
-              return (
-                <Card 
-                  key={event.id} 
-                  className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-success bg-gradient-to-r from-success/5 to-transparent"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-textDark group-hover:text-success transition-colors">
-                        {event.name}
-                      </h3>
-                      {event.description && (
-                        <p className="text-xs text-textMuted mt-1 line-clamp-1">{event.description}</p>
-                      )}
+      {/* Events Pending Score Entry - with pagination */}
+      {eventsWithoutScores.length > 0 && (
+        <div className="bg-white rounded-xl border border-borderColor overflow-hidden shadow-sm">
+          {/* Collapsible Header */}
+          <button
+            onClick={() => setIsPendingExpanded(!isPendingExpanded)}
+            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-warning/10 to-warning/5 hover:from-warning/15 hover:to-warning/10 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-warning/20 rounded-lg">
+                <Clock className="w-5 h-5 text-warning" />
+              </div>
+              <h2 className="text-lg font-bold text-textDark">Pending Score Entry</h2>
+              <Badge variant="warning">{eventsWithoutScores.length}</Badge>
+            </div>
+            <div className="flex items-center gap-2 text-textMuted">
+              <span className="text-sm hidden sm:inline">
+                {isPendingExpanded ? 'Click to collapse' : 'Click to expand'}
+              </span>
+              {isPendingExpanded ? (
+                <ChevronUp className="w-5 h-5" />
+              ) : (
+                <ChevronDown className="w-5 h-5" />
+              )}
+            </div>
+          </button>
+          
+          {/* Collapsible Content with pagination */}
+          {isPendingExpanded && (
+            <div className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(showAllPending ? eventsWithoutScores : eventsWithoutScores.slice(0, PENDING_ITEMS_LIMIT)).map((event: any) => (
+                  <Card 
+                    key={event.id} 
+                    className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-warning bg-gradient-to-r from-warning/5 to-transparent"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="font-bold text-textDark group-hover:text-primary transition-colors">
+                          {event.name}
+                        </h3>
+                        {event.description && (
+                          <p className="text-xs text-textMuted mt-1 line-clamp-1">{event.description}</p>
+                        )}
+                      </div>
+                      <Badge variant="warning" className="flex-shrink-0">Pending</Badge>
                     </div>
-                    <Badge variant="success" className="flex-shrink-0">Scored</Badge>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mb-3 text-xs text-textMuted">
-                    <Award className="w-4 h-4" />
-                    <span>{scoreCount} {activeTab === 'individual' ? 'participants' : 'teams'} scored</span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-3 border-t border-borderColor/50">
-                    <span className="text-xs text-textMuted">
-                      {activeTab === 'individual' ? 'Individual Event' : 'Group Event'}
-                    </span>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="group-hover:shadow-md transition-shadow"
-                      onClick={() => {
-                        const encodedEventName = encodeURIComponent(event.name);
-                        navigate(`/kalamela/admin/scores/results/${activeTab}/${encodedEventName}`);
-                      }}
-                    >
-                      View Results
-                      <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+                    
+                    <div className="flex items-center justify-between pt-3 border-t border-borderColor/50">
+                      <span className="text-xs text-textMuted">
+                        {activeTab === 'individual' ? 'Individual Event' : 'Group Event'}
+                      </span>
+                      <Button
+                        variant="success"
+                        size="sm"
+                        className="group-hover:shadow-md transition-shadow"
+                        onClick={() => {
+                          console.log('Navigating to:', `/kalamela/admin/scores/${activeTab}/${event.id}/add`);
+                          navigate(`/kalamela/admin/scores/${activeTab}/${event.id}/add`);
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add Scores
+                        <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+              
+              {/* View More / View Less button */}
+              {eventsWithoutScores.length > PENDING_ITEMS_LIMIT && (
+                <div className="mt-6 text-center">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAllPending(!showAllPending)}
+                    className="px-6"
+                  >
+                    {showAllPending ? (
+                      <>
+                        <ChevronUp className="w-4 h-4 mr-2" />
+                        Show Less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4 mr-2" />
+                        View All {eventsWithoutScores.length} Pending Events
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
