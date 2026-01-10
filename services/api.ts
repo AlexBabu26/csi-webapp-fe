@@ -2592,7 +2592,10 @@ class ApiService {
   }>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpPost<any>('/kalamela/admin/scores/individual/event', { event_name: eventName }, { token });
+    const data = await httpPost<any>('/kalamela/admin/scores/individual/event', {}, { 
+      token,
+      query: { event_name: eventName }
+    });
     return { data, status: 200 };
   }
 
@@ -2613,7 +2616,10 @@ class ApiService {
   }>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpPost<any>('/kalamela/admin/scores/group/event', { event_name: eventName }, { token });
+    const data = await httpPost<any>('/kalamela/admin/scores/group/event', {}, { 
+      token,
+      query: { event_name: eventName }
+    });
     return { data, status: 200 };
   }
 

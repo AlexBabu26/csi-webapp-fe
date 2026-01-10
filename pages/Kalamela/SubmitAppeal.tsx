@@ -66,23 +66,38 @@ export const SubmitAppeal: React.FC = () => {
       const data = response.data;
       
       if (data) {
+        // Combine individual and group participations
+        const individualEvents = (data.individual_participations || []).map((participation: any) => ({
+          eventName: participation.event_name || 'Unknown Event',
+          eventType: 'INDIVIDUAL' as const,
+          marks: participation.awarded_mark ?? null,
+          grade: participation.grade || null,
+          position: participation.position || null,
+          status: (participation.awarded_mark !== undefined && participation.awarded_mark !== null) 
+                  ? 'SCORED' as const : 'PENDING' as const,
+        }));
+        
+        const groupEvents = (data.group_participations || []).map((participation: any) => ({
+          eventName: participation.event_name || 'Unknown Event',
+          eventType: 'GROUP' as const,
+          marks: participation.awarded_mark ?? null,
+          grade: participation.grade || null,
+          position: participation.position || null,
+          status: (participation.awarded_mark !== undefined && participation.awarded_mark !== null) 
+                  ? 'SCORED' as const : 'PENDING' as const,
+        }));
+        
+        // Extract participant info from first participation or root level
+        const firstParticipation = data.individual_participations?.[0] || data.group_participations?.[0];
+        
         const participantData: ParticipantData = {
-          id: data.id || data.participant_id,
-          name: data.name || data.member_name || `Participant ${data.id}`,
-          chestNumber: data.chest_number || chestNumber.trim(),
-          unit: data.unit_name || data.unit || 'N/A',
-          district: data.district_name || data.district || 'N/A',
-          category: data.seniority_category || data.category || 'N/A',
-          eventResults: (data.event_results || data.scores || []).map((score: any) => ({
-            eventName: score.event_name || score.eventName || 'Unknown Event',
-            eventType: score.event_type || score.eventType || 'INDIVIDUAL',
-            marks: score.marks ?? score.awarded_marks ?? null,
-            grade: score.grade || null,
-            position: score.position || null,
-            status: (score.marks !== undefined && score.marks !== null) || 
-                    (score.awarded_marks !== undefined && score.awarded_marks !== null) 
-                    ? 'SCORED' : 'PENDING',
-          })),
+          id: data.id || data.participant_id || 0,
+          name: firstParticipation?.participant_name || data.participant_name || data.name || data.member_name || 'Unknown Participant',
+          chestNumber: data.chest_number || firstParticipation?.chest_number || chestNumber.trim(),
+          unit: firstParticipation?.unit_name || data.unit_name || data.unit || 'N/A',
+          district: firstParticipation?.district_name || data.district_name || data.district || 'N/A',
+          category: firstParticipation?.seniority_category || data.seniority_category || data.category || 'N/A',
+          eventResults: [...individualEvents, ...groupEvents],
         };
         
         setParticipant(participantData);
