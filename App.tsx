@@ -64,6 +64,8 @@ const PaymentPreview = lazy(() => import('./pages/Kalamela/PaymentPreview').then
 const PrintView = lazy(() => import('./pages/Kalamela/PrintView').then(module => ({ default: module.PrintView })));
 const PublicResults = lazy(() => import('./pages/Kalamela/PublicResults').then(module => ({ default: module.PublicResults })));
 const TopPerformers = lazy(() => import('./pages/Kalamela/TopPerformers').then(module => ({ default: module.TopPerformers })));
+const SubmitAppeal = lazy(() => import('./pages/Kalamela/SubmitAppeal').then(module => ({ default: module.SubmitAppeal })));
+const EventResults = lazy(() => import('./pages/Kalamela/Admin/EventResults').then(module => ({ default: module.EventResults })));
 
 // Kalamela Admin Pages
 const ViewScores = lazy(() => import('./pages/Kalamela/Admin/ViewScores').then(module => ({ default: module.ViewScores })));
@@ -336,6 +338,12 @@ const App: React.FC = () => {
                 </AdminRoute>
               } />
 
+              <Route path="/kalamela/admin/scores/results/:eventType/:eventName" element={
+                <AdminRoute>
+                  <EventResults />
+                </AdminRoute>
+              } />
+
               <Route path="/kalamela/admin/scores/individual/:eventId/add" element={
                 <AdminRoute>
                   <ScoreIndividualEvent />
@@ -417,6 +425,7 @@ const App: React.FC = () => {
 
               {/* Kalamela Public Routes */}
               <Route path="/kalamela/results" element={<PublicResults />} />
+              <Route path="/kalamela/appeal" element={<SubmitAppeal />} />
               <Route path="/kalamela/top-performers" element={
                 <AdminRoute>
                   <TopPerformers />

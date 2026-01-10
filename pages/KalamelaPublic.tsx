@@ -193,7 +193,7 @@ export const KalamelaPublic: React.FC = () => {
 
                                 {/* File Appeal Card - Fully Clickable */}
                                 <button
-                                    onClick={() => alert('Appeal feature coming soon!')}
+                                    onClick={() => navigate('/kalamela/appeal')}
                                     className="bg-white p-6 rounded-md border border-borderColor shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border-t-4 border-t-secondary text-left group hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
                                 >
                                     <div className="flex items-center mb-4">

@@ -2573,6 +2573,50 @@ class ApiService {
     return { data, status: 200 };
   }
 
+  // POST /kalamela/admin/scores/individual/event - Get scores for specific individual event by event_name
+  async getIndividualEventScoresByName(eventName: string): Promise<ApiResponse<{
+    event_name: string;
+    event_scores: Array<{
+      id: number;
+      event_participation_id: number;
+      participant_id: number;
+      participant_name: string;
+      chest_number: string;
+      unit_name: string | null;
+      district_name: string | null;
+      awarded_mark: number;
+      grade: string | null;
+      total_points: number;
+      added_on: string;
+    }>;
+  }>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpPost<any>('/kalamela/admin/scores/individual/event', { event_name: eventName }, { token });
+    return { data, status: 200 };
+  }
+
+  // POST /kalamela/admin/scores/group/event - Get scores for specific group event by event_name
+  async getGroupEventScoresByName(eventName: string): Promise<ApiResponse<{
+    event_name: string;
+    event_scores: Array<{
+      id: number;
+      event_name: string;
+      chest_number: string;
+      unit_name: string | null;
+      district_name: string | null;
+      awarded_mark: number;
+      grade: string | null;
+      total_points: number;
+      added_on: string;
+    }>;
+  }>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpPost<any>('/kalamela/admin/scores/group/event', { event_name: eventName }, { token });
+    return { data, status: 200 };
+  }
+
   // PUT /kalamela/admin/scores/individual/event/{event_id} - Bulk update individual scores
   async bulkUpdateIndividualScores(eventId: number, scores: Array<{
     score_id: number;

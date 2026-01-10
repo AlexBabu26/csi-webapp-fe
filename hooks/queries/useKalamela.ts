@@ -114,6 +114,32 @@ export const useEventScores = (eventId: number, eventType?: 'individual' | 'grou
   });
 };
 
+// Get scores for an individual event by event name (includes unit_name and district_name)
+export const useIndividualEventScoresByName = (eventName: string) => {
+  return useQuery({
+    queryKey: ['kalamela', 'scores', 'individual', 'event', eventName],
+    queryFn: async () => {
+      const response = await api.getIndividualEventScoresByName(eventName);
+      return response.data;
+    },
+    enabled: !!eventName,
+    staleTime: 30 * 1000, // 30 seconds
+  });
+};
+
+// Get scores for a group event by event name (includes unit_name and district_name)
+export const useGroupEventScoresByName = (eventName: string) => {
+  return useQuery({
+    queryKey: ['kalamela', 'scores', 'group', 'event', eventName],
+    queryFn: async () => {
+      const response = await api.getGroupEventScoresByName(eventName);
+      return response.data;
+    },
+    enabled: !!eventName,
+    staleTime: 30 * 1000, // 30 seconds
+  });
+};
+
 // Get Kalamela results
 export const useKalamelaResults = () => {
   return useQuery({
@@ -340,6 +366,58 @@ export const useKalamelaTopPerformers = () => {
       return response.data;
     },
     staleTime: 2 * 60 * 1000,
+  });
+};
+
+// ============ PUBLIC APPEAL QUERIES ============
+
+// Check appeal eligibility
+export const useCheckAppealEligibility = () => {
+  const { addToast } = useToast();
+  return useMutation({
+    mutationFn: async ({ chestNumber, eventName }: { chestNumber: string; eventName: string }) => {
+      const response = await api.checkAppealEligibility(chestNumber, eventName);
+      return response.data;
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to check appeal eligibility', 'error');
+    },
+  });
+};
+
+// Submit appeal
+export const useSubmitAppeal = () => {
+  const { addToast } = useToast();
+  return useMutation({
+    mutationFn: async (payload: {
+      participant_id: number;
+      chest_number: string;
+      event_name: string;
+      statement: string;
+      payment_type: string;
+    }) => {
+      const response = await api.submitAppeal(payload);
+      return response.data;
+    },
+    onSuccess: () => {
+      addToast('Appeal submitted successfully', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to submit appeal', 'error');
+    },
+  });
+};
+
+// Get appeal status
+export const useAppealStatus = (participantId?: number, chestNumber?: string) => {
+  return useQuery({
+    queryKey: ['kalamela', 'appealStatus', participantId, chestNumber],
+    queryFn: async () => {
+      const response = await api.getAppealStatus(participantId, chestNumber);
+      return response.data;
+    },
+    enabled: !!(participantId || chestNumber),
+    staleTime: 30 * 1000, // 30 seconds
   });
 };
 

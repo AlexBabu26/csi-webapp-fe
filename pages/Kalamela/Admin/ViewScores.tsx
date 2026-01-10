@@ -65,6 +65,20 @@ export const ViewScores: React.FC = () => {
     return filtered;
   }, [events, scores, searchTerm]);
 
+  // Events with scores (for viewing results)
+  const eventsWithScores = useMemo(() => {
+    let filtered = events.filter((event: any) => scores[event.name]);
+    
+    // Apply search filter if search term exists
+    if (searchTerm) {
+      filtered = filtered.filter((event: any) => 
+        event.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [events, scores, searchTerm]);
+
   // Only show events without scores
   const eventsWithoutScores = filteredEvents;
 
@@ -286,8 +300,67 @@ export const ViewScores: React.FC = () => {
         </div>
       )}
 
+      {/* Events With Scores - View Results */}
+      {eventsWithScores.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <CheckCircle2 className="w-5 h-5 text-success" />
+            <h2 className="text-lg font-bold text-textDark">Event Results</h2>
+            <Badge variant="success">{eventsWithScores.length}</Badge>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {eventsWithScores.map((event: any) => {
+              const eventScores = scores[event.name] || [];
+              const scoreCount = Array.isArray(eventScores) ? eventScores.length : 0;
+              
+              return (
+                <Card 
+                  key={event.id} 
+                  className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-success bg-gradient-to-r from-success/5 to-transparent"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-textDark group-hover:text-success transition-colors">
+                        {event.name}
+                      </h3>
+                      {event.description && (
+                        <p className="text-xs text-textMuted mt-1 line-clamp-1">{event.description}</p>
+                      )}
+                    </div>
+                    <Badge variant="success" className="flex-shrink-0">Scored</Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mb-3 text-xs text-textMuted">
+                    <Award className="w-4 h-4" />
+                    <span>{scoreCount} {activeTab === 'individual' ? 'participants' : 'teams'} scored</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-3 border-t border-borderColor/50">
+                    <span className="text-xs text-textMuted">
+                      {activeTab === 'individual' ? 'Individual Event' : 'Group Event'}
+                    </span>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="group-hover:shadow-md transition-shadow"
+                      onClick={() => {
+                        const encodedEventName = encodeURIComponent(event.name);
+                        navigate(`/kalamela/admin/scores/results/${activeTab}/${encodedEventName}`);
+                      }}
+                    >
+                      View Results
+                      <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Empty State */}
-      {eventsWithoutScores.length === 0 && (
+      {eventsWithoutScores.length === 0 && eventsWithScores.length === 0 && (
         <Card className="text-center py-16 bg-gradient-to-b from-bgLight to-white">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             {searchTerm ? (
@@ -297,12 +370,12 @@ export const ViewScores: React.FC = () => {
             )}
           </div>
           <h3 className="text-lg font-semibold text-textDark mb-2">
-            {searchTerm ? 'No events found' : `All ${activeTab} events have been scored`}
+            {searchTerm ? 'No events found' : `No ${activeTab} events available`}
           </h3>
           <p className="text-textMuted mb-6">
             {searchTerm 
-              ? `No pending events match "${searchTerm}"`
-              : 'All events have scores. Great job!'
+              ? `No events match "${searchTerm}"`
+              : 'No events have been created yet'
             }
           </p>
           {searchTerm ? (
