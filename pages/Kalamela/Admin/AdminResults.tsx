@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, Badge, Button } from '../../../components/ui';
 import { Download } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
 import { api } from '../../../services/api';
-import { useKalamelaAdminResults } from '../../../hooks/queries';
+import { useKalamelaUnitWiseResults, useKalamelaDistrictWiseResults } from '../../../hooks/queries';
 
 type ViewType = 'unit' | 'district';
 
@@ -13,8 +13,137 @@ export const AdminResults: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('unit');
   const [exporting, setExporting] = useState(false);
   
-  // Use TanStack Query
-  const { data, isLoading: loading } = useKalamelaAdminResults();
+  // Use TanStack Query - fetch both but only use the active one
+  const { data: unitWiseData, isLoading: loadingUnits } = useKalamelaUnitWiseResults();
+  const { data: districtWiseData, isLoading: loadingDistricts } = useKalamelaDistrictWiseResults();
+  
+  const loading = loadingUnits || loadingDistricts;
+  
+  // Transform unit-wise data
+  const transformedUnitData = useMemo(() => {
+    if (!unitWiseData?.results_dict) return null;
+    
+    const units: any[] = [];
+    let rank = 1;
+    
+    Object.entries(unitWiseData.results_dict).forEach(([unitName, unitData]: [string, any], index) => {
+      if (!Array.isArray(unitData) || unitData.length === 0) {
+        units.push({
+          unit_id: index,
+          unit_name: unitName,
+          district_name: 'N/A',
+          event_count: 0,
+          individual_points: 0,
+          group_points: 0,
+          total_points: 0,
+          rank: 0 // Will be set after sorting
+        });
+        return;
+      }
+      
+      // Aggregate points from all unit_results
+      let totalPoints = 0;
+      let eventCount = 0;
+      let individualPoints = 0;
+      let groupPoints = 0;
+      
+      unitData.forEach((entry: any) => {
+        if (entry.unit_results && Array.isArray(entry.unit_results)) {
+          entry.unit_results.forEach((result: any) => {
+            totalPoints += result.total_points || 0;
+            eventCount++;
+            // Note: API doesn't distinguish individual vs group, so we'll need to check event type
+            // For now, assume all are individual points
+            individualPoints += result.total_points || 0;
+          });
+        }
+      });
+      
+      units.push({
+        unit_id: index,
+        unit_name: unitName,
+        district_name: 'N/A', // API doesn't provide this, might need backend update
+        event_count: eventCount,
+        individual_points: individualPoints,
+        group_points: groupPoints,
+        total_points: totalPoints,
+        rank: 0 // Will be set after sorting
+      });
+    });
+    
+    // Sort by total_points descending and update ranks
+    units.sort((a, b) => b.total_points - a.total_points);
+    units.forEach((unit, index) => {
+      unit.rank = index + 1;
+    });
+    
+    return { units };
+  }, [unitWiseData]);
+  
+  // Transform district-wise data
+  const transformedDistrictData = useMemo(() => {
+    if (!districtWiseData?.results_dict) return null;
+    
+    const districts: any[] = [];
+    let rank = 1;
+    
+    Object.entries(districtWiseData.results_dict).forEach(([districtName, districtData]: [string, any], index) => {
+      if (!Array.isArray(districtData) || districtData.length === 0) {
+        districts.push({
+          district_id: index,
+          district_name: districtName,
+          unit_count: 0,
+          individual_points: 0,
+          group_points: 0,
+          total_points: 0,
+          rank: 0 // Will be set after sorting
+        });
+        return;
+      }
+      
+      // Aggregate points from all district_results
+      let totalPoints = 0;
+      let unitCount = 0;
+      let individualPoints = 0;
+      let groupPoints = 0;
+      
+      districtData.forEach((entry: any) => {
+        if (entry.total_points) {
+          totalPoints += entry.total_points;
+        }
+        if (entry.district_results && Array.isArray(entry.district_results)) {
+          // Count unique units from results (assuming each result has unit info)
+          // For now, use the length as an approximation
+          unitCount = Math.max(unitCount, entry.district_results.length);
+          entry.district_results.forEach((result: any) => {
+            // Note: API doesn't distinguish individual vs group
+            individualPoints += result.total_points || 0;
+          });
+        }
+      });
+      
+      districts.push({
+        district_id: index,
+        district_name: districtName,
+        unit_count: unitCount,
+        individual_points: individualPoints,
+        group_points: groupPoints,
+        total_points: totalPoints,
+        rank: 0 // Will be set after sorting
+      });
+    });
+    
+    // Sort by total_points descending and update ranks
+    districts.sort((a, b) => b.total_points - a.total_points);
+    districts.forEach((district, index) => {
+      district.rank = index + 1;
+    });
+    
+    return { districts };
+  }, [districtWiseData]);
+  
+  // Select the appropriate data based on active view
+  const data = activeView === 'unit' ? transformedUnitData : transformedDistrictData;
 
   const handleExport = async () => {
     try {

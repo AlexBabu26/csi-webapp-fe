@@ -354,7 +354,29 @@ export const useKalamelaPrintData = () => {
   });
 };
 
-// Get admin results
+// Get admin unit-wise results
+export const useKalamelaUnitWiseResults = () => {
+  return useQuery({
+    queryKey: ['kalamela', 'adminResults', 'unit-wise'],
+    queryFn: async () => {
+      const response = await api.getKalamelaUnitWiseResults();
+      return response.data;
+    },
+  });
+};
+
+// Get admin district-wise results
+export const useKalamelaDistrictWiseResults = () => {
+  return useQuery({
+    queryKey: ['kalamela', 'adminResults', 'district-wise'],
+    queryFn: async () => {
+      const response = await api.getKalamelaDistrictWiseResults();
+      return response.data;
+    },
+  });
+};
+
+// Get admin results (deprecated - use specific hooks instead)
 export const useKalamelaAdminResults = () => {
   return useQuery({
     queryKey: ['kalamela', 'adminResults'],
