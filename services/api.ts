@@ -1832,10 +1832,15 @@ class ApiService {
     return { data, status: 200 };
   }
 
-  // GET /kalamela/kalaprathibha - Top performers
+  // GET /kalamela/kalaprathibha - Top performers (Public endpoint)
   async getKalaprathibha(): Promise<ApiResponse<any>> {
-    const data = await httpGet<any>('/kalamela/kalaprathibha');
+    const data = await httpGet<any>('/kalamela/kalaprathibha', { skipAuthRefresh: true });
     return { data, status: 200 };
+  }
+
+  // Alias for consistency with hook naming
+  async getKalamelaTopPerformers(): Promise<ApiResponse<any>> {
+    return this.getKalaprathibha();
   }
 
   // POST /kalamela/appeal/check - Check appeal eligibility
