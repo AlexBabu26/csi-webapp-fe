@@ -2721,11 +2721,11 @@ class ApiService {
     return httpPost<Blob>('/kalamela/admin/export/chest-numbers', {}, { token, asBlob: true });
   }
 
-  // GET /kalamela/admin/export/results - Export results
+  // POST /kalamela/admin/export/results - Export results
   async exportKalamelaResults(): Promise<Blob> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    return httpGet<Blob>('/kalamela/admin/export/results', { token, asBlob: true });
+    return httpPost<Blob>('/kalamela/admin/export/results', {}, { token, asBlob: true });
   }
 
   // Kalamela Participant Registration
