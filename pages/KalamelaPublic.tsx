@@ -172,7 +172,7 @@ export const KalamelaPublic: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                                 {/* Live Results Card - Fully Clickable */}
                                 <button
-                                    onClick={() => alert('Live Results feature coming soon!')}
+                                    onClick={() => navigate('/kalamela/results')}
                                     className="bg-white p-6 rounded-md border border-borderColor shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border-t-4 border-t-primary text-left group hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                                 >
                                     <div className="flex items-center mb-4">

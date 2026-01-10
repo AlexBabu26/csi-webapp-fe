@@ -416,11 +416,7 @@ const App: React.FC = () => {
               } />
 
               {/* Kalamela Public Routes */}
-              <Route path="/kalamela/results" element={
-                <AdminRoute>
-                  <PublicResults />
-                </AdminRoute>
-              } />
+              <Route path="/kalamela/results" element={<PublicResults />} />
               <Route path="/kalamela/top-performers" element={
                 <AdminRoute>
                   <TopPerformers />

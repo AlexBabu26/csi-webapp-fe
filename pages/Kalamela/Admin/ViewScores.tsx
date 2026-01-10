@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../../components/ui';
 import { 
-  Plus, Edit2, Eye, Calendar, Users, Trophy, 
+  Plus, Calendar, Users, Trophy, 
   CheckCircle2, Clock, BarChart3, Award, Search,
-  ChevronRight, Sparkles
+  ChevronRight
 } from 'lucide-react';
 import { useIndividualEvents, useGroupEvents } from '../../../hooks/queries';
 import { api } from '../../../services/api';
@@ -27,7 +27,7 @@ export const ViewScores: React.FC = () => {
     queryKey: ['kalamela', 'scores', 'individual', 'all'],
     queryFn: async () => {
       const response = await api.getAdminIndividualScores();
-      return response.data.individual_event_scores || {};
+      return response.data.results_dict || {};
     },
   });
   
@@ -35,7 +35,7 @@ export const ViewScores: React.FC = () => {
     queryKey: ['kalamela', 'scores', 'group', 'all'],
     queryFn: async () => {
       const response = await api.getAdminGroupScores();
-      return response.data.group_event_scores || {};
+      return response.data.results_dict || {};
     },
   });
   
@@ -50,16 +50,23 @@ export const ViewScores: React.FC = () => {
   const events = activeTab === 'individual' ? individualEvents : groupEvents;
   const scores = activeTab === 'individual' ? individualScores : groupScores;
 
-  // Filter events by search
+  // Filter events by search AND exclude events with scores by default
   const filteredEvents = useMemo(() => {
-    if (!searchTerm) return events;
-    return events.filter((event: any) => 
-      event.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [events, searchTerm]);
+    // First, filter out events that have scores
+    let filtered = events.filter((event: any) => !scores[event.name]);
+    
+    // Then apply search filter if search term exists
+    if (searchTerm) {
+      filtered = filtered.filter((event: any) => 
+        event.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return filtered;
+  }, [events, scores, searchTerm]);
 
-  const eventsWithScores = filteredEvents.filter((event: any) => scores[event.name]);
-  const eventsWithoutScores = filteredEvents.filter((event: any) => !scores[event.name]);
+  // Only show events without scores
+  const eventsWithoutScores = filteredEvents;
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -279,87 +286,8 @@ export const ViewScores: React.FC = () => {
         </div>
       )}
 
-      {/* Events With Scores */}
-      {eventsWithScores.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <CheckCircle2 className="w-5 h-5 text-success" />
-            <h2 className="text-lg font-bold text-textDark">Scored Events</h2>
-            <Badge variant="success">{eventsWithScores.length}</Badge>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {eventsWithScores.map((event: any) => {
-              const eventScores = scores[event.name] || [];
-              const topScorer = eventScores[0]; // Assuming sorted by rank
-              return (
-                <Card 
-                  key={event.id} 
-                  className="group hover:shadow-lg transition-all duration-300 border-l-4 border-l-success"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-bold text-textDark">{event.name}</h3>
-                    <Badge variant="success" className="flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      Scored
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 text-sm text-textMuted mb-4">
-                    <span className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {eventScores.length} {activeTab === 'individual' ? 'participant' : 'team'}
-                      {eventScores.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-
-                  {/* Mini leaderboard preview */}
-                  {topScorer && (
-                    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-lg p-2 mb-4 border border-amber-100">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center">
-                          <Trophy className="w-3 h-3 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-textDark truncate">
-                            {topScorer.participant_name || topScorer.unit_name || 'Top Scorer'}
-                          </p>
-                          <p className="text-xs text-amber-600">
-                            {topScorer.awarded_mark || topScorer.marks || 0} marks
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-2">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => navigate(`/kalamela/admin/scores/${activeTab}/${event.id}/view`)}
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => navigate(`/kalamela/admin/scores/${activeTab}/${event.id}/edit`)}
-                    >
-                      <Edit2 className="w-4 h-4 mr-1" />
-                      Edit
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Empty State */}
-      {filteredEvents.length === 0 && (
+      {eventsWithoutScores.length === 0 && (
         <Card className="text-center py-16 bg-gradient-to-b from-bgLight to-white">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             {searchTerm ? (
@@ -369,12 +297,12 @@ export const ViewScores: React.FC = () => {
             )}
           </div>
           <h3 className="text-lg font-semibold text-textDark mb-2">
-            {searchTerm ? 'No events found' : `No ${activeTab} events`}
+            {searchTerm ? 'No events found' : `All ${activeTab} events have been scored`}
           </h3>
           <p className="text-textMuted mb-6">
             {searchTerm 
-              ? `No events match "${searchTerm}"`
-              : 'Events will appear here once they are created'
+              ? `No pending events match "${searchTerm}"`
+              : 'All events have scores. Great job!'
             }
           </p>
           {searchTerm ? (

@@ -42,7 +42,8 @@ export const PublicResults: React.FC = () => {
   const eventNames = Object.keys(results);
 
   return (
-    <div className="space-y-6 animate-slide-in max-w-6xl mx-auto">
+    <div className="min-h-screen bg-bgLight py-8 px-4 sm:px-6 lg:px-8">
+      <div className="space-y-6 animate-slide-in max-w-6xl mx-auto">
       {/* Header */}
       <div className="text-center">
         <h1 className="text-3xl sm:text-4xl font-bold text-textDark tracking-tight">
@@ -178,6 +179,7 @@ export const PublicResults: React.FC = () => {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 };
