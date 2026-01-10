@@ -433,11 +433,12 @@ export const useKalamelaPrintData = () => {
 };
 
 // Get admin unit-wise results
-export const useKalamelaUnitWiseResults = () => {
+// refresh: Optional boolean to force refresh server cache (default: false)
+export const useKalamelaUnitWiseResults = (refresh?: boolean) => {
   return useQuery({
-    queryKey: ['kalamela', 'adminResults', 'unit-wise'],
+    queryKey: ['kalamela', 'adminResults', 'unit-wise', refresh],
     queryFn: async () => {
-      const response = await api.getKalamelaUnitWiseResults();
+      const response = await api.getKalamelaUnitWiseResults(refresh);
       return response.data;
     },
   });

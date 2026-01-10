@@ -2688,10 +2688,14 @@ class ApiService {
   }
 
   // GET /kalamela/admin/results/unit-wise - Unit-wise results
-  async getKalamelaUnitWiseResults(): Promise<ApiResponse<any>> {
+  // refresh: Optional boolean to force refresh server cache (default: false)
+  async getKalamelaUnitWiseResults(refresh?: boolean): Promise<ApiResponse<any>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<any>('/kalamela/admin/results/unit-wise', { token });
+    const data = await httpGet<any>('/kalamela/admin/results/unit-wise', { 
+      token,
+      query: refresh ? { refresh: true } : undefined
+    });
     return { data, status: 200 };
   }
 

@@ -1,17 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import { Card, Badge, Button } from '../../../components/ui';
-import { Download } from 'lucide-react';
+import { Download, RefreshCw } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
 import { api } from '../../../services/api';
 import { useKalamelaUnitWiseResults, useKalamelaDistrictWiseResults } from '../../../hooks/queries';
+import { useQueryClient } from '@tanstack/react-query';
 
 type ViewType = 'unit' | 'district';
 
 export const AdminResults: React.FC = () => {
   const { addToast } = useToast();
+  const queryClient = useQueryClient();
   
   const [activeView, setActiveView] = useState<ViewType>('unit');
   const [exporting, setExporting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Use TanStack Query - fetch both but only use the active one
   const { data: unitWiseData, isLoading: loadingUnits } = useKalamelaUnitWiseResults();
@@ -145,6 +148,26 @@ export const AdminResults: React.FC = () => {
   // Select the appropriate data based on active view
   const data = activeView === 'unit' ? transformedUnitData : transformedDistrictData;
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      if (activeView === 'unit') {
+        // Fetch with refresh=true to bypass server cache
+        const response = await api.getKalamelaUnitWiseResults(true);
+        // Update the React Query cache with fresh data
+        queryClient.setQueryData(['kalamela', 'adminResults', 'unit-wise'], response.data);
+      } else {
+        // For district-wise, invalidate and refetch (refresh support can be added later)
+        await queryClient.invalidateQueries({ queryKey: ['kalamela', 'adminResults', 'district-wise'] });
+      }
+      addToast("Results refreshed successfully", "success");
+    } catch (err) {
+      addToast("Failed to refresh results", "error");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleExport = async () => {
     try {
       setExporting(true);
@@ -188,10 +211,16 @@ export const AdminResults: React.FC = () => {
             View comprehensive results by {activeView === 'unit' ? 'unit' : 'district'}
           </p>
         </div>
-        <Button variant="success" size="sm" onClick={handleExport} disabled={exporting}>
-          <Download className="w-4 h-4 mr-2" />
-          {exporting ? 'Exporting...' : 'Export Results'}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing || loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <Button variant="success" size="sm" onClick={handleExport} disabled={exporting}>
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? 'Exporting...' : 'Export Results'}
+          </Button>
+        </div>
       </div>
 
       {/* View Toggle */}
