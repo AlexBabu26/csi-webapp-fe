@@ -144,7 +144,7 @@ export const PublicResults: React.FC = () => {
                           <div className="mt-4 pt-3 border-t border-borderColor/50">
                             <div className="flex justify-between items-center">
                               <span className="text-sm text-textMuted">Score:</span>
-                              <span className="text-lg font-bold text-primary">{winner.marks}/100</span>
+                              <span className="text-lg font-bold text-primary">{winner.awarded_mark}/100</span>
                             </div>
                             <div className="flex justify-between items-center mt-1">
                               <span className="text-sm text-textMuted">Grade:</span>
