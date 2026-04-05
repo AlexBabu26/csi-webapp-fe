@@ -89,6 +89,34 @@ export const queryKeys = {
     quickLinks: () => [...queryKeys.siteSettings.all, 'quickLinks'] as const,
   },
 
+  // Yuvalokham
+  yuvalokham: {
+    all: ['yuvalokham'] as const,
+    profile: () => [...queryKeys.yuvalokham.all, 'profile'] as const,
+    plans: () => [...queryKeys.yuvalokham.all, 'plans'] as const,
+    activeSub: () => [...queryKeys.yuvalokham.all, 'activeSub'] as const,
+    subscriptions: (skip?: number) => [...queryKeys.yuvalokham.all, 'subscriptions', skip] as const,
+    qrCode: () => [...queryKeys.yuvalokham.all, 'qrCode'] as const,
+    payments: (skip?: number) => [...queryKeys.yuvalokham.all, 'payments', skip] as const,
+    magazines: () => [...queryKeys.yuvalokham.all, 'magazines'] as const,
+    magazineDetail: (id: number) => [...queryKeys.yuvalokham.all, 'magazine', id] as const,
+    complaints: (skip?: number) => [...queryKeys.yuvalokham.all, 'complaints', skip] as const,
+    admin: {
+      users: (filters?: any) => [...queryKeys.yuvalokham.all, 'admin', 'users', filters] as const,
+      userDetail: (id: number) => [...queryKeys.yuvalokham.all, 'admin', 'user', id] as const,
+      plans: () => [...queryKeys.yuvalokham.all, 'admin', 'plans'] as const,
+      subscriptions: (filters?: any) => [...queryKeys.yuvalokham.all, 'admin', 'subscriptions', filters] as const,
+      payments: (filters?: any) => [...queryKeys.yuvalokham.all, 'admin', 'payments', filters] as const,
+      magazines: (status?: string) => [...queryKeys.yuvalokham.all, 'admin', 'magazines', status] as const,
+      complaints: (filters?: any) => [...queryKeys.yuvalokham.all, 'admin', 'complaints', filters] as const,
+      qrSettings: () => [...queryKeys.yuvalokham.all, 'admin', 'qrSettings'] as const,
+      summary: () => [...queryKeys.yuvalokham.all, 'admin', 'summary'] as const,
+      trends: (months?: number) => [...queryKeys.yuvalokham.all, 'admin', 'trends', months] as const,
+      breakdowns: () => [...queryKeys.yuvalokham.all, 'admin', 'breakdowns'] as const,
+      expiring: (days?: number) => [...queryKeys.yuvalokham.all, 'admin', 'expiring', days] as const,
+    },
+  },
+
   // User Management
   userManagement: {
     all: ['userManagement'] as const,

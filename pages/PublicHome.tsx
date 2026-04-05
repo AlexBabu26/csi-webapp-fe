@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { APP_NAME, APP_SUBTITLE } from '../constants';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { User, Lock, Eye, EyeOff, Award, Users } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Award, Users, BookOpen } from 'lucide-react';
 import { UserRole, SiteSettings, Notice } from '../types';
 import { Footer } from '../components/Footer';
 import { api } from '../services/api';
@@ -302,26 +302,36 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
              </Card>
 
              {/* Quick Links */}
-             <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-3 gap-3">
                <button 
                  onClick={() => navigate('/kalamela')}
-                 className="bg-white/80 backdrop-blur-sm p-5 rounded-xl shadow-sm border border-white/50 hover:border-purple-300 hover:shadow-lg cursor-pointer transition-all duration-300 text-center group hover:scale-[1.02] hover:-translate-y-0.5"
+                 className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/50 hover:border-purple-300 hover:shadow-lg cursor-pointer transition-all duration-300 text-center group hover:scale-[1.02] hover:-translate-y-0.5"
                  aria-label="Go to Kalamela"
                >
-                 <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 text-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:from-purple-500 group-hover:to-purple-600 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-purple-500/25">
-                   <Award size={22} />
+                 <div className="w-11 h-11 bg-gradient-to-br from-purple-100 to-purple-200 text-purple-600 rounded-xl flex items-center justify-center mx-auto mb-2.5 group-hover:from-purple-500 group-hover:to-purple-600 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-purple-500/25">
+                   <Award size={20} />
                  </div>
                  <span className="font-semibold text-sm text-gray-700 group-hover:text-purple-600 transition-colors">Kalamela</span>
                </button>
                <button 
                  onClick={() => navigate('/conference')}
-                 className="bg-white/80 backdrop-blur-sm p-5 rounded-xl shadow-sm border border-white/50 hover:border-orange-300 hover:shadow-lg cursor-pointer transition-all duration-300 text-center group hover:scale-[1.02] hover:-translate-y-0.5"
+                 className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/50 hover:border-orange-300 hover:shadow-lg cursor-pointer transition-all duration-300 text-center group hover:scale-[1.02] hover:-translate-y-0.5"
                  aria-label="Go to Conference"
                >
-                 <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 text-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:from-orange-500 group-hover:to-orange-600 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-orange-500/25">
-                   <Users size={22} />
+                 <div className="w-11 h-11 bg-gradient-to-br from-orange-100 to-orange-200 text-orange-600 rounded-xl flex items-center justify-center mx-auto mb-2.5 group-hover:from-orange-500 group-hover:to-orange-600 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-orange-500/25">
+                   <Users size={20} />
                  </div>
                  <span className="font-semibold text-sm text-gray-700 group-hover:text-orange-600 transition-colors">Conference</span>
+               </button>
+               <button 
+                 onClick={() => navigate('/yuvalokham')}
+                 className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/50 hover:border-emerald-300 hover:shadow-lg cursor-pointer transition-all duration-300 text-center group hover:scale-[1.02] hover:-translate-y-0.5"
+                 aria-label="Go to Yuvalokham"
+               >
+                 <div className="w-11 h-11 bg-gradient-to-br from-emerald-100 to-emerald-200 text-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-2.5 group-hover:from-emerald-500 group-hover:to-emerald-600 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-emerald-500/25">
+                   <BookOpen size={20} />
+                 </div>
+                 <span className="font-semibold text-sm text-gray-700 group-hover:text-emerald-600 transition-colors">Yuvalokham</span>
                </button>
              </div>
           </div>

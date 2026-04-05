@@ -1255,3 +1255,202 @@ export interface DistrictMembersResponse {
     senior_dob_end: string;
   };
 }
+
+// ==================== YUVALOKHAM TYPES ====================
+
+export type YuvalokhamUserRole = "admin" | "user";
+export type YMSubscriptionStatus = "active" | "expired" | "pending_payment";
+export type YMPaymentStatus = "pending" | "approved" | "rejected";
+export type YMMagazineStatus = "draft" | "published";
+export type YMComplaintCategory = "delivery_issue" | "payment_dispute" | "content_issue" | "subscription_problem" | "other";
+export type YMComplaintStatus = "open" | "resolved" | "closed";
+
+export interface YMPaginated<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+export interface YMUser {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  role: YuvalokhamUserRole;
+  address: string | null;
+  pincode: string | null;
+  district_id: number | null;
+  district_name: string | null;
+  unit_id: number | null;
+  unit_name: string | null;
+  parish_name: string | null;
+  is_csi_member: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface YMPlan {
+  id: number;
+  name: string;
+  duration_months: number;
+  price: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface YMSubscription {
+  id: number;
+  user_id: number;
+  plan_id: number;
+  plan_name_snapshot: string;
+  plan_price_snapshot: string;
+  plan_duration_snapshot: number;
+  start_date: string | null;
+  end_date: string | null;
+  status: YMSubscriptionStatus;
+  created_at: string;
+}
+
+export interface YMPayment {
+  id: number;
+  user_id: number;
+  subscription_id: number;
+  amount: string;
+  proof_file_url: string;
+  status: YMPaymentStatus;
+  admin_remarks: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+export interface YMMagazine {
+  id: number;
+  title: string;
+  issue_number: string | null;
+  volume: string | null;
+  cover_image_url: string | null;
+  pdf_file_url: string | null;
+  description: string | null;
+  published_date: string | null;
+  status: YMMagazineStatus;
+  created_at: string;
+}
+
+export interface YMComplaint {
+  id: number;
+  user_id: number;
+  category: YMComplaintCategory;
+  subject: string;
+  description: string;
+  status: YMComplaintStatus;
+  admin_response: string | null;
+  responded_at: string | null;
+  created_at: string;
+}
+
+export interface YMQrSetting {
+  id: number;
+  qr_image_url: string | null;
+  description: string | null;
+  is_active: boolean;
+  updated_at: string | null;
+}
+
+export interface YMToken {
+  access_token: string;
+  refresh_token: string;
+  token_type: "bearer";
+  role: YuvalokhamUserRole;
+}
+
+export interface YMAnalyticsSummary {
+  total_users: number;
+  active_subscriptions: number;
+  total_revenue: string;
+  pending_payments: number;
+  open_complaints: number;
+}
+
+export interface YMAnalyticsTrend {
+  month: string;
+  new_users: number;
+  new_subscriptions: number;
+  revenue: string;
+  complaints: number;
+}
+
+export interface YMAnalyticsBreakdowns {
+  by_district: Array<{ district_id: number; count: number }>;
+  plan_popularity: Array<{ plan: string; count: number }>;
+  complaint_categories: Array<{ category: string; count: number }>;
+  renewal_rate: number;
+}
+
+export interface YMExpiringSubscription {
+  subscription_id: number;
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  plan_name: string;
+  end_date: string;
+  days_remaining: number;
+}
+
+// Form types
+export interface YMRegisterForm {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  address?: string;
+  pincode?: string;
+  district_id?: number;
+  unit_id?: number;
+  parish_name?: string;
+  is_csi_member?: boolean;
+}
+
+export interface YMLoginForm {
+  email: string;
+  password: string;
+}
+
+export interface YMProfileUpdateForm {
+  name?: string;
+  phone?: string;
+  address?: string;
+  pincode?: string;
+  district_id?: number;
+  unit_id?: number;
+  parish_name?: string;
+  is_csi_member?: boolean;
+}
+
+export interface YMComplaintForm {
+  category: YMComplaintCategory;
+  subject: string;
+  description: string;
+}
+
+export interface YMPlanForm {
+  name: string;
+  duration_months: number;
+  price: number;
+  description?: string;
+}
+
+export interface YMMagazineForm {
+  title: string;
+  issue_number?: string;
+  volume?: string;
+  description?: string;
+}
+
+export interface YMAdminCreateForm {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+}

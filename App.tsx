@@ -78,6 +78,35 @@ const CategoryManagement = lazy(() => import('./pages/Kalamela/Admin/CategoryMan
 const MasterData = lazy(() => import('./pages/Kalamela/Admin/MasterData').then(module => ({ default: module.MasterData })));
 const ScheduleManagement = lazy(() => import('./pages/Kalamela/Admin/ScheduleManagement').then(module => ({ default: module.ScheduleManagement })));
 
+// Yuvalokham Pages
+const YuvalokhamPublic = lazy(() => import('./pages/Yuvalokham/YuvalokhamPublic').then(module => ({ default: module.YuvalokhamPublic })));
+const YuvalokhamLogin = lazy(() => import('./pages/Yuvalokham/YuvalokhamLogin').then(module => ({ default: module.YuvalokhamLogin })));
+const YuvalokhamRegister = lazy(() => import('./pages/Yuvalokham/YuvalokhamRegister').then(module => ({ default: module.YuvalokhamRegister })));
+const YMAuthGuard = lazy(() => import('./pages/Yuvalokham/YMAuthGuard').then(module => ({ default: module.YMAuthGuard })));
+
+// Yuvalokham User Pages
+const YMUserLayout = lazy(() => import('./pages/Yuvalokham/YMUserLayout').then(module => ({ default: module.YMUserLayout })));
+const YMDashboard = lazy(() => import('./pages/Yuvalokham/User/YMDashboard').then(module => ({ default: module.YMDashboard })));
+const YMProfile = lazy(() => import('./pages/Yuvalokham/User/YMProfile').then(module => ({ default: module.YMProfile })));
+const YMPlans = lazy(() => import('./pages/Yuvalokham/User/YMPlans').then(module => ({ default: module.YMPlans })));
+const YMPaymentNew = lazy(() => import('./pages/Yuvalokham/User/YMPaymentNew').then(module => ({ default: module.YMPaymentNew })));
+const YMSubscriptions = lazy(() => import('./pages/Yuvalokham/User/YMSubscriptions').then(module => ({ default: module.YMSubscriptions })));
+const YMMagazinesUser = lazy(() => import('./pages/Yuvalokham/User/YMMagazines').then(module => ({ default: module.YMMagazines })));
+const YMPayments = lazy(() => import('./pages/Yuvalokham/User/YMPayments').then(module => ({ default: module.YMPayments })));
+const YMComplaints = lazy(() => import('./pages/Yuvalokham/User/YMComplaints').then(module => ({ default: module.YMComplaints })));
+
+// Yuvalokham Admin Pages
+const YMAdminLayout = lazy(() => import('./pages/Yuvalokham/Admin/YMAdminLayout').then(module => ({ default: module.YMAdminLayout })));
+const YMAdminDashboard = lazy(() => import('./pages/Yuvalokham/Admin/YMAdminDashboard').then(module => ({ default: module.YMAdminDashboard })));
+const YMUserManagement = lazy(() => import('./pages/Yuvalokham/Admin/YMUserManagement').then(module => ({ default: module.YMUserManagement })));
+const YMPlanManagement = lazy(() => import('./pages/Yuvalokham/Admin/YMPlanManagement').then(module => ({ default: module.YMPlanManagement })));
+const YMPaymentReview = lazy(() => import('./pages/Yuvalokham/Admin/YMPaymentReview').then(module => ({ default: module.YMPaymentReview })));
+const YMMagazineManagement = lazy(() => import('./pages/Yuvalokham/Admin/YMMagazineManagement').then(module => ({ default: module.YMMagazineManagement })));
+const YMComplaintManagement = lazy(() => import('./pages/Yuvalokham/Admin/YMComplaintManagement').then(module => ({ default: module.YMComplaintManagement })));
+const YMQRSettings = lazy(() => import('./pages/Yuvalokham/Admin/YMQRSettings').then(module => ({ default: module.YMQRSettings })));
+const YMSubscriptionManagement = lazy(() => import('./pages/Yuvalokham/Admin/YMSubscriptionManagement').then(module => ({ default: module.YMSubscriptionManagement })));
+const YMAdminCreate = lazy(() => import('./pages/Yuvalokham/Admin/YMAdminCreate').then(module => ({ default: module.YMAdminCreate })));
+
 // Loading Fallback
 const PageLoader = () => (
   <div className="p-8 space-y-4">
@@ -431,6 +460,48 @@ const App: React.FC = () => {
                   <TopPerformers />
                 </AdminRoute>
               } />
+
+              {/* ==================== YUVALOKHAM ROUTES ==================== */}
+              
+              {/* Yuvalokham Public */}
+              <Route path="/yuvalokham" element={<YuvalokhamPublic />} />
+              <Route path="/yuvalokham/login" element={<YuvalokhamLogin />} />
+              <Route path="/yuvalokham/register" element={<YuvalokhamRegister />} />
+
+              {/* Yuvalokham User Routes */}
+              <Route path="/yuvalokham/user" element={
+                <YMAuthGuard requiredRole="user">
+                  <YMUserLayout />
+                </YMAuthGuard>
+              }>
+                <Route path="dashboard" element={<YMDashboard />} />
+                <Route path="profile" element={<YMProfile />} />
+                <Route path="plans" element={<YMPlans />} />
+                <Route path="subscriptions" element={<YMSubscriptions />} />
+                <Route path="payments" element={<YMPayments />} />
+                <Route path="payments/new" element={<YMPaymentNew />} />
+                <Route path="magazines" element={<YMMagazinesUser />} />
+                <Route path="complaints" element={<YMComplaints />} />
+                <Route index element={<Navigate to="dashboard" replace />} />
+              </Route>
+
+              {/* Yuvalokham Admin Routes */}
+              <Route path="/yuvalokham/admin" element={
+                <YMAuthGuard requiredRole="admin">
+                  <YMAdminLayout />
+                </YMAuthGuard>
+              }>
+                <Route path="dashboard" element={<YMAdminDashboard />} />
+                <Route path="users" element={<YMUserManagement />} />
+                <Route path="plans" element={<YMPlanManagement />} />
+                <Route path="subscriptions" element={<YMSubscriptionManagement />} />
+                <Route path="payments" element={<YMPaymentReview />} />
+                <Route path="magazines" element={<YMMagazineManagement />} />
+                <Route path="complaints" element={<YMComplaintManagement />} />
+                <Route path="qr-settings" element={<YMQRSettings />} />
+                <Route path="admins/new" element={<YMAdminCreate />} />
+                <Route index element={<Navigate to="dashboard" replace />} />
+              </Route>
 
               {/* Legacy Routes */}
               <Route path="/admin/events" element={

@@ -3,8 +3,8 @@ import { getAuthToken, getRefreshToken, setAuthTokens, clearAuth, isTokenExpirin
 export const API_BASE_URL =
   (typeof process !== 'undefined' && (process as any).env?.API_BASE_URL) ||
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) ||
-  'https://csi-project-be.vercel.app/api';
-  // 'http://localhost:7000/api';
+  // 'https://csi-project-be.vercel.app/api';
+  'http://localhost:7000/api';
 
 const DEFAULT_BASE_URL = API_BASE_URL;
 
@@ -13,6 +13,7 @@ interface HttpOptions extends RequestInit {
   query?: Record<string, string | number | boolean | undefined | null>;
   asBlob?: boolean;
   skipAuthRefresh?: boolean; // Skip auto-refresh (used for refresh endpoint itself)
+  timeout?: number; // Request timeout in milliseconds (default: 30000)
 }
 
 const buildQueryString = (query?: HttpOptions['query']) => {
@@ -38,27 +39,50 @@ const refreshAccessToken = async (): Promise<string> => {
 
   console.log('[HTTP] Refreshing access token...');
   
-  const response = await fetch(`${DEFAULT_BASE_URL}/auth/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: refreshToken }),
-  });
+  // Create AbortController for refresh token request with shorter timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, 10000); // 10 second timeout for token refresh
+  
+  try {
+    const response = await fetch(`${DEFAULT_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[HTTP] Token refresh failed:', errorText);
-    clearAuth();
-    throw new Error('Token refresh failed');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[HTTP] Token refresh failed:', errorText);
+      clearAuth();
+      throw new Error('Token refresh failed');
+    }
+
+    const data = await response.json();
+    console.log('[HTTP] Token refresh successful');
+    
+    // Store new tokens
+    setAuthTokens(data.access_token, data.refresh_token || refreshToken);
+    
+    return data.access_token;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('[HTTP] Token refresh timeout');
+      clearAuth();
+      throw new Error('Token refresh timeout');
+    }
+    throw error;
   }
-
-  const data = await response.json();
-  console.log('[HTTP] Token refresh successful');
-  
-  // Store new tokens
-  setAuthTokens(data.access_token, data.refresh_token || refreshToken);
-  
-  return data.access_token;
 };
+
+// Cache token validation result to avoid repeated checks
+let tokenCache: { token: string | null; timestamp: number } | null = null;
+const TOKEN_CACHE_TTL = 5000; // Cache for 5 seconds
 
 /**
  * Get a valid access token, refreshing if necessary
@@ -69,6 +93,12 @@ const getValidToken = async (providedToken?: string): Promise<string | null> => 
   
   const currentToken = getAuthToken();
   if (!currentToken) return null;
+  
+  // Check cache first (avoid repeated token parsing)
+  const now = Date.now();
+  if (tokenCache && tokenCache.token === currentToken && (now - tokenCache.timestamp) < TOKEN_CACHE_TTL) {
+    return currentToken; // Token is still valid, no need to check expiration
+  }
   
   // Check if token is expiring soon (within 60 seconds)
   if (isTokenExpiringSoon(currentToken, 60)) {
@@ -91,13 +121,18 @@ const getValidToken = async (providedToken?: string): Promise<string | null> => 
       });
     
     try {
-      return await refreshPromise;
+      const newToken = await refreshPromise;
+      // Update cache with new token
+      tokenCache = { token: newToken, timestamp: now };
+      return newToken;
     } catch {
       // If refresh fails, return current token and let request fail
       return currentToken;
     }
   }
   
+  // Update cache
+  tokenCache = { token: currentToken, timestamp: now };
   return currentToken;
 };
 
@@ -151,7 +186,7 @@ const handleResponse = async (res: Response, asBlob?: boolean) => {
 
 export const http = async <T = any>(
   url: string,
-  { token, query, asBlob, headers, skipAuthRefresh, ...init }: HttpOptions = {}
+  { token, query, asBlob, headers, skipAuthRefresh, timeout = 30000, ...init }: HttpOptions = {}
 ): Promise<T> => {
   const qs = buildQueryString(query);
   const finalUrl = `${DEFAULT_BASE_URL}${url}${qs}`;
@@ -178,11 +213,20 @@ export const http = async <T = any>(
 
   console.log(`[HTTP] ${init.method || 'GET'} ${finalUrl}`);
   
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeout);
+
   try {
     const response = await fetch(finalUrl, {
       ...init,
       headers: mergedHeaders,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     // Handle 401 Unauthorized - try to refresh token and retry
     if (response.status === 401 && !skipAuthRefresh) {
@@ -197,10 +241,19 @@ export const http = async <T = any>(
           const retryHeaders = { ...mergedHeaders };
           (retryHeaders as any).Authorization = `Bearer ${newToken}`;
           
+          // Create new AbortController for retry
+          const retryController = new AbortController();
+          const retryTimeoutId = setTimeout(() => {
+            retryController.abort();
+          }, timeout);
+          
           const retryResponse = await fetch(finalUrl, {
             ...init,
             headers: retryHeaders,
+            signal: retryController.signal,
           });
+          
+          clearTimeout(retryTimeoutId);
           
           // If retry also fails with 401, redirect to login
           if (retryResponse.status === 401) {
@@ -233,7 +286,25 @@ export const http = async <T = any>(
     }
 
     return handleResponse(response, asBlob) as Promise<T>;
-  } catch (error) {
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    
+    // Handle timeout/abort errors
+    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      const timeoutError = new Error(`Request timeout after ${timeout}ms`) as Error & { status?: number };
+      timeoutError.status = 408;
+      console.error(`[HTTP] Request timeout for ${init.method || 'GET'} ${url}`);
+      throw timeoutError;
+    }
+    
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      const networkError = new Error('Network error: Unable to connect to server') as Error & { status?: number };
+      networkError.status = 0;
+      console.error(`[HTTP] Network error for ${init.method || 'GET'} ${url}:`, error.message);
+      throw networkError;
+    }
+    
     console.error(`[HTTP] Request failed for ${init.method || 'GET'} ${url}:`, error);
     throw error;
   }
@@ -259,12 +330,27 @@ export const httpPut = <T = any>(url: string, body?: any, options?: HttpOptions)
 export const httpDelete = <T = any>(url: string, options?: HttpOptions) =>
   http<T>(url, { ...options, method: 'DELETE' });
 
+export const httpPatch = <T = any>(url: string, body?: any, options?: HttpOptions) =>
+  http<T>(url, {
+    ...options,
+    method: 'PATCH',
+    body: body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
+  });
+
+export const httpPutFormData = <T = any>(url: string, formData: FormData, token?: string) =>
+  http<T>(url, {
+    method: 'PUT',
+    body: formData,
+    token,
+    headers: {},
+  });
+
 export const httpPostFormData = <T = any>(url: string, formData: FormData, token?: string) =>
   http<T>(url, {
     method: 'POST',
     body: formData,
     token,
-    headers: {}, // Let browser set Content-Type with boundary for FormData
+    headers: {},
   });
 
 // Export the server base URL for media/file URLs (without /api suffix)

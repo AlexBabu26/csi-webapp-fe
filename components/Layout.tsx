@@ -31,6 +31,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '../constants';
 import { getAuthUser, clearAuthToken, clearAuthUser } from '../services/auth';
 import { AuthUser } from '../types';
+import { BookOpen } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -138,11 +139,19 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Kalamela Registration',
     defaultOpen: true,
-    roles: ['official'], // Only for officials who login through Kalamela
+    roles: ['official'],
     items: [
       { label: 'Registration', path: '/kalamela/official/home', icon: <Calendar size={18} /> },
       { label: 'View Participants', path: '/kalamela/official/participants', icon: <Users size={18} /> },
       { label: 'Payment', path: '/kalamela/official/preview', icon: <CreditCard size={18} /> },
+    ]
+  },
+  {
+    label: 'Yuvalokham Admin',
+    defaultOpen: false,
+    roles: ['admin'],
+    items: [
+      { label: 'YM Portal', path: '/yuvalokham/admin/dashboard', icon: <BookOpen size={18} /> },
     ]
   },
 ];
