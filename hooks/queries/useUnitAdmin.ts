@@ -128,6 +128,8 @@ export const useArchivedMembers = () => {
       const response = await api.getArchivedMembers();
       return response.data;
     },
+    staleTime: 0,
+    refetchOnMount: true,
   });
 };
 
@@ -202,6 +204,52 @@ export const useRestoreMember = () => {
     },
     onError: () => {
       addToast('Failed to restore member', 'error');
+    },
+  });
+};
+
+// Archive preview — members eligible for yearly archiving
+export const useArchivePreview = () => {
+  return useQuery({
+    queryKey: [...queryKeys.members.all, 'archive-preview'],
+    queryFn: () => api.getArchivePreview(),
+    staleTime: 2 * 60 * 1000, // 2 min
+  });
+};
+
+// All unit names for filter dropdowns
+export const useAdminUnitNames = () => {
+  return useQuery({
+    queryKey: ['admin', 'unit-names-for-filter'],
+    queryFn: () => api.getAdminUnitNames(),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// All districts for filter dropdowns
+export const useAdminDistricts = () => {
+  return useQuery({
+    queryKey: ['admin', 'districts-for-filter'],
+    queryFn: () => api.getAdminDistricts(),
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// Bulk archive mutation
+export const useBulkArchive = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (payload: { member_ids: number[]; archive_year: string; archive_reason?: string }) =>
+      api.bulkArchiveMembers(payload),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
+      const count = (res as any)?.data?.archived_count ?? '?';
+      addToast(`${count} member(s) archived successfully`, 'success');
+    },
+    onError: () => {
+      addToast('Failed to archive members', 'error');
     },
   });
 };

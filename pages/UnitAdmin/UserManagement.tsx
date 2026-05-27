@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Card, Badge, Button } from '../../components/ui';
-import { 
-  Users, 
-  KeyRound, 
-  Building, 
+import {
+  Users,
+  KeyRound,
+  Building,
   UserCog,
   CheckCircle2,
   AlertCircle,
@@ -17,21 +17,26 @@ import {
   XCircle,
   Phone,
   Plus,
-  UserPlus
+  UserPlus,
+  Droplets,
+  Lock,
+  Settings2,
 } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Portal } from '../../components/Portal';
-import { 
-  useUsers, 
+import {
+  useUsers,
   useUsersSummary,
   useResetPassword,
   useBulkResetPasswords,
   useResetAllByType,
   useDistrictOfficials,
   useDistrictsWithOfficialStatus,
-  useCreateDistrictOfficial
+  useCreateDistrictOfficial,
+  useSiteSettings,
+  useUpdateSiteSettings,
 } from '../../hooks/queries';
 
 type UserType = 'all' | 'UNIT' | 'DISTRICT_OFFICIAL';
@@ -69,66 +74,88 @@ interface DistrictWithStatus {
   official_username?: string;
 }
 
-// Password generator
-const generatePassword = (length: number = 12): string => {
+const generatePassword = (length = 12): string => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
-  let password = '';
-  for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
+  let pw = '';
+  for (let i = 0; i < length; i++) pw += chars.charAt(Math.floor(Math.random() * chars.length));
+  return pw;
 };
+
+// ── Reusable toggle ──────────────────────────────────────────────────────────
+const Toggle: React.FC<{
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}> = ({ checked, disabled, onChange }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    disabled={disabled}
+    onClick={() => !disabled && onChange(!checked)}
+    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+      checked ? 'bg-primary' : 'bg-gray-200'
+    } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+  >
+    <span
+      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+        checked ? 'translate-x-5' : 'translate-x-0'
+      }`}
+    />
+  </button>
+);
 
 export const UserManagement: React.FC = () => {
   const { addToast } = useToast();
-  
+
   const [activeTab, setActiveTab] = useState<UserType>('all');
   const [selectedUsers, setSelectedUsers] = useState<OfficialUser[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Password modal states
+
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [passwordCopied, setPasswordCopied] = useState(false);
-  
-  // Confirmation dialogs
+
   const [showSingleResetConfirm, setShowSingleResetConfirm] = useState(false);
   const [showBulkResetConfirm, setShowBulkResetConfirm] = useState(false);
   const [showResetAllConfirm, setShowResetAllConfirm] = useState(false);
   const [userToReset, setUserToReset] = useState<OfficialUser | null>(null);
-  
-  // Create district official modal
+
   const [showCreateOfficialModal, setShowCreateOfficialModal] = useState(false);
-  const [createOfficialForm, setCreateOfficialForm] = useState({
-    district_id: 0,
-    official_name: '',
-    phone_number: '',
-  });
+  const [createOfficialForm, setCreateOfficialForm] = useState({ district_id: 0, official_name: '', phone_number: '' });
   const [createdOfficialResult, setCreatedOfficialResult] = useState<{
     username: string;
     district_name: string;
     default_password_hint: string;
   } | null>(null);
-  
-  // Fetch users based on active tab - use dedicated endpoint for district officials
+
+  // ── Data ─────────────────────────────────────────────────────────────────
   const { data: allUsers = [], isLoading: allUsersLoading, refetch: refetchAll } = useUsers({
     user_type: activeTab === 'all' ? undefined : activeTab === 'UNIT' ? 'UNIT' : undefined,
     search: searchTerm || undefined,
   });
-  
-  // Use dedicated endpoint for district officials
   const { data: districtOfficials = [], isLoading: districtOfficialsLoading, refetch: refetchDistrictOfficials } = useDistrictOfficials();
-  
-  // Get districts with official status
   const { data: districtsWithStatus = [], isLoading: districtsLoading } = useDistrictsWithOfficialStatus();
-  
   const { data: summary } = useUsersSummary();
-  
-  // Determine which data to show based on active tab
+  const { data: siteSettings } = useSiteSettings();
+  const updateSiteSettings = useUpdateSiteSettings();
+  const [bgSaving, setBgSaving] = React.useState(false);
+
+  const toggleBloodDonorAccess = async (field: 'blood_donor_district_access' | 'blood_donor_unit_access', value: boolean) => {
+    setBgSaving(true);
+    try {
+      await updateSiteSettings.mutateAsync({ [field]: value });
+      addToast('Access setting updated', 'success');
+    } catch {
+      addToast('Failed to update access settings', 'error');
+    } finally {
+      setBgSaving(false);
+    }
+  };
+
   const users: OfficialUser[] = useMemo(() => {
     if (activeTab === 'DISTRICT_OFFICIAL') {
-      // Map district officials to OfficialUser format for the table
       return districtOfficials.map(d => ({
         id: d.id,
         username: d.username,
@@ -142,229 +169,86 @@ export const UserManagement: React.FC = () => {
     }
     return allUsers;
   }, [activeTab, allUsers, districtOfficials]);
-  
+
   const isLoading = activeTab === 'DISTRICT_OFFICIAL' ? districtOfficialsLoading : allUsersLoading;
-  
-  const refetch = () => {
-    if (activeTab === 'DISTRICT_OFFICIAL') {
-      refetchDistrictOfficials();
-    } else {
-      refetchAll();
-    }
-  };
-  
-  // Mutations
+  const refetch = () => (activeTab === 'DISTRICT_OFFICIAL' ? refetchDistrictOfficials() : refetchAll());
+
   const resetPasswordMutation = useResetPassword();
   const bulkResetMutation = useBulkResetPasswords();
   const resetAllMutation = useResetAllByType();
   const createOfficialMutation = useCreateDistrictOfficial();
-  
-  // Calculate district stats
+
   const districtStats = useMemo(() => {
     const total = districtsWithStatus.length;
     const withOfficial = districtsWithStatus.filter(d => d.has_official).length;
-    const withoutOfficial = total - withOfficial;
-    return { total, withOfficial, withoutOfficial };
+    return { total, withOfficial, withoutOfficial: total - withOfficial };
   }, [districtsWithStatus]);
 
   const tabs = [
-    { 
-      id: 'all' as UserType, 
-      label: 'All Users', 
-      icon: <Users size={18} />,
-      count: summary?.total || 0
-    },
-    { 
-      id: 'UNIT' as UserType, 
-      label: 'Unit Officials', 
-      icon: <Building size={18} />,
-      count: summary?.unit_officials || 0
-    },
-    { 
-      id: 'DISTRICT_OFFICIAL' as UserType, 
-      label: 'District Officials', 
-      icon: <UserCog size={18} />,
-      count: districtOfficials.length || summary?.district_officials || 0
-    },
+    { id: 'all' as UserType,             label: 'All Users',          icon: <Users size={15} />,   count: summary?.total || 0 },
+    { id: 'UNIT' as UserType,            label: 'Unit Officials',      icon: <Building size={15} />, count: summary?.unit_officials || 0 },
+    { id: 'DISTRICT_OFFICIAL' as UserType, label: 'District Officials', icon: <UserCog size={15} />, count: districtOfficials.length || summary?.district_officials || 0 },
   ];
 
-  const openPasswordModal = () => {
-    setNewPassword(generatePassword());
-    setShowPassword(false);
-    setPasswordCopied(false);
-    setShowPasswordModal(true);
-  };
+  const districtsWithoutOfficials = useMemo(() => districtsWithStatus.filter(d => !d.has_official), [districtsWithStatus]);
 
+  // ── Password modal helpers ────────────────────────────────────────────────
+  const openPasswordModal = () => { setNewPassword(generatePassword()); setShowPassword(false); setPasswordCopied(false); setShowPasswordModal(true); };
   const copyPassword = async () => {
-    try {
-      await navigator.clipboard.writeText(newPassword);
-      setPasswordCopied(true);
-      setTimeout(() => setPasswordCopied(false), 2000);
-    } catch {
-      addToast('Failed to copy password', 'error');
-    }
+    try { await navigator.clipboard.writeText(newPassword); setPasswordCopied(true); setTimeout(() => setPasswordCopied(false), 2000); }
+    catch { addToast('Failed to copy password', 'error'); }
   };
-
-  const handleSingleReset = (user: OfficialUser) => {
-    setUserToReset(user);
-    openPasswordModal();
-  };
-
-  const confirmSingleReset = () => {
-    if (!userToReset || !newPassword) return;
-    
-    setShowPasswordModal(false);
-    setShowSingleResetConfirm(true);
-  };
-
+  const handleSingleReset = (user: OfficialUser) => { setUserToReset(user); openPasswordModal(); };
+  const confirmSingleReset = () => { if (!userToReset || !newPassword) return; setShowPasswordModal(false); setShowSingleResetConfirm(true); };
   const executeSingleReset = () => {
     if (!userToReset || !newPassword) return;
-    
-    resetPasswordMutation.mutate(
-      { user_id: userToReset.id, new_password: newPassword },
-      {
-        onSuccess: (data) => {
-          addToast(`Password reset for ${data.username}`, 'success');
-          setShowSingleResetConfirm(false);
-          setUserToReset(null);
-          setNewPassword('');
-        },
-        onError: () => {
-          setShowSingleResetConfirm(false);
-        },
-      }
-    );
-  };
-
-  const handleBulkReset = () => {
-    if (selectedUsers.length === 0) {
-      addToast('Please select users to reset passwords', 'warning');
-      return;
-    }
-    openPasswordModal();
-  };
-
-  const confirmBulkReset = () => {
-    if (!newPassword) return;
-    setShowPasswordModal(false);
-    setShowBulkResetConfirm(true);
-  };
-
-  const executeBulkReset = () => {
-    const userIds = selectedUsers.map(u => u.id);
-    
-    bulkResetMutation.mutate(
-      { user_ids: userIds, new_password: newPassword },
-      {
-        onSuccess: (data) => {
-          addToast(
-            `Passwords reset for ${data.total_reset} of ${data.total_requested} users`,
-            data.total_reset === data.total_requested ? 'success' : 'warning'
-          );
-          setShowBulkResetConfirm(false);
-          setSelectedUsers([]);
-          setNewPassword('');
-          refetch();
-        },
-        onError: () => {
-          setShowBulkResetConfirm(false);
-        },
-      }
-    );
-  };
-
-  const handleResetAll = () => {
-    if (activeTab === 'all') {
-      addToast('Please select a specific user type tab to reset all', 'warning');
-      return;
-    }
-    openPasswordModal();
-  };
-
-  const confirmResetAll = () => {
-    if (!newPassword || activeTab === 'all') return;
-    setShowPasswordModal(false);
-    setShowResetAllConfirm(true);
-  };
-
-  const executeResetAll = () => {
-    if (activeTab === 'all') return;
-    
-    resetAllMutation.mutate(
-      { user_type: activeTab, new_password: newPassword },
-      {
-        onSuccess: (data) => {
-          addToast(
-            `Passwords reset for ${data.total_reset} ${activeTab === 'UNIT' ? 'unit' : 'district'} officials`,
-            'success'
-          );
-          setShowResetAllConfirm(false);
-          setNewPassword('');
-          refetch();
-        },
-        onError: () => {
-          setShowResetAllConfirm(false);
-        },
-      }
-    );
-  };
-
-  // Create District Official handlers
-  const openCreateOfficialModal = () => {
-    setCreateOfficialForm({ district_id: 0, official_name: '', phone_number: '' });
-    setCreatedOfficialResult(null);
-    setShowCreateOfficialModal(true);
-  };
-
-  const handleCreateOfficial = () => {
-    if (!createOfficialForm.district_id || !createOfficialForm.official_name || !createOfficialForm.phone_number) {
-      addToast('Please fill in all fields', 'error');
-      return;
-    }
-
-    if (!/^\d{10}$/.test(createOfficialForm.phone_number)) {
-      addToast('Phone number must be exactly 10 digits', 'error');
-      return;
-    }
-
-    createOfficialMutation.mutate(createOfficialForm, {
-      onSuccess: (data) => {
-        setCreatedOfficialResult({
-          username: data.username,
-          district_name: data.district_name,
-          default_password_hint: data.default_password_hint,
-        });
-        refetchDistrictOfficials();
-      },
+    resetPasswordMutation.mutate({ user_id: userToReset.id, new_password: newPassword }, {
+      onSuccess: (data) => { addToast(`Password reset for ${data.username}`, 'success'); setShowSingleResetConfirm(false); setUserToReset(null); setNewPassword(''); },
+      onError: () => setShowSingleResetConfirm(false),
     });
   };
-
-  const closeCreateOfficialModal = () => {
-    setShowCreateOfficialModal(false);
-    setCreateOfficialForm({ district_id: 0, official_name: '', phone_number: '' });
-    setCreatedOfficialResult(null);
+  const confirmBulkReset  = () => { if (!newPassword) return; setShowPasswordModal(false); setShowBulkResetConfirm(true); };
+  const executeBulkReset = () => {
+    bulkResetMutation.mutate({ user_ids: selectedUsers.map(u => u.id), new_password: newPassword }, {
+      onSuccess: (data) => { addToast(`Passwords reset for ${data.total_reset} of ${data.total_requested} users`, data.total_reset === data.total_requested ? 'success' : 'warning'); setShowBulkResetConfirm(false); setSelectedUsers([]); setNewPassword(''); refetch(); },
+      onError: () => setShowBulkResetConfirm(false),
+    });
   };
+  const handleResetAll = () => { if (activeTab === 'all') { addToast('Select a specific tab first', 'warning'); return; } openPasswordModal(); };
+  const confirmResetAll = () => { if (!newPassword || activeTab === 'all') return; setShowPasswordModal(false); setShowResetAllConfirm(true); };
+  const executeResetAll = () => {
+    if (activeTab === 'all') return;
+    resetAllMutation.mutate({ user_type: activeTab, new_password: newPassword }, {
+      onSuccess: (data) => { addToast(`Passwords reset for ${data.total_reset} ${activeTab === 'UNIT' ? 'unit' : 'district'} officials`, 'success'); setShowResetAllConfirm(false); setNewPassword(''); refetch(); },
+      onError: () => setShowResetAllConfirm(false),
+    });
+  };
+  const openCreateOfficialModal = () => { setCreateOfficialForm({ district_id: 0, official_name: '', phone_number: '' }); setCreatedOfficialResult(null); setShowCreateOfficialModal(true); };
+  const handleCreateOfficial = () => {
+    if (!createOfficialForm.district_id || !createOfficialForm.official_name || !createOfficialForm.phone_number) { addToast('Please fill in all fields', 'error'); return; }
+    if (!/^\d{10}$/.test(createOfficialForm.phone_number)) { addToast('Phone number must be exactly 10 digits', 'error'); return; }
+    createOfficialMutation.mutate(createOfficialForm, {
+      onSuccess: (data) => { setCreatedOfficialResult({ username: data.username, district_name: data.district_name, default_password_hint: data.default_password_hint }); refetchDistrictOfficials(); },
+    });
+  };
+  const closeCreateOfficialModal = () => { setShowCreateOfficialModal(false); setCreateOfficialForm({ district_id: 0, official_name: '', phone_number: '' }); setCreatedOfficialResult(null); };
 
-  // Get districts without officials for the dropdown
-  const districtsWithoutOfficials = useMemo(() => {
-    return districtsWithStatus.filter(d => !d.has_official);
-  }, [districtsWithStatus]);
-
+  // ── Table columns ─────────────────────────────────────────────────────────
   const columns: ColumnDef<OfficialUser, any>[] = useMemo(() => [
     {
       accessorKey: 'username',
-      header: 'Username',
+      header: 'User',
       cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <div className={`p-2 rounded-lg ${row.original.user_type === 'UNIT' ? 'bg-primary/10' : 'bg-amber-100'}`}>
-            {row.original.user_type === 'UNIT' ? (
-              <Building className="w-4 h-4 text-primary" />
-            ) : (
-              <UserCog className="w-4 h-4 text-amber-600" />
-            )}
+        <div className="flex items-center gap-3">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            row.original.user_type === 'UNIT' ? 'bg-primary/10' : 'bg-amber-100'
+          }`}>
+            {row.original.user_type === 'UNIT'
+              ? <Building className="w-4 h-4 text-primary" />
+              : <UserCog className="w-4 h-4 text-amber-600" />}
           </div>
           <div>
-            <p className="font-medium text-textDark">{row.original.username}</p>
+            <p className="font-semibold text-textDark text-sm">{row.original.username}</p>
             <p className="text-xs text-textMuted">
               {row.original.user_type === 'UNIT' ? 'Unit Official' : 'District Official'}
             </p>
@@ -377,15 +261,9 @@ export const UserManagement: React.FC = () => {
       header: 'Unit / District',
       cell: ({ row }) => (
         <div className="text-sm">
-          {row.original.unit_name && (
-            <p className="text-textDark">{row.original.unit_name}</p>
-          )}
-          {row.original.district_name && (
-            <p className="text-textMuted">{row.original.district_name}</p>
-          )}
-          {!row.original.unit_name && !row.original.district_name && (
-            <span className="text-textMuted">—</span>
-          )}
+          {row.original.unit_name && <p className="font-medium text-textDark">{row.original.unit_name}</p>}
+          {row.original.district_name && <p className="text-textMuted text-xs mt-0.5">{row.original.district_name}</p>}
+          {!row.original.unit_name && !row.original.district_name && <span className="text-textMuted">—</span>}
         </div>
       ),
     },
@@ -394,13 +272,16 @@ export const UserManagement: React.FC = () => {
       header: 'Contact',
       cell: ({ row }) => (
         <div className="text-sm">
-          {row.original.email && row.original.email !== row.original.username && (
-            <p className="text-textDark">{row.original.email}</p>
-          )}
           {row.original.phone_number && (
-            <p className="text-textMuted">{row.original.phone_number}</p>
+            <p className="font-mono text-textDark flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-textMuted" />
+              {row.original.phone_number}
+            </p>
           )}
-          {(!row.original.email || row.original.email === row.original.username) && !row.original.phone_number && (
+          {row.original.email && row.original.email !== row.original.username && (
+            <p className="text-textMuted text-xs mt-0.5">{row.original.email}</p>
+          )}
+          {!row.original.phone_number && (!row.original.email || row.original.email === row.original.username) && (
             <span className="text-textMuted">—</span>
           )}
         </div>
@@ -414,300 +295,327 @@ export const UserManagement: React.FC = () => {
           {row.original.is_active ? 'Active' : 'Inactive'}
         </Badge>
       ),
+      size: 90,
     },
     {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => handleSingleReset(row.original)}
           disabled={resetPasswordMutation.isPending}
+          className="gap-1.5"
         >
-          <KeyRound className="w-4 h-4 mr-1" />
+          <KeyRound className="w-3.5 h-3.5" />
           Reset
         </Button>
       ),
+      size: 90,
     },
   ], [resetPasswordMutation.isPending]);
 
-  // Determine which action is pending for the password modal
-  const isPendingAction = userToReset 
-    ? 'single' 
-    : selectedUsers.length > 0 
-      ? 'bulk' 
-      : activeTab !== 'all' 
-        ? 'all' 
-        : null;
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-slide-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-textDark tracking-tight">User Management</h1>
-          <p className="mt-1 text-sm text-textMuted">Manage login credentials for unit and district officials</p>
+
+      {/* ── Page Header ──────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+            <Users className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-textDark tracking-tight">User Management</h1>
+            <p className="mt-0.5 text-sm text-textMuted">Manage login credentials and feature access</p>
+          </div>
         </div>
-        
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {activeTab === 'DISTRICT_OFFICIAL' && (
-            <Button 
-              variant="primary" 
-              onClick={openCreateOfficialModal}
-            >
+            <Button variant="primary" onClick={openCreateOfficialModal}>
               <UserPlus className="w-4 h-4 mr-2" />
-              Create District Official
+              Add District Official
             </Button>
           )}
           {selectedUsers.length > 0 && (
-            <Button 
-              variant="primary" 
-              onClick={handleBulkReset}
-              disabled={bulkResetMutation.isPending}
-            >
+            <Button variant="primary" onClick={() => { if (selectedUsers.length > 0) { setUserToReset(null); openPasswordModal(); } }} disabled={bulkResetMutation.isPending}>
               <RefreshCw className={`w-4 h-4 mr-2 ${bulkResetMutation.isPending ? 'animate-spin' : ''}`} />
               Reset {selectedUsers.length} Selected
             </Button>
           )}
           {activeTab !== 'all' && selectedUsers.length === 0 && (
-            <Button 
-              variant="danger" 
-              onClick={handleResetAll}
-              disabled={resetAllMutation.isPending}
-            >
-              <Shield className={`w-4 h-4 mr-2 ${resetAllMutation.isPending ? 'animate-spin' : ''}`} />
-              Reset All {activeTab === 'UNIT' ? 'Unit' : 'District'} Officials
+            <Button variant="danger" onClick={handleResetAll} disabled={resetAllMutation.isPending}>
+              <Shield className="w-4 h-4 mr-2" />
+              Reset All {activeTab === 'UNIT' ? 'Unit' : 'District'}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-borderColor">
-        <nav className="flex gap-1 overflow-x-auto pb-px">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setSelectedUsers([]);
-              }}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-textMuted hover:text-textDark hover:border-gray-300'
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-              <Badge variant={activeTab === tab.id ? 'primary' : 'light'} className="ml-1">
-                {tab.count}
-              </Badge>
-            </button>
-          ))}
-        </nav>
+      {/* ── Stats Strip ──────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Users',        value: summary?.total || 0,                                                icon: <Users className="w-5 h-5 text-primary" />,         bg: 'bg-primary/10' },
+          { label: 'Unit Officials',     value: summary?.unit_officials || 0,                                       icon: <Building className="w-5 h-5 text-blue-600" />,      bg: 'bg-blue-50' },
+          { label: 'District Officials', value: districtOfficials.length || summary?.district_officials || 0,       icon: <UserCog className="w-5 h-5 text-amber-600" />,       bg: 'bg-amber-50' },
+          { label: 'Selected',           value: selectedUsers.length,                                               icon: <CheckCircle2 className="w-5 h-5 text-success" />,    bg: 'bg-green-50' },
+        ].map((s) => (
+          <Card key={s.label} className="py-3.5 px-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                {s.icon}
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-textDark leading-none">{s.value}</p>
+                <p className="text-xs text-textMuted mt-0.5">{s.label}</p>
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
 
-      {/* Info Card */}
-      <Card className="bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-amber-100 rounded-lg">
-            <AlertCircle className="w-5 h-5 text-amber-600" />
+      {/* ── Feature Access ───────────────────────────────────────────────── */}
+      <Card>
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-8 h-8 bg-violet-50 rounded-lg flex items-center justify-center">
+            <Settings2 className="w-4 h-4 text-violet-600" />
           </div>
           <div>
-            <h3 className="font-medium text-amber-900">Password Reset Information</h3>
-            <p className="text-sm text-amber-700 mt-1">
-              {activeTab === 'all' 
-                ? 'View all users. Select a specific tab to enable bulk reset options.'
-                : activeTab === 'UNIT'
-                  ? 'Unit officials who manage their unit registrations and member data.'
-                  : 'District officials who manage Kalamela and Conference registrations.'
-              }
-              {' '}You can reset passwords individually, in bulk (select multiple), or all at once.
-            </p>
+            <h3 className="font-bold text-textDark">Feature Access Control</h3>
+            <p className="text-xs text-textMuted">Configure which user groups can access optional features</p>
+          </div>
+        </div>
+
+        {/* Blood Donor Search section */}
+        <div className="rounded-xl border border-borderColor overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50/70 border-b border-borderColor">
+            <div className="w-7 h-7 bg-red-50 rounded-lg flex items-center justify-center">
+              <Droplets className="w-4 h-4 text-red-500" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-textDark">Blood Donor Search</p>
+              <p className="text-xs text-textMuted">Admins always have access — enable for other roles below</p>
+            </div>
+            <Badge variant="success" className="text-xs">Admin</Badge>
+          </div>
+
+          <div className="divide-y divide-borderColor">
+            {[
+              {
+                field: 'blood_donor_district_access' as const,
+                icon: <Shield className="w-4 h-4 text-amber-500" />,
+                bg: 'bg-amber-50',
+                label: 'District Officials',
+                desc: 'Allow district officials to search blood donors',
+                value: siteSettings?.blood_donor_district_access ?? false,
+              },
+              {
+                field: 'blood_donor_unit_access' as const,
+                icon: <Building className="w-4 h-4 text-blue-500" />,
+                bg: 'bg-blue-50',
+                label: 'Unit Officials',
+                desc: 'Allow unit officials to search blood donors',
+                value: siteSettings?.blood_donor_unit_access ?? false,
+              },
+            ].map((row) => (
+              <div key={row.field} className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50/50 transition">
+                <div className="flex items-center gap-3">
+                  <div className={`w-7 h-7 ${row.bg} rounded-lg flex items-center justify-center`}>
+                    {row.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-textDark">{row.label}</p>
+                    <p className="text-xs text-textMuted">{row.desc}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-xs font-semibold ${row.value ? 'text-success' : 'text-textMuted'}`}>
+                    {row.value ? 'Enabled' : 'Disabled'}
+                  </span>
+                  <Toggle checked={row.value} disabled={bgSaving} onChange={(v) => toggleBloodDonorAccess(row.field, v)} />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </Card>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-primary/10 rounded-lg">
-              <Users className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-textMuted">Total Users</p>
-              <p className="text-2xl font-bold text-textDark">{summary?.total || 0}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Building className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-textMuted">Unit Officials</p>
-              <p className="text-2xl font-bold text-textDark">{summary?.unit_officials || 0}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-amber-100 rounded-lg">
-              <UserCog className="w-6 h-6 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-sm text-textMuted">District Officials</p>
-              <p className="text-2xl font-bold text-textDark">{districtOfficials.length || summary?.district_officials || 0}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-success/10 rounded-lg">
-              <CheckCircle2 className="w-6 h-6 text-success" />
-            </div>
-            <div>
-              <p className="text-sm text-textMuted">Selected</p>
-              <p className="text-2xl font-bold text-textDark">{selectedUsers.length}</p>
-            </div>
-          </div>
-        </Card>
+      {/* ── Tabs ─────────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl w-full sm:w-auto">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => { setActiveTab(tab.id); setSelectedUsers([]); }}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-white text-primary shadow-sm'
+                : 'text-textMuted hover:text-textDark'
+            }`}
+          >
+            {tab.icon}
+            <span className="hidden sm:inline">{tab.label}</span>
+            <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+              activeTab === tab.id ? 'bg-primary/10 text-primary' : 'bg-gray-200 text-textMuted'
+            }`}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
       </div>
 
-      {/* District Status Overview - Show when District Officials tab is active */}
+      {/* ── Context hint ─────────────────────────────────────────────────── */}
+      <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800">
+        <AlertCircle className="w-4 h-4 mt-0.5 text-amber-500 flex-shrink-0" />
+        <span>
+          {activeTab === 'all'
+            ? 'Viewing all users. Select a specific tab to enable bulk reset options.'
+            : activeTab === 'UNIT'
+              ? 'Unit officials manage unit registrations and member data.'
+              : 'District officials manage Kalamela and Conference registrations.'}
+          {' '}Passwords can be reset individually, in bulk, or all at once.
+        </span>
+      </div>
+
+      {/* ── District Status Overview ──────────────────────────────────────── */}
       {activeTab === 'DISTRICT_OFFICIAL' && (
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-textDark flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-primary" />
-                District Official Status
-              </h3>
-              <p className="text-sm text-textMuted mt-1">
-                Overview of districts and their assigned officials
-              </p>
+        <Card noPadding className="overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-borderColor bg-gray-50/50">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                <MapPin className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-textDark">District Official Status</h3>
+                <p className="text-xs text-textMuted">Overview of districts and their assigned officials</p>
+              </div>
             </div>
-            <div className="flex gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-success"></div>
+            <div className="flex items-center gap-4 text-xs">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-success" />
                 <span className="text-textMuted">Has Official ({districtStats.withOfficial})</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-gray-300" />
                 <span className="text-textMuted">No Official ({districtStats.withoutOfficial})</span>
-              </div>
+              </span>
             </div>
           </div>
-          
-          {districtsLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="animate-pulse p-4 bg-gray-100 rounded-lg">
-                  <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {districtsWithStatus.map((district) => (
-                <div 
-                  key={district.id}
-                  className={`p-4 rounded-lg border transition-all ${
-                    district.has_official 
-                      ? 'bg-success/5 border-success/30 hover:border-success/50' 
-                      : 'bg-gray-50 border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {district.has_official ? (
-                          <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
-                        ) : (
-                          <XCircle className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        )}
-                        <p className="font-medium text-textDark truncate">{district.name}</p>
-                      </div>
-                      {district.has_official && district.official_name && (
-                        <div className="mt-2 space-y-1">
-                          <p className="text-sm text-textMuted truncate">
-                            {district.official_name}
-                          </p>
-                          {district.official_phone && (
-                            <p className="text-xs text-textMuted flex items-center gap-1">
-                              <Phone className="w-3 h-3" />
-                              {district.official_phone}
-                            </p>
-                          )}
-                          <p className="text-xs text-primary font-medium">
-                            Login: {district.official_username || district.name}
-                          </p>
-                        </div>
-                      )}
-                      {!district.has_official && (
-                        <p className="text-xs text-textMuted mt-1">No official assigned</p>
-                      )}
+          <div className="p-4">
+            {districtsLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="animate-pulse p-4 bg-gray-100 rounded-xl h-20" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {districtsWithStatus.map((district) => (
+                  <div
+                    key={district.id}
+                    className={`p-4 rounded-xl border transition-all ${
+                      district.has_official
+                        ? 'bg-success/5 border-success/25 hover:border-success/50'
+                        : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {district.has_official
+                        ? <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
+                        : <XCircle className="w-4 h-4 text-gray-300 flex-shrink-0" />}
+                      <p className="font-semibold text-textDark text-sm truncate">{district.name}</p>
                     </div>
+                    {district.has_official && district.official_name ? (
+                      <div className="ml-6 space-y-0.5">
+                        <p className="text-xs text-textMuted truncate">{district.official_name}</p>
+                        {district.official_phone && (
+                          <p className="text-xs text-textMuted flex items-center gap-1">
+                            <Phone className="w-3 h-3" />{district.official_phone}
+                          </p>
+                        )}
+                        <p className="text-xs font-medium text-primary truncate">
+                          {district.official_username || district.name}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-textMuted ml-6">No official assigned</p>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </Card>
       )}
 
-      {/* Users Table */}
-      <Card>
-        <DataTable
-          data={users}
-          columns={columns}
-          searchPlaceholder="Search by username, email, or phone..."
-          showSearch={true}
-          showPagination={true}
-          showRowSelection={true}
-          pageSize={10}
-          onRowSelectionChange={setSelectedUsers}
-          isLoading={isLoading}
-          emptyMessage="No users found"
-          emptyIcon={<Users className="w-8 h-8 text-textMuted" />}
-        />
+      {/* ── Users Table ──────────────────────────────────────────────────── */}
+      <Card noPadding className="overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-borderColor bg-gray-50/50">
+          <div className="flex items-center gap-3">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+              activeTab === 'DISTRICT_OFFICIAL' ? 'bg-amber-50' : 'bg-primary/10'
+            }`}>
+              {activeTab === 'DISTRICT_OFFICIAL'
+                ? <UserCog className="w-4 h-4 text-amber-600" />
+                : <Users className="w-4 h-4 text-primary" />}
+            </div>
+            <div>
+              <h3 className="font-bold text-textDark">
+                {activeTab === 'all' ? 'All Users' : activeTab === 'UNIT' ? 'Unit Officials' : 'District Officials'}
+              </h3>
+              <p className="text-xs text-textMuted">{users.length} user{users.length !== 1 ? 's' : ''}</p>
+            </div>
+          </div>
+          {selectedUsers.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-textMuted">{selectedUsers.length} selected</span>
+              <Button variant="outline" size="sm" onClick={() => setSelectedUsers([])}>
+                Clear
+              </Button>
+            </div>
+          )}
+        </div>
+        <div className="p-4">
+          <DataTable
+            data={users}
+            columns={columns}
+            searchPlaceholder="Search by username, phone…"
+            showSearch
+            showPagination
+            showRowSelection
+            pageSize={10}
+            onRowSelectionChange={setSelectedUsers}
+            isLoading={isLoading}
+            emptyMessage="No users found"
+            emptyIcon={<Users className="w-8 h-8 text-textMuted" />}
+          />
+        </div>
       </Card>
 
-      {/* Password Input Modal */}
+      {/* ── Password Modal ───────────────────────────────────────────────── */}
       {showPasswordModal && (
         <Portal>
-          <div 
-            className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[100] transition-opacity" 
-            onClick={() => setShowPasswordModal(false)}
-          />
+          <div className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[100]" onClick={() => setShowPasswordModal(false)} />
           <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
-            <div 
-              className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-slide-in"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-6 py-4 border-b border-borderColor">
-                <h3 className="text-lg font-semibold text-textDark flex items-center gap-2">
-                  <KeyRound className="w-5 h-5 text-primary" />
-                  Set New Password
-                </h3>
-                <p className="text-sm text-textMuted mt-1">
-                  {userToReset 
-                    ? `Reset password for ${userToReset.username}`
-                    : selectedUsers.length > 0
-                      ? `Reset password for ${selectedUsers.length} selected users`
-                      : `Reset password for all ${activeTab === 'UNIT' ? 'unit' : 'district'} officials`
-                  }
-                </p>
-              </div>
-
-              <div className="px-6 py-4 space-y-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slide-in" onClick={(e) => e.stopPropagation()}>
+              <div className="px-6 py-4 border-b border-borderColor flex items-center gap-3">
+                <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Lock className="w-4 h-4 text-primary" />
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-textDark mb-1.5">
+                  <h3 className="font-bold text-textDark">Set New Password</h3>
+                  <p className="text-xs text-textMuted">
+                    {userToReset
+                      ? `For ${userToReset.username}`
+                      : selectedUsers.length > 0
+                        ? `For ${selectedUsers.length} selected users`
+                        : `For all ${activeTab === 'UNIT' ? 'unit' : 'district'} officials`}
+                  </p>
+                </div>
+              </div>
+              <div className="px-6 py-4 space-y-3">
+                <div>
+                  <label className="block text-sm font-semibold text-textDark mb-1.5">
                     New Password <span className="text-danger">*</span>
                   </label>
                   <div className="relative">
@@ -715,69 +623,42 @@ export const UserManagement: React.FC = () => {
                       type={showPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password (min 6 characters)"
-                      className="w-full px-3 py-2.5 pr-20 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      placeholder="Min 6 characters"
+                      className="w-full px-3 py-2.5 pr-20 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
                       minLength={6}
                       maxLength={128}
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="p-1.5 text-textMuted hover:text-textDark rounded-md hover:bg-bgLight"
-                      >
-                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="p-1.5 text-textMuted hover:text-textDark rounded-md hover:bg-bgLight">
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
-                      <button
-                        type="button"
-                        onClick={copyPassword}
-                        className="p-1.5 text-textMuted hover:text-textDark rounded-md hover:bg-bgLight"
-                      >
-                        {passwordCopied ? <Check size={18} className="text-success" /> : <Copy size={18} />}
+                      <button type="button" onClick={copyPassword} className="p-1.5 text-textMuted hover:text-textDark rounded-md hover:bg-bgLight">
+                        {passwordCopied ? <Check size={16} className="text-success" /> : <Copy size={16} />}
                       </button>
                     </div>
                   </div>
-                  <p className="text-xs text-textMuted mt-1.5">
-                    Password must be 6-128 characters
-                  </p>
+                  <p className="text-xs text-textMuted mt-1.5">Must be 6–128 characters</p>
                 </div>
-
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <button
+                  type="button"
                   onClick={() => setNewPassword(generatePassword())}
-                  className="w-full"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-dashed border-borderColor rounded-lg text-sm text-textMuted hover:text-textDark hover:border-gray-400 transition"
                 >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Generate Random Password
-                </Button>
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Generate random password
+                </button>
               </div>
-
               <div className="px-6 py-4 border-t border-borderColor flex justify-end gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setShowPasswordModal(false);
-                    setUserToReset(null);
-                    setNewPassword('');
-                  }}
-                >
+                <Button variant="outline" onClick={() => { setShowPasswordModal(false); setUserToReset(null); setNewPassword(''); }}>
                   Cancel
                 </Button>
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   onClick={() => {
-                    if (newPassword.length < 6) {
-                      addToast('Password must be at least 6 characters', 'error');
-                      return;
-                    }
-                    if (userToReset) {
-                      confirmSingleReset();
-                    } else if (selectedUsers.length > 0) {
-                      confirmBulkReset();
-                    } else {
-                      confirmResetAll();
-                    }
+                    if (newPassword.length < 6) { addToast('Password must be at least 6 characters', 'error'); return; }
+                    if (userToReset) confirmSingleReset();
+                    else if (selectedUsers.length > 0) confirmBulkReset();
+                    else confirmResetAll();
                   }}
                   disabled={newPassword.length < 6}
                 >
@@ -789,125 +670,86 @@ export const UserManagement: React.FC = () => {
         </Portal>
       )}
 
-      {/* Single Reset Confirmation */}
+      {/* ── Confirm Dialogs ───────────────────────────────────────────────── */}
       <ConfirmDialog
         isOpen={showSingleResetConfirm}
         title="Confirm Password Reset"
-        message={`Are you sure you want to reset the password for "${userToReset?.username}"? Make sure you have copied the new password.`}
+        message={`Reset password for "${userToReset?.username}"? Make sure you have copied the new password.`}
         confirmLabel="Reset Password"
         cancelLabel="Cancel"
         variant="warning"
         onConfirm={executeSingleReset}
-        onCancel={() => {
-          setShowSingleResetConfirm(false);
-          setUserToReset(null);
-          setNewPassword('');
-        }}
+        onCancel={() => { setShowSingleResetConfirm(false); setUserToReset(null); setNewPassword(''); }}
       />
-
-      {/* Bulk Reset Confirmation */}
       <ConfirmDialog
         isOpen={showBulkResetConfirm}
         title="Confirm Bulk Password Reset"
-        message={`Are you sure you want to reset passwords for ${selectedUsers.length} users? All selected users will receive the same new password. Make sure you have copied it.`}
+        message={`Reset passwords for ${selectedUsers.length} users? All selected users will receive the same new password.`}
         confirmLabel={`Reset ${selectedUsers.length} Passwords`}
         cancelLabel="Cancel"
         variant="warning"
         onConfirm={executeBulkReset}
-        onCancel={() => {
-          setShowBulkResetConfirm(false);
-          setNewPassword('');
-        }}
+        onCancel={() => { setShowBulkResetConfirm(false); setNewPassword(''); }}
       />
-
-      {/* Reset All Confirmation */}
       <ConfirmDialog
         isOpen={showResetAllConfirm}
         title="⚠️ Reset ALL Passwords"
-        message={`WARNING: This will reset passwords for ALL ${activeTab === 'UNIT' ? 'unit' : 'district'} officials (${activeTab === 'UNIT' ? summary?.unit_officials : summary?.district_officials} users). This action cannot be undone. Make sure you have copied the new password.`}
+        message={`This will reset passwords for ALL ${activeTab === 'UNIT' ? 'unit' : 'district'} officials (${activeTab === 'UNIT' ? summary?.unit_officials : summary?.district_officials} users). This cannot be undone.`}
         confirmLabel={`Reset All ${activeTab === 'UNIT' ? 'Unit' : 'District'} Official Passwords`}
         cancelLabel="Cancel"
         variant="danger"
         onConfirm={executeResetAll}
-        onCancel={() => {
-          setShowResetAllConfirm(false);
-          setNewPassword('');
-        }}
+        onCancel={() => { setShowResetAllConfirm(false); setNewPassword(''); }}
       />
 
-      {/* Create District Official Modal */}
+      {/* ── Create District Official Modal ───────────────────────────────── */}
       {showCreateOfficialModal && (
         <Portal>
-          <div 
-            className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[100] transition-opacity" 
-            onClick={closeCreateOfficialModal}
-          />
+          <div className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[100]" onClick={closeCreateOfficialModal} />
           <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
-            <div 
-              className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-slide-in"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-6 py-4 border-b border-borderColor">
-                <h3 className="text-lg font-semibold text-textDark flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-primary" />
-                  Create District Official
-                </h3>
-                <p className="text-sm text-textMuted mt-1">
-                  Create a new login account for a district official
-                </p>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slide-in" onClick={(e) => e.stopPropagation()}>
+              <div className="px-6 py-4 border-b border-borderColor flex items-center gap-3">
+                <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center">
+                  <UserPlus className="w-4 h-4 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-textDark">Create District Official</h3>
+                  <p className="text-xs text-textMuted">New login account for a district official</p>
+                </div>
               </div>
 
               {createdOfficialResult ? (
-                // Success view
                 <div className="px-6 py-6">
-                  <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle2 className="w-8 h-8 text-success" />
+                  <div className="flex flex-col items-center gap-2 mb-6">
+                    <div className="w-14 h-14 bg-success/10 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-7 h-7 text-success" />
                     </div>
-                    <h4 className="text-lg font-semibold text-textDark">Official Created Successfully!</h4>
-                    <p className="text-sm text-textMuted mt-1">
-                      Share these credentials with the district official
-                    </p>
+                    <h4 className="font-bold text-textDark">Official Created!</h4>
+                    <p className="text-sm text-textMuted">Share these credentials with the official</p>
                   </div>
-                  
-                  <div className="space-y-3 bg-bgLight p-4 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-textMuted">District:</span>
-                      <span className="font-medium text-textDark">{createdOfficialResult.district_name}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-textMuted">Username:</span>
-                      <span className="font-mono font-medium text-primary">{createdOfficialResult.username}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-textMuted">Default Password:</span>
-                      <span className="font-medium text-textDark">{createdOfficialResult.default_password_hint}</span>
-                    </div>
+                  <div className="space-y-2 bg-bgLight p-4 rounded-xl text-sm">
+                    {[
+                      { label: 'District',  value: createdOfficialResult.district_name },
+                      { label: 'Username',  value: createdOfficialResult.username, mono: true },
+                      { label: 'Password',  value: createdOfficialResult.default_password_hint },
+                    ].map((row) => (
+                      <div key={row.label} className="flex justify-between items-center">
+                        <span className="text-textMuted">{row.label}</span>
+                        <span className={`font-medium text-textDark ${row.mono ? 'font-mono text-primary' : ''}`}>{row.value}</span>
+                      </div>
+                    ))}
                   </div>
-
-                  <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-sm text-amber-800 flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                      The default password is the phone number. Advise the official to change it after first login.
-                    </p>
+                  <div className="mt-3 flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800">
+                    <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                    Default password is the phone number. Advise the official to change it after first login.
                   </div>
-
-                  <div className="mt-6">
-                    <Button 
-                      variant="primary" 
-                      className="w-full"
-                      onClick={closeCreateOfficialModal}
-                    >
-                      Done
-                    </Button>
-                  </div>
+                  <Button variant="primary" className="w-full mt-5" onClick={closeCreateOfficialModal}>Done</Button>
                 </div>
               ) : (
-                // Form view
                 <>
                   <div className="px-6 py-4 space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-textDark mb-1.5">
+                      <label className="block text-sm font-semibold text-textDark mb-1.5">
                         District <span className="text-danger">*</span>
                       </label>
                       <select
@@ -915,35 +757,29 @@ export const UserManagement: React.FC = () => {
                         onChange={(e) => setCreateOfficialForm(prev => ({ ...prev, district_id: Number(e.target.value) }))}
                         className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
                       >
-                        <option value={0}>Select a district...</option>
-                        {districtsWithoutOfficials.map((district) => (
-                          <option key={district.id} value={district.id}>
-                            {district.name}
-                          </option>
+                        <option value={0}>Select a district…</option>
+                        {districtsWithoutOfficials.map((d) => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
                         ))}
                       </select>
                       {districtsWithoutOfficials.length === 0 && (
-                        <p className="text-xs text-amber-600 mt-1.5">
-                          All districts already have officials assigned
-                        </p>
+                        <p className="text-xs text-amber-600 mt-1.5">All districts already have officials assigned</p>
                       )}
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-textDark mb-1.5">
+                      <label className="block text-sm font-semibold text-textDark mb-1.5">
                         Official Name <span className="text-danger">*</span>
                       </label>
                       <input
                         type="text"
                         value={createOfficialForm.official_name}
                         onChange={(e) => setCreateOfficialForm(prev => ({ ...prev, official_name: e.target.value }))}
-                        placeholder="Enter official's full name"
+                        placeholder="Full name"
                         className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                       />
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-textDark mb-1.5">
+                      <label className="block text-sm font-semibold text-textDark mb-1.5">
                         Phone Number <span className="text-danger">*</span>
                       </label>
                       <div className="relative">
@@ -952,48 +788,27 @@ export const UserManagement: React.FC = () => {
                           type="tel"
                           value={createOfficialForm.phone_number}
                           onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                            setCreateOfficialForm(prev => ({ ...prev, phone_number: value }));
+                            const v = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setCreateOfficialForm(prev => ({ ...prev, phone_number: v }));
                           }}
-                          placeholder="10-digit phone number"
-                          className="w-full pl-10 pr-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          placeholder="10-digit number"
+                          className="w-full pl-10 pr-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
                           maxLength={10}
                         />
                       </div>
-                      <p className="text-xs text-textMuted mt-1.5">
-                        This will be used as the default password
-                      </p>
+                      <p className="text-xs text-textMuted mt-1.5">Used as the default password</p>
                     </div>
                   </div>
-
                   <div className="px-6 py-4 border-t border-borderColor flex justify-end gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={closeCreateOfficialModal}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      variant="primary" 
+                    <Button variant="outline" onClick={closeCreateOfficialModal}>Cancel</Button>
+                    <Button
+                      variant="primary"
                       onClick={handleCreateOfficial}
-                      disabled={
-                        createOfficialMutation.isPending || 
-                        !createOfficialForm.district_id || 
-                        !createOfficialForm.official_name || 
-                        createOfficialForm.phone_number.length !== 10
-                      }
+                      isLoading={createOfficialMutation.isPending}
+                      disabled={createOfficialMutation.isPending || !createOfficialForm.district_id || !createOfficialForm.official_name || createOfficialForm.phone_number.length !== 10}
                     >
-                      {createOfficialMutation.isPending ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-4 h-4 mr-2" />
-                          Create Official
-                        </>
-                      )}
+                      <Plus className="w-4 h-4 mr-1.5" />
+                      Create Official
                     </Button>
                   </div>
                 </>
@@ -1005,4 +820,3 @@ export const UserManagement: React.FC = () => {
     </div>
   );
 };
-

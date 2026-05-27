@@ -45,6 +45,7 @@ const ExportData = lazy(() => import('./pages/UnitAdmin/ExportData').then(module
 const PrintForm = lazy(() => import('./pages/UnitAdmin/PrintForm').then(module => ({ default: module.PrintForm })));
 const SiteSettings = lazy(() => import('./pages/UnitAdmin/SiteSettings').then(module => ({ default: module.SiteSettings })));
 const UserManagement = lazy(() => import('./pages/UnitAdmin/UserManagement').then(module => ({ default: module.UserManagement })));
+const BloodDonorSearch = lazy(() => import('./pages/UnitAdmin/BloodDonorSearch').then(module => ({ default: module.BloodDonorSearch })));
 
 // Unit User Pages (for unit officials)
 const ViewMyRequests = lazy(() => import('./pages/UnitUser/ViewMyRequests').then(module => ({ default: module.ViewMyRequests })));
@@ -213,6 +214,12 @@ const App: React.FC = () => {
               <Route path="/admin/archived-members" element={
                 <AdminRoute>
                   <ArchivedMembers />
+                </AdminRoute>
+              } />
+
+              <Route path="/admin/blood-donor-search" element={
+                <AdminRoute>
+                  <BloodDonorSearch />
                 </AdminRoute>
               } />
 

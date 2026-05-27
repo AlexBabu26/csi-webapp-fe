@@ -627,6 +627,21 @@ export interface ArchivedMember extends UnitMember {
   archivedAt: string;
   archivedBy: string;
   archiveReason?: string;
+  archiveYear?: string;
+}
+
+// Archive preview (active member eligible for yearly archiving)
+export interface ArchivePreviewMember {
+  id: number;
+  name: string;
+  gender: string | null;
+  dob: string;
+  age: number;
+  number: string;
+  qualification: string | null;
+  blood_group: string | null;
+  unit_name: string | null;
+  registered_user_id: number;
 }
 
 // Request Actions & History
@@ -1084,6 +1099,10 @@ export interface SiteSettings {
   logo_tertiary_url: string | null;
   registration_enabled: boolean;
   registration_closed_message: string | null;
+  member_min_dob: string | null;
+  member_max_dob: string | null;
+  blood_donor_district_access: boolean;
+  blood_donor_unit_access: boolean;
   contact: ContactInfo;
   social_links: SocialLinks;
   updated_at: string;
@@ -1096,8 +1115,26 @@ export interface SiteSettingsUpdate {
   about_text?: string;
   registration_enabled?: boolean;
   registration_closed_message?: string;
+  member_min_dob?: string | null;
+  member_max_dob?: string | null;
+  blood_donor_district_access?: boolean;
+  blood_donor_unit_access?: boolean;
   contact?: Partial<ContactInfo>;
   social_links?: Partial<SocialLinks>;
+}
+
+export interface BloodDonorResult {
+  id: number;
+  name: string;
+  gender: string | null;
+  dob: string | null;
+  blood_group: string | null;
+  number: string;
+  qualification: string | null;
+  unit_name: string | null;
+  district_name: string | null;
+  status: 'active' | 'archived';
+  archive_year: string | null;
 }
 
 export interface LogoUploadResponse {

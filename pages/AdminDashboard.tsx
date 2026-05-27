@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import { Card, Badge, Button, Skeleton, IconButton } from '../components/ui';
 import { DataTable, ColumnDef } from '../components/DataTable';
-import { Download, Plus, AlertCircle, Eye, Users, Building, UserCheck, FileText, TrendingUp } from 'lucide-react';
+import { Download, Plus, AlertCircle, Eye, Users, Building, UserCheck, FileText, TrendingUp, Droplets } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
 import { Unit, UnitStats, DistrictWiseData } from '../types';
@@ -265,6 +265,27 @@ export const AdminDashboard: React.FC = () => {
               </Card>
             </>
         ) : null}
+      </div>
+
+      {/* Quick Links */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Members', icon: <Users className="w-5 h-5 text-primary" />, path: '/admin/members', bg: 'bg-blue-50' },
+          { label: 'Export Data', icon: <Download className="w-5 h-5 text-green-600" />, path: '/admin/export', bg: 'bg-green-50' },
+          { label: 'Archive Members', icon: <FileText className="w-5 h-5 text-amber-600" />, path: '/admin/archived-members', bg: 'bg-amber-50' },
+          { label: 'Blood Bank', icon: <Droplets className="w-5 h-5 text-red-600" />, path: '/admin/blood-donor-search', bg: 'bg-red-50' },
+        ].map((link) => (
+          <button
+            key={link.path}
+            onClick={() => navigate(link.path)}
+            className="bg-white rounded-xl border border-borderColor p-4 flex flex-col items-center gap-2 hover:shadow-md hover:border-gray-300 transition-all text-center group"
+          >
+            <div className={`w-10 h-10 ${link.bg} rounded-full flex items-center justify-center group-hover:scale-110 transition-transform`}>
+              {link.icon}
+            </div>
+            <span className="text-xs font-semibold text-textDark">{link.label}</span>
+          </button>
+        ))}
       </div>
 
       {/* Summary Stats */}

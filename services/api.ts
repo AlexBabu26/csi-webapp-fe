@@ -1539,6 +1539,60 @@ class ApiService {
     return { data, message: 'Member restored successfully', status: 200 };
   }
 
+  // GET /admin/system/unit-names - All unit names with district info (for filter dropdowns)
+  async getAdminUnitNames(): Promise<Array<{ id: number; name: string; clergy_district_id: number; district_name: string }>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet('/admin/system/unit-names', { token });
+  }
+
+  // GET /admin/system/districts - All districts (for filter dropdowns)
+  async getAdminDistricts(): Promise<Array<{ id: number; name: string }>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet('/admin/system/districts', { token });
+  }
+
+  // GET /admin/units/blood-donor-search - Search blood donors across active + archived members
+  async searchBloodDonors(params: {
+    blood_group?: string;
+    name?: string;
+    gender?: string;
+    districts?: string[];
+    units?: string[];
+    include_archived?: boolean;
+  }): Promise<{ data: import('../types').BloodDonorResult[]; total: number }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    // Build URL manually to support repeated query params for multi-select
+    const base = import.meta.env.VITE_API_BASE_URL || '/api';
+    const url = new URL(`${base}/admin/units/blood-donor-search`, window.location.origin);
+    if (params.blood_group) url.searchParams.set('blood_group', params.blood_group);
+    if (params.name) url.searchParams.set('name', params.name);
+    if (params.gender) url.searchParams.set('gender', params.gender);
+    if (params.include_archived !== undefined) url.searchParams.set('include_archived', String(params.include_archived));
+    (params.districts ?? []).forEach(d => url.searchParams.append('districts', d));
+    (params.units ?? []).forEach(u => url.searchParams.append('units', u));
+    const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+    return res.json();
+  }
+
+  // GET /admin/units/archive-preview - Members eligible for yearly archiving
+  async getArchivePreview(): Promise<{ data: import('../types').ArchivePreviewMember[]; total: number; min_dob: string; max_dob: string }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet('/admin/units/archive-preview', { token });
+  }
+
+  // POST /admin/units/bulk-archive - Bulk archive members with a year label
+  async bulkArchiveMembers(payload: { member_ids: number[]; archive_year: string; archive_reason?: string }): Promise<ApiResponse<any>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpPost<any>('/admin/units/bulk-archive', payload, { token });
+    return { data, message: 'Members archived successfully', status: 200 };
+  }
+
   // GET /admin/units/export/{export_type} - Export various unit data
   async exportData(type: string, id?: number): Promise<ApiResponse<Blob>> {
     const token = this.getToken();
@@ -1665,6 +1719,7 @@ class ApiService {
       archived_at: string;
       archived_by?: string;
       archive_reason?: string;
+      archive_year?: string;
       unit_name?: string;
     }
 
@@ -1706,6 +1761,7 @@ class ApiService {
       archivedAt: member.archived_at,
       archivedBy: member.archived_by || 'System',
       archiveReason: member.archive_reason,
+      archiveYear: member.archive_year,
     }));
 
     return { data, status: 200 };

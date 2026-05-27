@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { APP_NAME, APP_SUBTITLE } from '../constants';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { User, Lock, Eye, EyeOff, Award, Users, BookOpen } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Award, Users, BookOpen, Droplets } from 'lucide-react';
 import { UserRole, SiteSettings, Notice } from '../types';
 import { Footer } from '../components/Footer';
 import { api } from '../services/api';
 import { getMediaUrl } from '../services/http';
-import { setAuthUser, setAuthTokens } from '../services/auth';
+import { setAuthUser, setAuthTokens, getAuthToken, isTokenExpired } from '../services/auth';
 import { useSiteSettings, useNotices } from '../hooks/queries';
 
 interface PublicHomeProps {
@@ -81,11 +81,30 @@ const LogoImage: React.FC<{ src: string | null | undefined; fallback: React.Reac
 export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
   const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [redirectAfterLogin, setRedirectAfterLogin] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showFullAbout, setShowFullAbout] = useState(false);
+
+  // Helper: open login modal with an optional post-login redirect
+  const openLoginModal = (redirectTo?: string) => {
+    setRedirectAfterLogin(redirectTo ?? null);
+    setUsername('');
+    setPassword('');
+    setShowLoginModal(true);
+  };
+
+  // Helper: navigate to a protected page (open login modal if not authenticated)
+  const navigateProtected = (path: string) => {
+    const token = getAuthToken();
+    if (token && !isTokenExpired(token)) {
+      navigate(path);
+    } else {
+      openLoginModal(path);
+    }
+  };
   
   // Use TanStack Query for site settings
   const { data: siteSettings, isLoading: settingsLoading } = useSiteSettings();
@@ -129,8 +148,19 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
                    UserRole.PUBLIC;
       
       onLogin(role);
-      
-      // Navigate based on role
+
+      // Close the modal first
+      setShowLoginModal(false);
+
+      // If there's a pending redirect (e.g. from Blood Donor Search link), go there
+      if (redirectAfterLogin) {
+        console.log('[PublicHome] Redirecting to:', redirectAfterLogin);
+        navigate(redirectAfterLogin);
+        setRedirectAfterLogin(null);
+        return;
+      }
+
+      // Default role-based navigation
       if (me.user_type === '1') {
         console.log('[PublicHome] Navigating to admin dashboard');
         navigate('/admin/dashboard');
@@ -144,9 +174,6 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
         console.log('[PublicHome] Navigating to home');
         navigate('/');
       }
-      
-      // Close the modal on success
-      setShowLoginModal(false);
     } catch (error: any) {
       console.error('[PublicHome] Login failed:', error);
       alert(`Login failed: ${error.message || 'Please check your credentials and try again.'}`);
@@ -293,7 +320,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
                  <Button 
                    variant="primary" 
                    size="block"
-                   onClick={() => setShowLoginModal(true)}
+                   onClick={() => openLoginModal()}
                    className="shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30"
                  >
                    Unit Login
@@ -302,7 +329,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
              </Card>
 
              {/* Quick Links */}
-             <div className="grid grid-cols-3 gap-3">
+             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                <button 
                  onClick={() => navigate('/kalamela')}
                  className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/50 hover:border-purple-300 hover:shadow-lg cursor-pointer transition-all duration-300 text-center group hover:scale-[1.02] hover:-translate-y-0.5"
@@ -333,6 +360,16 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
                  </div>
                  <span className="font-semibold text-sm text-gray-700 group-hover:text-emerald-600 transition-colors">Yuvalokham</span>
                </button>
+               <button 
+                 onClick={() => navigateProtected('/admin/blood-donor-search')}
+                 className="bg-white/80 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-white/50 hover:border-red-300 hover:shadow-lg cursor-pointer transition-all duration-300 text-center group hover:scale-[1.02] hover:-translate-y-0.5"
+                 aria-label="Blood Bank"
+               >
+                 <div className="w-11 h-11 bg-gradient-to-br from-red-100 to-red-200 text-red-600 rounded-xl flex items-center justify-center mx-auto mb-2.5 group-hover:from-red-500 group-hover:to-red-600 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-red-500/25">
+                   <Droplets size={20} />
+                 </div>
+                 <span className="font-semibold text-sm text-gray-700 group-hover:text-red-600 transition-colors">Blood Bank</span>
+               </button>
              </div>
           </div>
         </div>
@@ -346,9 +383,16 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
             <div className="bg-primary px-6 py-4 flex justify-between items-center">
-              <h3 className="text-white font-semibold text-lg">Unit Login</h3>
+              <div>
+                <h3 className="text-white font-semibold text-lg">Unit Login</h3>
+                {redirectAfterLogin && (
+                  <p className="text-white/75 text-xs mt-0.5">
+                    Login to continue to {redirectAfterLogin === '/admin/blood-donor-search' ? 'Blood Bank' : redirectAfterLogin}
+                  </p>
+                )}
+              </div>
               <button 
-                onClick={() => setShowLoginModal(false)} 
+                onClick={() => { setShowLoginModal(false); setRedirectAfterLogin(null); }} 
                 className="text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary rounded"
                 aria-label="Close modal"
               >

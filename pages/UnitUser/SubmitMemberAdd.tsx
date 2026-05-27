@@ -6,11 +6,17 @@ import { ArrowLeft, Send, UserPlus } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
+import { useSiteSettings } from '../../hooks/queries';
 
 export const SubmitMemberAdd: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
-  
+
+  // Fetch DOB limits from site settings (falls back to defaults if not loaded yet)
+  const { data: siteSettings } = useSiteSettings();
+  const minDob = siteSettings?.member_min_dob ?? '1990-01-01';
+  const maxDob = siteSettings?.member_max_dob ?? '2011-12-31';
+
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -51,6 +57,11 @@ export const SubmitMemberAdd: React.FC = () => {
       return;
     }
     
+    if (!formData.bloodGroup) {
+      addToast("Please select a blood group", "warning");
+      return;
+    }
+
     if (!reason.trim()) {
       addToast("Please provide a reason", "warning");
       return;
@@ -156,11 +167,14 @@ export const SubmitMemberAdd: React.FC = () => {
                 type="date"
                 value={formData.dob}
                 onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                min="1990-01-01"
-                max="2011-12-31"
+                min={minDob}
+                max={maxDob}
                 className="w-full px-3 py-2 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 required
               />
+              <p className="mt-1 text-xs text-textMuted">
+                DOB must be between <strong>{minDob}</strong> and <strong>{maxDob}</strong>.
+              </p>
             </div>
 
             {/* Qualification */}
@@ -179,12 +193,13 @@ export const SubmitMemberAdd: React.FC = () => {
             {/* Blood Group */}
             <div>
               <label className="block text-sm font-medium text-textDark mb-2">
-                Blood Group
+                Blood Group <span className="text-danger">*</span>
               </label>
               <select
                 value={formData.bloodGroup}
                 onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
                 className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                required
               >
                 <option value="">-- Select Blood Group --</option>
                 <option value="A+">A+</option>
