@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { Card, Button } from '../../../components/ui';
 import { UserPlus, Trash2, Pencil } from 'lucide-react';
-import { UnitApplicationForm, UnitRegistrationMember } from '../../../types';
+import {
+  UnitApplicationForm,
+  UnitRegistrationMember,
+  ResidenceLocation,
+  RESIDENCE_LOCATION_OPTIONS,
+  getResidenceLocationLabel,
+} from '../../../types';
 import {
   useAddUnitMember,
   useUpdateUnitMember,
@@ -25,6 +31,7 @@ const emptyMemberForm = {
   dob: '',
   qualification: '',
   blood_group: '',
+  residence_location: '' as ResidenceLocation | '',
 };
 
 export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }) => {
@@ -34,6 +41,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }
 
   const [memberForm, setMemberForm] = useState(emptyMemberForm);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [formError, setFormError] = useState('');
 
   const addMember = useAddUnitMember();
   const updateMember = useUpdateUnitMember();
@@ -50,14 +58,24 @@ export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }
   const handleAddOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberForm.name.trim() || !memberForm.dob || !memberForm.number.match(/^[6-9]\d{9}$/)) return;
+    if (!memberForm.residence_location) {
+      setFormError('Please select a living location.');
+      return;
+    }
+    if (!memberForm.blood_group) {
+      setFormError('Please select a blood group.');
+      return;
+    }
 
+    setFormError('');
     const payload = {
       name: memberForm.name.trim(),
       gender: memberForm.gender,
       dob: memberForm.dob,
       number: memberForm.number,
       qualification: memberForm.qualification || undefined,
-      blood_group: memberForm.blood_group || undefined,
+      blood_group: memberForm.blood_group,
+      residence_location: memberForm.residence_location,
     };
 
     if (editingId) {
@@ -77,11 +95,21 @@ export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }
       dob: member.dob || '',
       qualification: member.qualification || '',
       blood_group: member.blood_group || '',
+      residence_location: member.residence_location || '',
     });
   };
 
   const handleContinue = async () => {
     if (members.length === 0) return;
+    if (members.some((member) => !member.residence_location)) {
+      setFormError('Set the living location for every member before continuing.');
+      return;
+    }
+    if (members.some((member) => !member.blood_group)) {
+      setFormError('Set the blood group for every member before continuing.');
+      return;
+    }
+    setFormError('');
     await submitMembers.mutateAsync();
     onComplete();
   };
@@ -119,12 +147,36 @@ export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }
               <input type="text" value={memberForm.qualification} onChange={(e) => setMemberForm({ ...memberForm, qualification: e.target.value })} className="w-full px-3 py-2 border border-borderColor rounded-md" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-textDark mb-1">Blood Group</label>
-              <select value={memberForm.blood_group} onChange={(e) => setMemberForm({ ...memberForm, blood_group: e.target.value })} className="w-full px-3 py-2 border border-borderColor rounded-md bg-white">
-                <option value="">Select</option>
+              <label className="block text-sm font-medium text-textDark mb-1">Blood Group *</label>
+              <select
+                value={memberForm.blood_group}
+                onChange={(e) => setMemberForm({ ...memberForm, blood_group: e.target.value })}
+                className="w-full px-3 py-2 border border-borderColor rounded-md bg-white"
+                required
+              >
+                <option value="">Select blood group</option>
                 {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg}</option>)}
               </select>
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-textDark mb-1">Living Location *</label>
+              <select
+                value={memberForm.residence_location}
+                onChange={(e) => setMemberForm({ ...memberForm, residence_location: e.target.value as ResidenceLocation | '' })}
+                className="w-full px-3 py-2 border border-borderColor rounded-md bg-white"
+                required
+              >
+                <option value="">Select living location</option>
+                {RESIDENCE_LOCATION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            {formError && (
+              <div className="md:col-span-2 bg-danger/10 border border-danger/30 text-danger text-sm rounded-md p-3">
+                {formError}
+              </div>
+            )}
             <div className="md:col-span-2 flex gap-2">
               <Button type="submit" isLoading={addMember.isPending || updateMember.isPending}>
                 {editingId ? 'Update Member' : 'Add Member'}
@@ -149,6 +201,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }
                     <th className="py-2 pr-2">Gender</th>
                     <th className="py-2 pr-2">Phone</th>
                     <th className="py-2 pr-2">DOB</th>
+                    <th className="py-2 pr-2">Location</th>
                     <th className="py-2">Actions</th>
                   </tr>
                 </thead>
@@ -159,6 +212,9 @@ export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }
                       <td className="py-2 pr-2">{m.gender}</td>
                       <td className="py-2 pr-2">{m.number}</td>
                       <td className="py-2 pr-2">{m.dob}</td>
+                      <td className={`py-2 pr-2 ${!m.residence_location ? 'text-danger font-medium' : ''}`}>
+                        {getResidenceLocationLabel(m.residence_location)}
+                      </td>
                       <td className="py-2 flex gap-1">
                         <button type="button" onClick={() => startEdit(m)} className="p-1 text-primary hover:bg-primary/10 rounded"><Pencil className="w-4 h-4" /></button>
                         <button type="button" onClick={() => deleteMember.mutate(m.id)} className="p-1 text-danger hover:bg-danger/10 rounded"><Trash2 className="w-4 h-4" /></button>
@@ -170,6 +226,9 @@ export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }
             </div>
           )}
           <div className="mt-6 flex justify-end">
+            {formError && (
+              <p className="mr-auto text-sm text-danger self-center">{formError}</p>
+            )}
             <Button onClick={handleContinue} disabled={members.length === 0} isLoading={submitMembers.isPending}>
               Continue to Officials
             </Button>
@@ -177,7 +236,13 @@ export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }
         </Card>
       </div>
       <div>
-        <FeeSummary memberCount={members.length} membersAmount={formData.members_amount} totalAmount={formData.total_amount} />
+        <FeeSummary
+          memberCount={members.length}
+          unitRegistrationFee={formData.unit_registration_fee}
+          unitMemberFee={formData.unit_member_fee}
+          membersAmount={formData.members_amount}
+          totalAmount={formData.total_amount}
+        />
       </div>
     </div>
   );

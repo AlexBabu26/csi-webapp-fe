@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Lock, Mail, Phone, User, MapPin, Building, AlertCircle, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Lock, Phone, MapPin, Building, AlertCircle, ArrowLeft, User, Copy, Check } from 'lucide-react';
 import { Button } from '../../components/ui';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../../services/api';
@@ -9,9 +9,6 @@ import { ClergyDistrict, UnitName } from '../../types';
 import { useSiteSettings } from '../../hooks/queries';
 
 interface RegisterForm {
-  first_name: string;
-  last_name: string;
-  email: string;
   phone_number: string;
   password: string;
   clergy_district_id: number | undefined;
@@ -21,9 +18,6 @@ interface RegisterForm {
 export const RegisterAccount: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState<RegisterForm>({
-    first_name: '',
-    last_name: '',
-    email: '',
     phone_number: '',
     password: '',
     clergy_district_id: undefined,
@@ -32,8 +26,11 @@ export const RegisterAccount: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [districts, setDistricts] = useState<ClergyDistrict[]>([]);
   const [units, setUnits] = useState<UnitName[]>([]);
+  const [usernamePreview, setUsernamePreview] = useState('');
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingUnits, setLoadingUnits] = useState(false);
+  const [loadingUsername, setLoadingUsername] = useState(false);
+  const [usernameCopied, setUsernameCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const navigate = useNavigate();
@@ -60,15 +57,40 @@ export const RegisterAccount: React.FC = () => {
   useEffect(() => {
     if (!form.clergy_district_id) {
       setUnits([]);
+      setUsernamePreview('');
       return;
     }
     setLoadingUnits(true);
     setForm((prev) => ({ ...prev, unit_name_id: undefined }));
+    setUsernamePreview('');
     api.getUnitNames(form.clergy_district_id)
       .then((data) => setUnits(data || []))
       .catch(() => setFormError('Failed to load units. Please try again.'))
       .finally(() => setLoadingUnits(false));
   }, [form.clergy_district_id]);
+
+  useEffect(() => {
+    if (!form.clergy_district_id || !form.unit_name_id) {
+      setUsernamePreview('');
+      return;
+    }
+    setLoadingUsername(true);
+    api.previewRegistrationUsername(form.clergy_district_id)
+      .then((data) => setUsernamePreview(data.username_preview))
+      .catch(() => setUsernamePreview(''))
+      .finally(() => setLoadingUsername(false));
+  }, [form.clergy_district_id, form.unit_name_id]);
+
+  const copyUsername = async () => {
+    if (!usernamePreview || loadingUsername) return;
+    try {
+      await navigator.clipboard.writeText(usernamePreview);
+      setUsernameCopied(true);
+      window.setTimeout(() => setUsernameCopied(false), 2000);
+    } catch {
+      setFormError('Unable to copy registration number. Please copy it manually.');
+    }
+  };
 
   const updateField = (field: keyof RegisterForm, value: string | number | undefined) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -84,15 +106,13 @@ export const RegisterAccount: React.FC = () => {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!form.first_name.trim()) newErrors.first_name = 'First name is required';
-    if (!form.email.trim()) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = 'Please enter a valid email';
     if (!form.phone_number.trim()) newErrors.phone_number = 'Phone number is required';
     else if (!/^\d{10}$/.test(form.phone_number)) newErrors.phone_number = 'Phone must be 10 digits';
     if (!form.password) newErrors.password = 'Password is required';
     else if (form.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     if (!form.clergy_district_id) newErrors.clergy_district_id = 'District is required';
     if (!form.unit_name_id) newErrors.unit_name_id = 'Unit is required';
+    if (!usernamePreview) newErrors.username = 'Select a unit to generate your registration number';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -105,17 +125,14 @@ export const RegisterAccount: React.FC = () => {
     setFormError('');
 
     try {
-      await api.registerUnit({
-        email: form.email.trim(),
+      const user = await api.registerUnit({
         phone_number: form.phone_number.trim(),
-        first_name: form.first_name.trim(),
-        last_name: form.last_name.trim() || undefined,
         unit_name_id: form.unit_name_id!,
         clergy_district_id: form.clergy_district_id!,
         password: form.password,
       });
 
-      const tokens = await api.login({ username: form.email.trim(), password: form.password });
+      const tokens = await api.login({ username: user.username, password: form.password });
       setAuthTokens(tokens.access_token, tokens.refresh_token || '');
       if (tokens.user_type) localStorage.setItem('user_type', tokens.user_type);
 
@@ -182,42 +199,11 @@ export const RegisterAccount: React.FC = () => {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
               <div>
-                <label htmlFor="first-name" className="block text-sm font-medium text-textDark">First Name <span className="text-danger">*</span></label>
-                <div className="mt-1 relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input id="first-name" type="text" value={form.first_name} onChange={(e) => updateField('first_name', e.target.value)} className={inputWithIcon('first_name')} placeholder="First name" />
-                </div>
-                {errors.first_name && <p className="mt-1 text-sm text-danger">{errors.first_name}</p>}
-              </div>
-              <div>
-                <label htmlFor="last-name" className="block text-sm font-medium text-textDark">Last Name</label>
-                <div className="mt-1 relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input id="last-name" type="text" value={form.last_name} onChange={(e) => updateField('last_name', e.target.value)} className={inputWithIcon('last_name')} placeholder="Last name (optional)" />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="reg-email" className="block text-sm font-medium text-textDark">Email <span className="text-danger">*</span></label>
-                <div className="mt-1 relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input id="reg-email" type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} className={inputWithIcon('email')} placeholder="you@example.com" />
-                </div>
-                {errors.email && <p className="mt-1 text-sm text-danger">{errors.email}</p>}
-              </div>
-              <div>
-                <label htmlFor="reg-phone" className="block text-sm font-medium text-textDark">Phone <span className="text-danger">*</span></label>
-                <div className="mt-1 relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input id="reg-phone" type="tel" value={form.phone_number} onChange={(e) => updateField('phone_number', e.target.value.replace(/\D/g, '').slice(0, 10))} className={inputWithIcon('phone_number')} placeholder="10-digit number" />
-                </div>
-                {errors.phone_number && <p className="mt-1 text-sm text-danger">{errors.phone_number}</p>}
-              </div>
-              <div>
                 <label htmlFor="district" className="block text-sm font-medium text-textDark">Clergy District <span className="text-danger">*</span></label>
                 <div className="mt-1 relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <select id="district" value={form.clergy_district_id ?? ''} onChange={(e) => updateField('clergy_district_id', e.target.value ? Number(e.target.value) : undefined)} className={selectClass('clergy_district_id')} disabled={loadingDistricts}>
-                    <option value="">{loadingDistricts ? 'Loading...' : 'Select district'}</option>
+                    <option value="">{loadingDistricts ? 'Loading...' : districts.length === 0 ? 'No districts available' : 'Select district'}</option>
                     {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
                 </div>
@@ -228,13 +214,49 @@ export const RegisterAccount: React.FC = () => {
                 <div className="mt-1 relative">
                   <Building className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <select id="unit" value={form.unit_name_id ?? ''} onChange={(e) => updateField('unit_name_id', e.target.value ? Number(e.target.value) : undefined)} className={selectClass('unit_name_id')} disabled={!form.clergy_district_id || loadingUnits}>
-                    <option value="">{!form.clergy_district_id ? 'Select district first' : loadingUnits ? 'Loading...' : 'Select unit'}</option>
+                    <option value="">{!form.clergy_district_id ? 'Select district first' : loadingUnits ? 'Loading...' : units.length === 0 ? 'No units available' : 'Select unit'}</option>
                     {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                 </div>
                 {errors.unit_name_id && <p className="mt-1 text-sm text-danger">{errors.unit_name_id}</p>}
               </div>
               <div className="sm:col-span-2">
+                <label htmlFor="username" className="block text-sm font-medium text-textDark">Registration Number (Username) <span className="text-danger">*</span></label>
+                <div className="mt-1 relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    id="username"
+                    type="text"
+                    readOnly
+                    value={loadingUsername ? 'Generating...' : usernamePreview}
+                    className={`${inputWithIcon('username')} pr-10 bg-gray-50 text-textMuted cursor-not-allowed`}
+                    placeholder="Select a unit to generate your registration number"
+                  />
+                  <button
+                    type="button"
+                    onClick={copyUsername}
+                    disabled={!usernamePreview || loadingUsername}
+                    title={usernameCopied ? 'Copied!' : 'Copy registration number'}
+                    aria-label={usernameCopied ? 'Copied registration number' : 'Copy registration number'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {usernameCopied ? <Check className="h-5 w-5 text-success" /> : <Copy className="h-5 w-5" />}
+                  </button>
+                </div>
+                {errors.username && <p className="mt-1 text-sm text-danger">{errors.username}</p>}
+                {usernamePreview && !loadingUsername && (
+                  <p className="mt-1 text-xs text-textMuted">Use this number to sign in after registration. Final number is assigned when your account is created.</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="reg-phone" className="block text-sm font-medium text-textDark">Phone <span className="text-danger">*</span></label>
+                <div className="mt-1 relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input id="reg-phone" type="tel" value={form.phone_number} onChange={(e) => updateField('phone_number', e.target.value.replace(/\D/g, '').slice(0, 10))} className={inputWithIcon('phone_number')} placeholder="10-digit number" />
+                </div>
+                {errors.phone_number && <p className="mt-1 text-sm text-danger">{errors.phone_number}</p>}
+              </div>
+              <div>
                 <label htmlFor="reg-password" className="block text-sm font-medium text-textDark">Password <span className="text-danger">*</span></label>
                 <div className="mt-1 relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -258,7 +280,7 @@ export const RegisterAccount: React.FC = () => {
           </form>
           <div className="mt-6 text-center">
             <p className="text-sm text-textMuted">
-              Already registered? <Link to="/login" className="font-medium text-primary hover:text-primary-hover">Sign in</Link>
+              Already registered? <Link to="/login" className="font-medium text-primary hover:text-primary-hover">Sign in with your registration number</Link>
             </p>
           </div>
         </div>

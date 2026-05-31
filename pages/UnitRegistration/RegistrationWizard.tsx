@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Building, ArrowLeft } from 'lucide-react';
-import { Skeleton } from '../../components/ui';
+import { Building, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Skeleton, Button } from '../../components/ui';
 import { useApplicationForm } from '../../hooks/queries';
 import { RegistrationStepper } from './components/RegistrationStepper';
 import { UnitDetailsStep } from './steps/UnitDetailsStep';
@@ -15,10 +15,11 @@ import {
   canNavigateToStep,
   WizardStepId,
 } from './utils';
+import { membersMissingLocation } from '../../services/authRouting';
 
 export const RegistrationWizard: React.FC = () => {
   const navigate = useNavigate();
-  const { data: formData, isLoading, refetch } = useApplicationForm();
+  const { data: formData, isLoading, isError, error, refetch } = useApplicationForm();
   const [activeStep, setActiveStep] = useState<WizardStepId>(2);
 
   useEffect(() => {
@@ -27,7 +28,12 @@ export const RegistrationWizard: React.FC = () => {
       navigate('/register/complete', { replace: true });
       return;
     }
-    setActiveStep(statusToStep(formData.registration_status));
+    const step = statusToStep(formData.registration_status);
+    if (step > 3 && membersMissingLocation(formData.unit_members)) {
+      navigate('/unit/update-locations', { replace: true });
+      return;
+    }
+    setActiveStep(step);
   }, [formData, navigate]);
 
   const maxStep = formData ? statusToStep(formData.registration_status) : 2;
@@ -42,12 +48,34 @@ export const RegistrationWizard: React.FC = () => {
     }
   };
 
-  if (isLoading || !formData) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-bgLight py-12 px-4">
         <div className="max-w-4xl mx-auto space-y-4">
           <Skeleton className="h-12 w-1/2" />
           <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !formData) {
+    return (
+      <div className="min-h-screen bg-bgLight flex flex-col justify-center py-12 px-4">
+        <div className="max-w-md mx-auto text-center">
+          <div className="h-12 w-12 bg-danger/10 rounded-full mx-auto flex items-center justify-center mb-4">
+            <AlertCircle className="w-6 h-6 text-danger" />
+          </div>
+          <h2 className="text-xl font-bold text-textDark">Unable to load registration</h2>
+          <p className="mt-2 text-sm text-textMuted">
+            {(error as Error)?.message || 'Something went wrong while loading your registration form.'}
+          </p>
+          <div className="mt-6 flex flex-col gap-3">
+            <Button onClick={() => refetch()}>Try Again</Button>
+            <Link to="/register" className="text-sm font-medium text-primary">
+              Back to Registration
+            </Link>
+          </div>
         </div>
       </div>
     );

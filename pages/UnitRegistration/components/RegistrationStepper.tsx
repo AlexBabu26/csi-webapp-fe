@@ -1,5 +1,5 @@
 import React from 'react';
-import { WIZARD_STEPS, WizardStepId } from './utils';
+import { WIZARD_STEPS, WizardStepId } from '../utils';
 
 interface RegistrationStepperProps {
   activeStep: WizardStepId;

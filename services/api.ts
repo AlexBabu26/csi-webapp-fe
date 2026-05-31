@@ -145,15 +145,19 @@ class ApiService {
   }
 
   registerUnit(payload: {
-    email: string;
     phone_number: string;
-    first_name: string;
-    last_name?: string;
     unit_name_id: number;
     clergy_district_id: number;
     password: string;
   }) {
     return httpPost<AuthUser>('/auth/register-unit', payload);
+  }
+
+  previewRegistrationUsername(clergyDistrictId: number) {
+    return httpGet<{ username_preview: string; district_code: string }>(
+      '/auth/registration-username-preview',
+      { query: { clergy_district_id: clergyDistrictId } }
+    );
   }
 
   getDistricts() {
@@ -978,12 +982,38 @@ class ApiService {
   async getUnitById(id: number): Promise<ApiResponse<Unit>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    const data = await httpGet<Unit>(`/admin/units/${id}`, { token });
+
+    interface ApiUnitDetail {
+      user: {
+        id: number;
+        username: string;
+        unit_name: string | null;
+      };
+      member_count: number;
+    }
+
+    const raw = await httpGet<ApiUnitDetail>(`/admin/units/${id}`, { token });
+    const data: Unit = {
+      id: raw.user.id,
+      unitNumber: raw.user.username,
+      name: raw.user.unit_name ?? '',
+      clergyDistrict: this.extractClergyDistrict(raw.user.username),
+      registrationYear: new Date().getFullYear(),
+      status: 'Completed',
+      membersCount: raw.member_count,
+      officialsCount: 0,
+      councilorsCount: 0,
+    };
+
     return { data, status: 200 };
   }
 
   // GET /admin/units/members - Get all members (optionally filtered by unit)
-  async getUnitMembers(unitId?: number): Promise<ApiResponse<UnitMember[]>> {
+  async getUnitMembers(
+    unitId?: number,
+    residenceLocation?: ResidenceLocation,
+    missingResidenceLocation?: boolean,
+  ): Promise<ApiResponse<UnitMember[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
 
@@ -999,11 +1029,17 @@ class ApiService {
       number: string;
       qualification: string;
       blood_group: string;
+      residence_location?: ResidenceLocation;
     }
+
+    const query: Record<string, string | number> = { page: 1, page_size: 1000 };
+    if (unitId) query.unit_id = unitId;
+    if (missingResidenceLocation) query.missing_residence_location = true;
+    else if (residenceLocation) query.residence_location = residenceLocation;
 
     const response = await httpGet<{ data: ApiMember[], total: number, page: number, page_size: number, pages: number }>('/admin/units/members', {
       token,
-      query: unitId ? { unit_id: unitId } : undefined
+      query,
     });
 
     // Transform snake_case API response to camelCase
@@ -1016,8 +1052,10 @@ class ApiService {
       age: m.age,
       qualification: m.qualification || undefined,
       bloodGroup: m.blood_group || undefined,
+      residenceLocation: m.residence_location || undefined,
       unitId: m.registered_user_id,
       unitName: m.unit_name,
+      isArchived: false,
     }));
 
     return { data: members, status: 200 };
@@ -1854,6 +1892,18 @@ class ApiService {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     return httpGet<UnitFinishRegistration>('/units/finish-registration', { token });
+  }
+
+  async downloadRegistrationFormPdf(): Promise<Blob> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet<Blob>('/units/registration-form-pdf', { token, asBlob: true });
+  }
+
+  async downloadAdminRegistrationFormPdf(unitId: number): Promise<Blob> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet<Blob>(`/admin/units/${unitId}/registration-form-pdf`, { token, asBlob: true });
   }
 
   async completeDeclaration(): Promise<void> {

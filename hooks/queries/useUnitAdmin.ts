@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { queryKeys } from '../../constants/queryKeys';
 import { useToast } from '../../components/Toast';
+import { ResidenceLocation } from '../../types';
 
 // ============ QUERIES ============
 
@@ -110,11 +111,17 @@ export const useCouncilors = () => {
 };
 
 // Members
-export const useMembers = (unitId?: number) => {
+export const useMembers = (
+  unitId?: number,
+  options?: { residenceLocation?: ResidenceLocation; missingResidenceLocation?: boolean },
+) => {
+  const { residenceLocation, missingResidenceLocation } = options ?? {};
   return useQuery({
-    queryKey: unitId ? queryKeys.members.byUnit(unitId) : queryKeys.members.list(),
+    queryKey: unitId
+      ? [...queryKeys.members.byUnit(unitId), residenceLocation ?? 'all', missingResidenceLocation ?? false]
+      : [...queryKeys.members.list(), residenceLocation ?? 'all', missingResidenceLocation ?? false],
     queryFn: async () => {
-      const response = await api.getUnitMembers(unitId);
+      const response = await api.getUnitMembers(unitId, residenceLocation, missingResidenceLocation);
       return response.data;
     },
   });

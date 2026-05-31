@@ -14,6 +14,7 @@ const Login = lazy(() => import('./pages/Login').then(module => ({ default: modu
 const Register = lazy(() => import('./pages/Register').then(module => ({ default: module.Register })));
 const RegistrationWizard = lazy(() => import('./pages/UnitRegistration/RegistrationWizard').then(module => ({ default: module.RegistrationWizard })));
 const RegistrationComplete = lazy(() => import('./pages/UnitRegistration/RegistrationComplete').then(module => ({ default: module.RegistrationComplete })));
+const RegistrationFormPrint = lazy(() => import('./pages/UnitRegistration/RegistrationFormPrint').then(module => ({ default: module.RegistrationFormPrint })));
 const UnitRegistrationGuard = lazy(() => import('./pages/UnitRegistration/UnitRegistrationGuard').then(module => ({ default: module.UnitRegistrationGuard })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
 const KalamelaPublic = lazy(() => import('./pages/KalamelaPublic').then(module => ({ default: module.KalamelaPublic })));
@@ -58,6 +59,7 @@ const SubmitMemberInfoChange = lazy(() => import('./pages/UnitUser/SubmitMemberI
 const SubmitOfficialsChange = lazy(() => import('./pages/UnitUser/SubmitOfficialsChange').then(module => ({ default: module.SubmitOfficialsChange })));
 const SubmitCouncilorChange = lazy(() => import('./pages/UnitUser/SubmitCouncilorChange').then(module => ({ default: module.SubmitCouncilorChange })));
 const SubmitMemberAdd = lazy(() => import('./pages/UnitUser/SubmitMemberAdd').then(module => ({ default: module.SubmitMemberAdd })));
+const UpdateMemberLocations = lazy(() => import('./pages/UnitUser/UpdateMemberLocations').then(module => ({ default: module.UpdateMemberLocations })));
 
 // Kalamela Pages
 const EventsManagement = lazy(() => import('./pages/Kalamela/EventsManagement').then(module => ({ default: module.EventsManagement })));
@@ -185,6 +187,11 @@ const App: React.FC = () => {
               <Route path="/register/complete" element={
                 <UnitRegistrationGuard>
                   <RegistrationComplete />
+                </UnitRegistrationGuard>
+              } />
+              <Route path="/register/form" element={
+                <UnitRegistrationGuard>
+                  <RegistrationFormPrint />
                 </UnitRegistrationGuard>
               } />
               
@@ -356,6 +363,12 @@ const App: React.FC = () => {
                 <AdminRoute>
                   <SubmitMemberAdd />
                 </AdminRoute>
+              } />
+
+              <Route path="/unit/update-locations" element={
+                <UnitRegistrationGuard>
+                  <UpdateMemberLocations />
+                </UnitRegistrationGuard>
               } />
 
               {/* Kalamela Admin Routes */}

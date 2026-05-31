@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, ArrowLeft, FileText } from 'lucide-react';
+import { CheckCircle, ArrowLeft, FileText, Download } from 'lucide-react';
 import { Button } from '../../components/ui';
 import { useApplicationForm } from '../../hooks/queries';
 import { FeeSummary } from './components/FeeSummary';
@@ -43,6 +43,8 @@ export const RegistrationComplete: React.FC = () => {
             <div className="mt-6 text-left">
               <FeeSummary
                 memberCount={formData.member_count}
+                unitRegistrationFee={formData.unit_registration_fee}
+                unitMemberFee={formData.unit_member_fee}
                 membersAmount={formData.members_amount}
                 totalAmount={formData.total_amount}
               />
@@ -62,6 +64,15 @@ export const RegistrationComplete: React.FC = () => {
         </div>
 
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+          <Link to="/register/form?download=1">
+            <Button variant="primary">
+              <Download className="w-4 h-4 mr-2" />
+              Download Registration Form
+            </Button>
+          </Link>
+          <Link to="/register/form">
+            <Button variant="outline">Preview Form</Button>
+          </Link>
           <Link to="/">
             <Button variant="outline">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -69,7 +80,7 @@ export const RegistrationComplete: React.FC = () => {
             </Button>
           </Link>
           <Link to="/unit/my-requests">
-            <Button variant="primary">View My Requests</Button>
+            <Button variant="outline">View My Requests</Button>
           </Link>
         </div>
       </div>

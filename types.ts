@@ -455,6 +455,20 @@ export interface Unit {
   councilorsCount: number;
 }
 
+export type ResidenceLocation = 'WITHIN_KERALA' | 'OUTSIDE_KERALA' | 'OUTSIDE_INDIA';
+
+export const RESIDENCE_LOCATION_OPTIONS: { value: ResidenceLocation; label: string }[] = [
+  { value: 'WITHIN_KERALA', label: 'Within Kerala' },
+  { value: 'OUTSIDE_KERALA', label: 'Outside Kerala (India)' },
+  { value: 'OUTSIDE_INDIA', label: 'Outside India' },
+];
+
+export const getResidenceLocationLabel = (value?: ResidenceLocation | string | null): string => {
+  if (!value) return 'Not set';
+  const option = RESIDENCE_LOCATION_OPTIONS.find((item) => item.value === value);
+  return option?.label ?? 'Not set';
+};
+
 export interface UnitMember {
   id: number;
   name: string;
@@ -464,6 +478,7 @@ export interface UnitMember {
   age: number;
   qualification?: string;
   bloodGroup?: string;
+  residenceLocation?: ResidenceLocation;
   unitId: number;
   unitName: string;
   isArchived: boolean;
@@ -518,6 +533,7 @@ export interface UnitRegistrationMember {
   number?: string;
   qualification?: string;
   blood_group?: string;
+  residence_location?: ResidenceLocation;
 }
 
 export interface UnitRegistrationOfficial {
@@ -548,6 +564,7 @@ export interface UnitApplicationForm {
     username: string;
     email: string;
     unit_name: string | null;
+    clergy_district_name?: string | null;
   };
   registration_status: UnitRegistrationStatus;
   unit_details: { id: number; registered_user_id: number; registration_year?: number; number_of_unit_members?: number } | null;
@@ -557,6 +574,8 @@ export interface UnitApplicationForm {
   member_count: number;
   councilor_count: number;
   number_of_councilor_fields: number;
+  unit_registration_fee: number;
+  unit_member_fee: number;
   members_amount: number;
   total_amount: number;
 }
@@ -568,6 +587,8 @@ export interface UnitFinishRegistration {
   unit_councilors: UnitRegistrationCouncilor[];
   councilors_count: number;
   members_count: number;
+  unit_registration_fee: number;
+  unit_member_fee: number;
   members_amount: number;
   total_amount: number;
 }
@@ -585,6 +606,7 @@ export interface UnitMemberPayload {
   number?: string;
   qualification?: string;
   blood_group?: string;
+  residence_location?: ResidenceLocation;
 }
 
 export interface UnitOfficialPayload {
@@ -1199,6 +1221,8 @@ export interface SiteSettings {
   member_max_dob: string | null;
   blood_donor_district_access: boolean;
   blood_donor_unit_access: boolean;
+  unit_registration_fee: number;
+  unit_member_fee: number;
   contact: ContactInfo;
   social_links: SocialLinks;
   updated_at: string;
@@ -1215,6 +1239,8 @@ export interface SiteSettingsUpdate {
   member_max_dob?: string | null;
   blood_donor_district_access?: boolean;
   blood_donor_unit_access?: boolean;
+  unit_registration_fee?: number;
+  unit_member_fee?: number;
   contact?: Partial<ContactInfo>;
   social_links?: Partial<SocialLinks>;
 }

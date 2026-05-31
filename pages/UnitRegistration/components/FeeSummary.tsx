@@ -3,17 +3,21 @@ import { Card } from '../../../components/ui';
 
 interface FeeSummaryProps {
   memberCount: number;
+  unitRegistrationFee: number;
+  unitMemberFee: number;
   membersAmount?: number;
   totalAmount?: number;
 }
 
 export const FeeSummary: React.FC<FeeSummaryProps> = ({
   memberCount,
+  unitRegistrationFee,
+  unitMemberFee,
   membersAmount,
   totalAmount,
 }) => {
-  const membersFee = membersAmount ?? memberCount * 10;
-  const total = totalAmount ?? membersFee + 100;
+  const membersFee = membersAmount ?? memberCount * unitMemberFee;
+  const total = totalAmount ?? membersFee + unitRegistrationFee;
 
   return (
     <Card className="bg-primary/5 border-primary/20">
@@ -21,10 +25,10 @@ export const FeeSummary: React.FC<FeeSummaryProps> = ({
       <dl className="space-y-2 text-sm">
         <div className="flex justify-between">
           <dt className="text-textMuted">Unit registration fee</dt>
-          <dd className="font-medium text-textDark">₹100</dd>
+          <dd className="font-medium text-textDark">₹{unitRegistrationFee}</dd>
         </div>
         <div className="flex justify-between">
-          <dt className="text-textMuted">Members ({memberCount} × ₹10)</dt>
+          <dt className="text-textMuted">Members ({memberCount} × ₹{unitMemberFee})</dt>
           <dd className="font-medium text-textDark">₹{membersFee}</dd>
         </div>
         <div className="border-t border-primary/20 pt-2 flex justify-between">

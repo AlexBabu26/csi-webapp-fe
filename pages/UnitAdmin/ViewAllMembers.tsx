@@ -4,14 +4,18 @@ import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Download, Users, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
-import { UnitMember } from '../../types';
+import { UnitMember, ResidenceLocation, RESIDENCE_LOCATION_OPTIONS, getResidenceLocationLabel } from '../../types';
 import { useMembers } from '../../hooks/queries';
 
 export const ViewAllMembers: React.FC = () => {
   const { addToast } = useToast();
+  const [locationFilter, setLocationFilter] = useState<ResidenceLocation | '' | 'NOT_SET'>('');
   
   // Use TanStack Query
-  const { data: members = [], isLoading: loading } = useMembers();
+  const { data: members = [], isLoading: loading } = useMembers(undefined, {
+    residenceLocation: locationFilter && locationFilter !== 'NOT_SET' ? locationFilter : undefined,
+    missingResidenceLocation: locationFilter === 'NOT_SET',
+  });
   const [selectedRows, setSelectedRows] = useState<UnitMember[]>([]);
 
   const handleExport = async () => {
@@ -89,6 +93,14 @@ export const ViewAllMembers: React.FC = () => {
         ),
         size: 100,
       },
+      {
+        accessorKey: 'residenceLocation',
+        header: 'Living Location',
+        cell: ({ row }) => (
+          <span className="text-textMuted text-sm">{getResidenceLocationLabel(row.original.residenceLocation)}</span>
+        ),
+        size: 180,
+      },
     ],
     []
   );
@@ -114,6 +126,17 @@ export const ViewAllMembers: React.FC = () => {
         <div className="px-6 py-4 border-b border-borderColor flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gray-50/50">
           <h3 className="text-lg font-bold text-textDark">Unit Members Details</h3>
           <div className="flex items-center gap-2">
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value as ResidenceLocation | '')}
+              className="px-3 py-2 border border-borderColor rounded-md bg-white text-sm"
+            >
+              <option value="">All Locations</option>
+              <option value="NOT_SET">Not set</option>
+              {RESIDENCE_LOCATION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
             {selectedRows.length > 0 && (
               <>
                 <Button variant="outline" size="sm" onClick={() => handleBulkAction('Export')}>

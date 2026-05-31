@@ -51,6 +51,8 @@ export const SiteSettings: React.FC = () => {
         about_text: settings.about_text || '',
         registration_enabled: settings.registration_enabled,
         registration_closed_message: settings.registration_closed_message || '',
+        unit_registration_fee: settings.unit_registration_fee,
+        unit_member_fee: settings.unit_member_fee,
         contact: settings.contact,
         social_links: settings.social_links,
       });
@@ -214,6 +216,34 @@ export const SiteSettings: React.FC = () => {
                 />
               </div>
             )}
+            <div className="pt-4 border-t border-borderColor">
+              <h4 className="text-sm font-semibold text-textDark mb-3">Unit Registration Pricing (INR)</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-textDark mb-1">Unit Registration Fee</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.unit_registration_fee ?? 100}
+                    onChange={(e) => setFormData({ ...formData, unit_registration_fee: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-borderColor rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-textDark mb-1">Fee Per Member</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.unit_member_fee ?? 10}
+                    onChange={(e) => setFormData({ ...formData, unit_member_fee: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-borderColor rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-textMuted">
+                Used in the registration wizard fee summary and declaration. Total = unit fee + (member count × per-member fee).
+              </p>
+            </div>
             <Button variant="primary" onClick={handleSaveSettings} isLoading={saving}>
               <Save size={16} className="mr-2" />
               Save Changes
