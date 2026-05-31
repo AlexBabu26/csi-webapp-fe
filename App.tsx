@@ -11,6 +11,10 @@ import { QueryProvider } from './providers/QueryProvider';
 // Lazy Load Pages
 const PublicHome = lazy(() => import('./pages/PublicHome').then(module => ({ default: module.PublicHome })));
 const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })));
+const Register = lazy(() => import('./pages/Register').then(module => ({ default: module.Register })));
+const RegistrationWizard = lazy(() => import('./pages/UnitRegistration/RegistrationWizard').then(module => ({ default: module.RegistrationWizard })));
+const RegistrationComplete = lazy(() => import('./pages/UnitRegistration/RegistrationComplete').then(module => ({ default: module.RegistrationComplete })));
+const UnitRegistrationGuard = lazy(() => import('./pages/UnitRegistration/UnitRegistrationGuard').then(module => ({ default: module.UnitRegistrationGuard })));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
 const KalamelaPublic = lazy(() => import('./pages/KalamelaPublic').then(module => ({ default: module.KalamelaPublic })));
 const Conference = lazy(() => import('./pages/Conference').then(module => ({ default: module.Conference })));
@@ -171,6 +175,17 @@ const App: React.FC = () => {
                 <AuthRoute>
                   <Login onLogin={handleLogin} />
                 </AuthRoute>
+              } />
+              <Route path="/register" element={<Register />} />
+              <Route path="/register/wizard" element={
+                <UnitRegistrationGuard>
+                  <RegistrationWizard />
+                </UnitRegistrationGuard>
+              } />
+              <Route path="/register/complete" element={
+                <UnitRegistrationGuard>
+                  <RegistrationComplete />
+                </UnitRegistrationGuard>
               } />
               
               {/* Admin Routes - Unit Admin Module */}

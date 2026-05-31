@@ -498,6 +498,102 @@ export interface UnitCouncilor {
   memberQualification?: string;
 }
 
+// --- Unit Registration Wizard Types ---
+
+export type UnitRegistrationStatus =
+  | 'Not Started'
+  | 'Registration Started'
+  | 'Unit Details'
+  | 'Unit Members Completed'
+  | 'Unit Officials Completed'
+  | 'Unit Councilors Completed'
+  | 'Registration Completed';
+
+export interface UnitRegistrationMember {
+  id: number;
+  registered_user_id: number;
+  name: string;
+  gender?: string;
+  dob?: string;
+  number?: string;
+  qualification?: string;
+  blood_group?: string;
+}
+
+export interface UnitRegistrationOfficial {
+  id?: number;
+  registered_user_id?: number;
+  president_designation?: string;
+  president_name?: string;
+  president_phone?: string;
+  vice_president_name?: string;
+  vice_president_phone?: string;
+  secretary_name?: string;
+  secretary_phone?: string;
+  joint_secretary_name?: string;
+  joint_secretary_phone?: string;
+  treasurer_name?: string;
+  treasurer_phone?: string;
+}
+
+export interface UnitRegistrationCouncilor {
+  id: number;
+  registered_user_id: number;
+  unit_member_id: number;
+}
+
+export interface UnitApplicationForm {
+  user_data: {
+    id: number;
+    username: string;
+    email: string;
+    unit_name: string | null;
+  };
+  registration_status: UnitRegistrationStatus;
+  unit_details: { id: number; registered_user_id: number; registration_year?: number; number_of_unit_members?: number } | null;
+  unit_officials: UnitRegistrationOfficial | null;
+  unit_members: UnitRegistrationMember[];
+  unit_councilors: UnitRegistrationCouncilor[];
+  member_count: number;
+  councilor_count: number;
+  number_of_councilor_fields: number;
+  members_amount: number;
+  total_amount: number;
+}
+
+export interface UnitFinishRegistration {
+  unit_details: UnitApplicationForm['unit_details'];
+  unit_officials: UnitRegistrationOfficial | null;
+  unit_members: UnitRegistrationMember[];
+  unit_councilors: UnitRegistrationCouncilor[];
+  councilors_count: number;
+  members_count: number;
+  members_amount: number;
+  total_amount: number;
+}
+
+export interface UnitDetailsPayload {
+  president_designation: string;
+  president_name: string;
+  president_phone: string;
+}
+
+export interface UnitMemberPayload {
+  name: string;
+  gender?: string;
+  dob?: string;
+  number?: string;
+  qualification?: string;
+  blood_group?: string;
+}
+
+export interface UnitOfficialPayload {
+  position: 'President' | 'Vice President' | 'Secretary' | 'Joint Secretary' | 'Treasurer';
+  name: string;
+  phone: string;
+  designation?: string;
+}
+
 export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface TransferRequest {

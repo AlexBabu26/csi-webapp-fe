@@ -1,0 +1,184 @@
+import React, { useState } from 'react';
+import { Card, Button } from '../../../components/ui';
+import { UserPlus, Trash2, Pencil } from 'lucide-react';
+import { UnitApplicationForm, UnitRegistrationMember } from '../../../types';
+import {
+  useAddUnitMember,
+  useUpdateUnitMember,
+  useDeleteUnitMember,
+  useSubmitUnitMembers,
+} from '../../../hooks/queries';
+import { useSiteSettings } from '../../../hooks/queries';
+import { FeeSummary } from '../components/FeeSummary';
+
+interface MembersStepProps {
+  formData: UnitApplicationForm;
+  onComplete: () => void;
+}
+
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+const emptyMemberForm = {
+  name: '',
+  gender: 'M' as 'M' | 'F',
+  number: '',
+  dob: '',
+  qualification: '',
+  blood_group: '',
+};
+
+export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }) => {
+  const { data: siteSettings } = useSiteSettings();
+  const minDob = siteSettings?.member_min_dob ?? '1990-01-01';
+  const maxDob = siteSettings?.member_max_dob ?? '2011-12-31';
+
+  const [memberForm, setMemberForm] = useState(emptyMemberForm);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const addMember = useAddUnitMember();
+  const updateMember = useUpdateUnitMember();
+  const deleteMember = useDeleteUnitMember();
+  const submitMembers = useSubmitUnitMembers();
+
+  const members = formData.unit_members;
+
+  const resetForm = () => {
+    setMemberForm(emptyMemberForm);
+    setEditingId(null);
+  };
+
+  const handleAddOrUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!memberForm.name.trim() || !memberForm.dob || !memberForm.number.match(/^[6-9]\d{9}$/)) return;
+
+    const payload = {
+      name: memberForm.name.trim(),
+      gender: memberForm.gender,
+      dob: memberForm.dob,
+      number: memberForm.number,
+      qualification: memberForm.qualification || undefined,
+      blood_group: memberForm.blood_group || undefined,
+    };
+
+    if (editingId) {
+      await updateMember.mutateAsync({ memberId: editingId, payload });
+    } else {
+      await addMember.mutateAsync(payload);
+    }
+    resetForm();
+  };
+
+  const startEdit = (member: UnitRegistrationMember) => {
+    setEditingId(member.id);
+    setMemberForm({
+      name: member.name,
+      gender: (member.gender as 'M' | 'F') || 'M',
+      number: member.number || '',
+      dob: member.dob || '',
+      qualification: member.qualification || '',
+      blood_group: member.blood_group || '',
+    });
+  };
+
+  const handleContinue = async () => {
+    if (members.length === 0) return;
+    await submitMembers.mutateAsync();
+    onComplete();
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-6">
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
+            <UserPlus className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-bold text-textDark">{editingId ? 'Edit Member' : 'Add Member'}</h3>
+          </div>
+          <form onSubmit={handleAddOrUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-textDark mb-1">Full Name *</label>
+              <input type="text" value={memberForm.name} onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })} className="w-full px-3 py-2 border border-borderColor rounded-md" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-textDark mb-1">Gender *</label>
+              <select value={memberForm.gender} onChange={(e) => setMemberForm({ ...memberForm, gender: e.target.value as 'M' | 'F' })} className="w-full px-3 py-2 border border-borderColor rounded-md bg-white">
+                <option value="M">Male</option>
+                <option value="F">Female</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-textDark mb-1">Phone *</label>
+              <input type="tel" value={memberForm.number} onChange={(e) => setMemberForm({ ...memberForm, number: e.target.value.replace(/\D/g, '').slice(0, 10) })} className="w-full px-3 py-2 border border-borderColor rounded-md" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-textDark mb-1">Date of Birth *</label>
+              <input type="date" value={memberForm.dob} min={minDob} max={maxDob} onChange={(e) => setMemberForm({ ...memberForm, dob: e.target.value })} className="w-full px-3 py-2 border border-borderColor rounded-md" required />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-textDark mb-1">Qualification / Job</label>
+              <input type="text" value={memberForm.qualification} onChange={(e) => setMemberForm({ ...memberForm, qualification: e.target.value })} className="w-full px-3 py-2 border border-borderColor rounded-md" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-textDark mb-1">Blood Group</label>
+              <select value={memberForm.blood_group} onChange={(e) => setMemberForm({ ...memberForm, blood_group: e.target.value })} className="w-full px-3 py-2 border border-borderColor rounded-md bg-white">
+                <option value="">Select</option>
+                {BLOOD_GROUPS.map((bg) => <option key={bg} value={bg}>{bg}</option>)}
+              </select>
+            </div>
+            <div className="md:col-span-2 flex gap-2">
+              <Button type="submit" isLoading={addMember.isPending || updateMember.isPending}>
+                {editingId ? 'Update Member' : 'Add Member'}
+              </Button>
+              {editingId && (
+                <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>
+              )}
+            </div>
+          </form>
+        </Card>
+
+        <Card>
+          <h3 className="text-lg font-bold text-textDark mb-4">Unit Members ({members.length})</h3>
+          {members.length === 0 ? (
+            <p className="text-sm text-textMuted">No members added yet. Add at least one member to continue.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-borderColor text-left text-textMuted">
+                    <th className="py-2 pr-2">Name</th>
+                    <th className="py-2 pr-2">Gender</th>
+                    <th className="py-2 pr-2">Phone</th>
+                    <th className="py-2 pr-2">DOB</th>
+                    <th className="py-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.map((m) => (
+                    <tr key={m.id} className="border-b border-borderColor/50">
+                      <td className="py-2 pr-2 font-medium">{m.name}</td>
+                      <td className="py-2 pr-2">{m.gender}</td>
+                      <td className="py-2 pr-2">{m.number}</td>
+                      <td className="py-2 pr-2">{m.dob}</td>
+                      <td className="py-2 flex gap-1">
+                        <button type="button" onClick={() => startEdit(m)} className="p-1 text-primary hover:bg-primary/10 rounded"><Pencil className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => deleteMember.mutate(m.id)} className="p-1 text-danger hover:bg-danger/10 rounded"><Trash2 className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div className="mt-6 flex justify-end">
+            <Button onClick={handleContinue} disabled={members.length === 0} isLoading={submitMembers.isPending}>
+              Continue to Officials
+            </Button>
+          </div>
+        </Card>
+      </div>
+      <div>
+        <FeeSummary memberCount={members.length} membersAmount={formData.members_amount} totalAmount={formData.total_amount} />
+      </div>
+    </div>
+  );
+};

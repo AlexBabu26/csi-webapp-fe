@@ -8,7 +8,8 @@ import { UserRole, SiteSettings, Notice } from '../types';
 import { Footer } from '../components/Footer';
 import { api } from '../services/api';
 import { getMediaUrl } from '../services/http';
-import { setAuthUser, setAuthTokens, getAuthToken, isTokenExpired } from '../services/auth';
+import { setAuthUser, setAuthTokens, getAuthToken, isTokenExpired, isUnitUser, isAuthenticated } from '../services/auth';
+import { resolvePostLoginPath } from '../services/authRouting';
 import { useSiteSettings, useNotices } from '../hooks/queries';
 
 interface PublicHomeProps {
@@ -118,6 +119,16 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
   const registrationEnabled = siteSettings?.registration_enabled ?? false;
   const registrationClosedMessage = siteSettings?.registration_closed_message || 'Unit Registration (Closed)';
 
+  const handleRegistrationClick = async () => {
+    const token = getAuthToken();
+    if (token && !isTokenExpired(token) && isUnitUser()) {
+      const path = await resolvePostLoginPath('2');
+      navigate(path);
+      return;
+    }
+    navigate('/register');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -161,19 +172,8 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
       }
 
       // Default role-based navigation
-      if (me.user_type === '1') {
-        console.log('[PublicHome] Navigating to admin dashboard');
-        navigate('/admin/dashboard');
-      } else if (me.user_type === '2') {
-        console.log('[PublicHome] Navigating to Kalamela official portal');
-        navigate('/kalamela/official/home');
-      } else if (me.user_type === '3') {
-        console.log('[PublicHome] Navigating to Conference official portal');
-        navigate('/conference/official/home');
-      } else {
-        console.log('[PublicHome] Navigating to home');
-        navigate('/');
-      }
+      const path = await resolvePostLoginPath(me.user_type);
+      navigate(path);
     } catch (error: any) {
       console.error('[PublicHome] Login failed:', error);
       alert(`Login failed: ${error.message || 'Please check your credentials and try again.'}`);
@@ -301,7 +301,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
                    <Button 
                      variant="outline" 
                      size="block"
-                     onClick={() => navigate('/register')}
+                     onClick={handleRegistrationClick}
                      className="hover:bg-primary/5"
                    >
                      Unit Registration

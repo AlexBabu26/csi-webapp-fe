@@ -173,6 +173,12 @@ export const isAuthenticated = (): boolean => {
   return !isTokenExpired(token);
 };
 
+export const isUnitUser = (): boolean => getAuthUser()?.user_type === '2';
+
+export const isDistrictOfficial = (): boolean => getAuthUser()?.user_type === '3';
+
+export const isAdminUser = (): boolean => getAuthUser()?.user_type === '1';
+
 /**
  * Check if we can refresh the session (have a valid refresh token)
  */

@@ -4,6 +4,7 @@ import { Button } from '../components/ui';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { setAuthTokens, setAuthUser } from '../services/auth';
+import { resolvePostLoginPath } from '../services/authRouting';
 import { UserRole } from '../types';
 
 interface LoginProps {
@@ -105,29 +106,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           const role = userType === '1' ? UserRole.ADMIN : userType === '2' || userType === '3' ? UserRole.OFFICIAL : UserRole.PUBLIC;
           onLogin?.(role);
 
-          // Use redirect_url from login response if available, otherwise route based on user role AND portal context
-          if (tokens.redirect_url) {
+          // Use redirect_url from login response if available, otherwise route based on user role
+          if (tokens.redirect_url && userType !== '2') {
             navigate(tokens.redirect_url);
-          } else if (userType === '1') {
-            navigate('/admin/dashboard');
-          } else if (userType === '2' || userType === '3') {
-            // District officials can access both Kalamela and Conference
-            // Route based on the portal context they came from
-            if (portalContext === 'kalamela') {
-              navigate('/kalamela/official/home');
-            } else if (portalContext === 'conference') {
-              navigate('/conference/official/home');
-            } else {
-              // Default: user_type 2 goes to kalamela, user_type 3 goes to conference
-              if (userType === '2') {
-                navigate('/kalamela/official/home');
-              } else {
-                navigate('/conference/official/home');
-              }
-            }
           } else {
-            // Fallback for other roles
-            navigate('/');
+            const path = await resolvePostLoginPath(userType, portalContext);
+            navigate(path);
           }
         } catch (profileErr) {
           // If profile fetch fails, use redirect_url from login response or route based on portal context
@@ -135,18 +119,11 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           const role = userType === '1' ? UserRole.ADMIN : userType === '2' || userType === '3' ? UserRole.OFFICIAL : UserRole.PUBLIC;
           onLogin?.(role);
           
-          if (tokens.redirect_url) {
+          if (tokens.redirect_url && userType !== '2') {
             navigate(tokens.redirect_url);
-          } else if (portalContext === 'kalamela') {
-            navigate('/kalamela/official/home');
-          } else if (portalContext === 'conference') {
-            navigate('/conference/official/home');
-          } else if (userType === '2') {
-            navigate('/kalamela/official/home');
-          } else if (userType === '3') {
-            navigate('/conference/official/home');
           } else {
-            navigate('/');
+            const path = await resolvePostLoginPath(userType, portalContext);
+            navigate(path);
           }
         }
       } catch (err: any) {

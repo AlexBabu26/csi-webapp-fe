@@ -16,6 +16,11 @@ import {
   UnitMember,
   UnitOfficial,
   UnitCouncilor,
+  UnitApplicationForm,
+  UnitFinishRegistration,
+  UnitDetailsPayload,
+  UnitMemberPayload,
+  UnitOfficialPayload,
   TransferRequest,
   MemberInfoChangeRequest,
   OfficialsChangeRequest,
@@ -149,6 +154,10 @@ class ApiService {
     password: string;
   }) {
     return httpPost<AuthUser>('/auth/register-unit', payload);
+  }
+
+  getDistricts() {
+    return httpGet<ClergyDistrict[]>('/auth/districts');
   }
 
   getUnitNames(districtId?: number) {
@@ -1765,6 +1774,92 @@ class ApiService {
     }));
 
     return { data, status: 200 };
+  }
+
+  // ==================== UNIT REGISTRATION WIZARD ====================
+
+  async getApplicationForm(): Promise<UnitApplicationForm> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet<UnitApplicationForm>('/units/application-form', { token });
+  }
+
+  async saveUnitDetails(payload: UnitDetailsPayload): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost<{ message: string }>('/units/details', payload, { token });
+  }
+
+  async addUnitMember(payload: UnitMemberPayload): Promise<{ member_id: number }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const result = await httpPost<{ message: string; member_id: number }>('/units/members', payload, { token });
+    return { member_id: result.member_id };
+  }
+
+  async updateUnitMember(memberId: number, payload: Partial<UnitMemberPayload>): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPut<{ message: string }>(`/units/members/${memberId}`, payload, { token });
+  }
+
+  async deleteUnitMember(memberId: number): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpDelete<{ message: string }>(`/units/members/${memberId}`, { token });
+  }
+
+  async submitUnitMembers(): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost<{ message: string }>('/units/members/submit', {}, { token });
+  }
+
+  async saveUnitOfficial(payload: UnitOfficialPayload): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost<{ message: string }>('/units/officials', payload, { token });
+  }
+
+  async confirmUnitOfficials(): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost<{ message: string }>('/units/officials/confirm', {}, { token });
+  }
+
+  async addUnitCouncilor(unitMemberId: number): Promise<{ councilor_id: number }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const result = await httpPost<{ message: string; councilor_id: number }>(
+      '/units/councilors',
+      { unit_member_id: unitMemberId },
+      { token }
+    );
+    return { councilor_id: result.councilor_id };
+  }
+
+  async deleteUnitCouncilor(councilorId: number): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpDelete<{ message: string }>(`/units/councilors/${councilorId}`, { token });
+  }
+
+  async confirmUnitCouncilors(): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost<{ message: string }>('/units/councilors/confirm', {}, { token });
+  }
+
+  async getFinishRegistration(): Promise<UnitFinishRegistration> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet<UnitFinishRegistration>('/units/finish-registration', { token });
+  }
+
+  async completeDeclaration(): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost<{ message: string }>('/units/declaration', {}, { token });
   }
 
   // User Request Submissions

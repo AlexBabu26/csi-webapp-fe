@@ -22,6 +22,9 @@ export * from './usePublic';
 // Unit User form submission hooks
 export * from './useUnitUser';
 
+// Unit Registration wizard hooks
+export * from './useUnitRegistration';
+
 // User Management hooks
 export * from './useUserManagement';
 
