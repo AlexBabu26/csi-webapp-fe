@@ -886,6 +886,7 @@ class ApiService {
     interface ApiUnitStats {
       total_dist_count: number;
       total_units_count: number;
+      registered_units_count: number;
       completed_dist_count: number;
       completed_units_count: number;
       completed_dists_percent: string;
@@ -910,6 +911,7 @@ class ApiService {
       totalDistricts: rawData.total_dist_count,
       completedDistricts: rawData.completed_dist_count,
       totalUnits: rawData.total_units_count,
+      registeredUnits: rawData.registered_units_count ?? rawData.total_units_count,
       completedUnits: rawData.completed_units_count,
       inProgressUnits: rawData.in_progress_units_count ?? 0,
       notStartedUnits: rawData.not_started_units_count ?? 0,
@@ -968,7 +970,7 @@ class ApiService {
       name: unit.unit_name,
       clergyDistrict: this.extractClergyDistrict(unit.username),
       registrationYear: unit.registration_year ?? new Date().getFullYear(),
-      status: this.mapUnitStatus(unit.cycle_status ?? unit.status),
+      status: this.mapUnitStatus(unit.cycle_status ?? 'Not Started'),
       cycleStatus: unit.cycle_status ?? null,
       paymentStatus: unit.payment_status as Unit['paymentStatus'],
       pathType: unit.path_type as Unit['pathType'],
@@ -1016,7 +1018,7 @@ class ApiService {
       name: raw.user.unit_name ?? '',
       clergyDistrict: this.extractClergyDistrict(raw.user.username),
       registrationYear: raw.registration_year ?? new Date().getFullYear(),
-      status: this.mapUnitStatus(raw.cycle_status ?? 'Registration Completed'),
+      status: this.mapUnitStatus(raw.cycle_status ?? 'Not Started'),
       membersCount: raw.member_count,
       officialsCount: 0,
       councilorsCount: 0,

@@ -764,6 +764,7 @@ export interface UnitStats {
   totalDistricts: number;
   completedDistricts: number;
   totalUnits: number;
+  registeredUnits: number;
   completedUnits: number;
   inProgressUnits: number;
   notStartedUnits: number;

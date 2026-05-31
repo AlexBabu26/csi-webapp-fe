@@ -43,6 +43,17 @@ const paymentStatusVariant = (status?: Unit['paymentStatus']) => {
   return 'light';
 };
 
+const REGISTRATION_STATUS_FILTER = {
+  columnId: 'status',
+  label: 'Registration',
+  allLabel: 'All statuses',
+  options: [
+    { value: 'Not Started', label: 'Not Started' },
+    { value: 'In Progress', label: 'In Progress' },
+    { value: 'Completed', label: 'Completed' },
+  ],
+} as const;
+
 export const AdminDashboard: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
@@ -112,6 +123,8 @@ export const AdminDashboard: React.FC = () => {
         cell: ({ row }) => (
           <Badge variant={unitStatusVariant(row.original.status)}>{row.original.status}</Badge>
         ),
+        filterFn: (row, columnId, filterValue) =>
+          !filterValue || row.getValue(columnId) === filterValue,
         enableSorting: false,
         size: 120,
       },
@@ -187,7 +200,10 @@ export const AdminDashboard: React.FC = () => {
   // Center label for donut chart
   const renderCenterLabel = ({ viewBox }: any) => {
     const { cx, cy } = viewBox;
-    const completionRate = stats ? Math.round((stats.completedUnits / stats.totalUnits) * 100) : 0;
+    const seasonTotal = stats?.registeredUnits ?? stats?.totalUnits ?? 0;
+    const completionRate = stats && seasonTotal > 0
+      ? Math.round((stats.completedUnits / seasonTotal) * 100)
+      : 0;
     return (
       <g>
         <text x={cx} y={cy - 8} textAnchor="middle" dominantBaseline="middle" className="fill-slate-800" style={{ fontSize: '28px', fontWeight: 700 }}>
@@ -266,6 +282,8 @@ export const AdminDashboard: React.FC = () => {
                 </dt>
                 <dd className="mt-2 text-3xl font-bold text-textDark">{stats.totalUnits}</dd>
                 <div className="mt-2 text-sm text-textMuted">
+                  <span>{stats.registeredUnits} registered</span>
+                  <span className="mx-1">·</span>
                   <span className="text-success font-medium">{stats.completedUnits} completed</span>
                   {registrationSeason && <span className="ml-1">for {registrationSeason}</span>}
                 </div>
@@ -395,6 +413,10 @@ export const AdminDashboard: React.FC = () => {
               <span className="font-medium text-textDark">
                 {registrationSeason ?? '—'}
               </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-textMuted">Registered units this season:</span>
+              <span className="font-medium text-textDark">{stats.registeredUnits}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Units completed this season:</span>
@@ -556,7 +578,9 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Progress Bars Section */}
-      {stats && !loading && (
+      {stats && !loading && (() => {
+        const seasonTotal = stats.registeredUnits || 1;
+        return (
         <Card>
           <h3 className="text-lg font-bold text-textDark mb-6">
             {registrationSeason ? `${registrationSeason} Progress Overview` : 'Progress Overview'}
@@ -568,13 +592,13 @@ export const AdminDashboard: React.FC = () => {
               <div className="flex justify-between mb-2">
                 <span className="text-sm font-medium text-slate-600">Units Completed</span>
                 <span className="text-sm font-bold text-cyan-600">
-                  {stats.completedUnits}/{stats.totalUnits} ({Math.round((stats.completedUnits / stats.totalUnits) * 100)}%)
+                  {stats.completedUnits}/{stats.registeredUnits} ({Math.round((stats.completedUnits / seasonTotal) * 100)}%)
                 </span>
               </div>
               <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-full transition-all duration-1000"
-                  style={{ width: `${(stats.completedUnits / stats.totalUnits) * 100}%` }}
+                  style={{ width: `${(stats.completedUnits / seasonTotal) * 100}%` }}
                 />
               </div>
             </div>
@@ -583,13 +607,13 @@ export const AdminDashboard: React.FC = () => {
               <div className="flex justify-between mb-2">
                 <span className="text-sm font-medium text-slate-600">Units In Progress</span>
                 <span className="text-sm font-bold text-amber-600">
-                  {stats.inProgressUnits}/{stats.totalUnits} ({Math.round((stats.inProgressUnits / stats.totalUnits) * 100)}%)
+                  {stats.inProgressUnits}/{stats.registeredUnits} ({Math.round((stats.inProgressUnits / seasonTotal) * 100)}%)
                 </span>
               </div>
               <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-1000"
-                  style={{ width: `${(stats.inProgressUnits / stats.totalUnits) * 100}%` }}
+                  style={{ width: `${(stats.inProgressUnits / seasonTotal) * 100}%` }}
                 />
               </div>
             </div>
@@ -648,7 +672,8 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
         </Card>
-      )}
+        );
+      })()}
 
       {(notStartedDistricts.length > 0 || inProgressUnitsList.length > 0) && !loading && (
         <Card className="border-l-4 border-l-warning">
@@ -719,6 +744,7 @@ export const AdminDashboard: React.FC = () => {
             pageSize={10}
             emptyMessage="No units found"
             emptyIcon={<Building className="w-8 h-8 text-textMuted" />}
+            columnFiltersConfig={[REGISTRATION_STATUS_FILTER]}
           />
         </div>
       </Card>

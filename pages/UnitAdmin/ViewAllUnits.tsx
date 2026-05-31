@@ -5,8 +5,20 @@ import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Download, Eye, Building } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
+import { formatRegistrationSeason } from '../../services/authRouting';
 import { Unit } from '../../types';
 import { useUnits } from '../../hooks/queries';
+
+const REGISTRATION_STATUS_FILTER = {
+  columnId: 'status',
+  label: 'Registration',
+  allLabel: 'All statuses',
+  options: [
+    { value: 'Not Started', label: 'Not Started' },
+    { value: 'In Progress', label: 'In Progress' },
+    { value: 'Completed', label: 'Completed' },
+  ],
+} as const;
 
 export const ViewAllUnits: React.FC = () => {
   const { addToast } = useToast();
@@ -52,13 +64,25 @@ export const ViewAllUnits: React.FC = () => {
         size: 140,
       },
       {
+        accessorKey: 'registrationYear',
+        header: 'Season',
+        cell: ({ row }) => (
+          <span className="text-sm text-textMuted">
+            {formatRegistrationSeason(row.original.registrationYear)}
+          </span>
+        ),
+        size: 110,
+      },
+      {
         accessorKey: 'status',
-        header: 'Status',
+        header: 'Registration',
         cell: ({ row }) => {
           const status = row.original.status;
           const variant = status === 'Completed' ? 'success' : status === 'In Progress' ? 'warning' : 'light';
           return <Badge variant={variant}>{status}</Badge>;
         },
+        filterFn: (row, columnId, filterValue) =>
+          !filterValue || row.getValue(columnId) === filterValue,
         enableSorting: false,
         size: 140,
       },
@@ -86,7 +110,9 @@ export const ViewAllUnits: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-textDark tracking-tight">All Units</h1>
-          <p className="mt-1 text-sm text-textMuted">View and manage registered units</p>
+          <p className="mt-1 text-sm text-textMuted">
+            Current season registration status for all registered units
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="primary" size="sm" onClick={handleExport}>
@@ -111,6 +137,7 @@ export const ViewAllUnits: React.FC = () => {
             pageSize={15}
             emptyMessage="No units found"
             emptyIcon={<Building className="w-8 h-8 text-textMuted" />}
+            columnFiltersConfig={[REGISTRATION_STATUS_FILTER]}
           />
         </div>
       </Card>

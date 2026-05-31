@@ -24,6 +24,15 @@ import {
   X
 } from 'lucide-react';
 
+interface DataTableColumnFilter {
+  columnId: string;
+  label: string;
+  allLabel?: string;
+  options: { value: string; label: string }[];
+}
+
+export type { DataTableColumnFilter };
+
 interface DataTableProps<TData> {
   data: TData[];
   columns: ColumnDef<TData, any>[];
@@ -36,6 +45,7 @@ interface DataTableProps<TData> {
   isLoading?: boolean;
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
+  columnFiltersConfig?: DataTableColumnFilter[];
 }
 
 export function DataTable<TData>({
@@ -50,12 +60,23 @@ export function DataTable<TData>({
   isLoading = false,
   emptyMessage = 'No data available',
   emptyIcon,
+  columnFiltersConfig,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  const handleColumnFilterChange = (columnId: string, value: string) => {
+    setColumnFilters((prev) => {
+      const without = prev.filter((f) => f.id !== columnId);
+      return value ? [...without, { id: columnId, value }] : without;
+    });
+  };
+
+  const getColumnFilterValue = (columnId: string) =>
+    (columnFilters.find((f) => f.id === columnId)?.value as string) ?? '';
 
   // Pre-filter data based on global search
   const filteredData = useMemo(() => {
@@ -141,8 +162,9 @@ export function DataTable<TData>({
   return (
     <div className="w-full">
       {/* Search and Controls */}
-      {showSearch && (
+      {(showSearch || (columnFiltersConfig && columnFiltersConfig.length > 0)) && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          {showSearch && (
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-textMuted" />
             <input
@@ -162,6 +184,35 @@ export function DataTable<TData>({
               </button>
             )}
           </div>
+          )}
+
+          {columnFiltersConfig && columnFiltersConfig.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+              {columnFiltersConfig.map((filter) => (
+                <div key={filter.columnId} className="flex items-center gap-2">
+                  <label
+                    htmlFor={`filter-${filter.columnId}`}
+                    className="text-xs font-medium text-textMuted whitespace-nowrap"
+                  >
+                    {filter.label}
+                  </label>
+                  <select
+                    id={`filter-${filter.columnId}`}
+                    value={getColumnFilterValue(filter.columnId)}
+                    onChange={(e) => handleColumnFilterChange(filter.columnId, e.target.value)}
+                    className="px-3 py-2 bg-white border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  >
+                    <option value="">{filter.allLabel ?? 'All'}</option>
+                    {filter.options.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
           
           {showRowSelection && Object.keys(rowSelection).length > 0 && (
             <div className="text-sm text-textMuted">
@@ -234,7 +285,7 @@ export function DataTable<TData>({
                       <p className="text-textMuted font-medium">{emptyMessage}</p>
                       {globalFilter && (
                         <p className="text-sm text-textMuted mt-1">
-                          Try adjusting your search terms
+                          Try adjusting your search or filter settings
                         </p>
                       )}
                     </div>
