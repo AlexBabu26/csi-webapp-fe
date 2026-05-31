@@ -87,7 +87,7 @@ export const mapApplicationFormToDocument = (
   registrationNumber: formData.user_data.username,
   clergyDistrict: formData.user_data.clergy_district_name || 'Unknown',
   unitName: formData.user_data.unit_name || 'Unknown',
-  registrationYear: formData.unit_details?.registration_year ?? defaultRegistrationYear(),
+  registrationYear: formData.registration_year ?? formData.unit_details?.registration_year ?? defaultRegistrationYear(),
   membersCount: formData.member_count,
   officials: mapRegistrationOfficials(formData.unit_officials),
   councilors: mapApplicationFormCouncilors(formData),

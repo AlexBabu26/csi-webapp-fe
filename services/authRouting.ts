@@ -26,6 +26,12 @@ export const resolvePostLoginPath = async (
       if (form.registration_status === 'Registration Completed') {
         return '/register/complete';
       }
+      if (form.registration_enabled) {
+        return '/register/wizard';
+      }
+      if (form.has_any_completed_cycle) {
+        return '/register/complete';
+      }
       return '/register/wizard';
     } catch {
       return '/register/wizard';
@@ -40,3 +46,6 @@ export const resolvePostLoginPath = async (
 
   return '/';
 };
+
+export const formatRegistrationSeason = (endingYear: number): string =>
+  `${endingYear - 1}–${endingYear}`;

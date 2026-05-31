@@ -80,6 +80,23 @@ export const useUpdateSiteSettings = () => {
   });
 };
 
+// Upload payment QR
+export const useUploadPaymentQr = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (file: File) => api.uploadPaymentQr(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.siteSettings.settings() });
+      addToast('Payment QR code uploaded successfully', 'success');
+    },
+    onError: () => {
+      addToast('Failed to upload QR code', 'error');
+    },
+  });
+};
+
 // Upload logo
 export const useUploadLogo = () => {
   const queryClient = useQueryClient();

@@ -567,6 +567,12 @@ export interface UnitApplicationForm {
     clergy_district_name?: string | null;
   };
   registration_status: UnitRegistrationStatus;
+  registration_year: number;
+  path_type: 'fresh' | 'renewal';
+  is_renewal: boolean;
+  cycle_id: number | null;
+  registration_enabled: boolean;
+  has_any_completed_cycle: boolean;
   unit_details: { id: number; registered_user_id: number; registration_year?: number; number_of_unit_members?: number } | null;
   unit_officials: UnitRegistrationOfficial | null;
   unit_members: UnitRegistrationMember[];
@@ -617,6 +623,40 @@ export interface UnitOfficialPayload {
 }
 
 export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export type PaymentProofStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface UnitPaymentSubmission {
+  id: number;
+  file_url: string;
+  total_amount: number | null;
+  status: PaymentProofStatus;
+  rejection_note: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+}
+
+export interface UnitPaymentStatusResponse {
+  overall_status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
+  latest_rejection_note: string | null;
+  qr_url: string | null;
+  registration_year: number;
+  submissions: UnitPaymentSubmission[];
+}
+
+export interface AdminRegistrationPayment {
+  id: number;
+  registered_user_id: number;
+  username: string;
+  unit_name: string | null;
+  registration_year: number | null;
+  file_url: string;
+  total_amount: number | null;
+  status: PaymentProofStatus;
+  rejection_note: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+}
 
 export interface TransferRequest {
   id: number;
@@ -1215,8 +1255,10 @@ export interface SiteSettings {
   logo_primary_url: string | null;
   logo_secondary_url: string | null;
   logo_tertiary_url: string | null;
+  payment_qr_url: string | null;
   registration_enabled: boolean;
   registration_closed_message: string | null;
+  current_registration_year: number | null;
   member_min_dob: string | null;
   member_max_dob: string | null;
   blood_donor_district_access: boolean;
@@ -1235,6 +1277,7 @@ export interface SiteSettingsUpdate {
   about_text?: string;
   registration_enabled?: boolean;
   registration_closed_message?: string;
+  current_registration_year?: number;
   member_min_dob?: string | null;
   member_max_dob?: string | null;
   blood_donor_district_access?: boolean;

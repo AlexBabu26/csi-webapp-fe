@@ -930,6 +930,10 @@ class ApiService {
       username: string;
       unit_name: string;
       status: string;
+      registration_year?: number;
+      cycle_status?: string | null;
+      path_type?: string | null;
+      payment_status?: string;
     }
 
     // API may return paginated response or direct array
@@ -955,11 +959,11 @@ class ApiService {
       unitNumber: unit.username,
       name: unit.unit_name,
       clergyDistrict: this.extractClergyDistrict(unit.username),
-      registrationYear: new Date().getFullYear(), // Default to current year since API doesn't provide it
-      status: this.mapUnitStatus(unit.status),
-      membersCount: 0, // API doesn't provide this
-      officialsCount: 0, // API doesn't provide this
-      councilorsCount: 0, // API doesn't provide this
+      registrationYear: unit.registration_year ?? new Date().getFullYear(),
+      status: this.mapUnitStatus(unit.cycle_status ?? unit.status),
+      membersCount: 0,
+      officialsCount: 0,
+      councilorsCount: 0,
     }));
 
     return { data, status: 200 };
@@ -990,6 +994,8 @@ class ApiService {
         unit_name: string | null;
       };
       member_count: number;
+      registration_year?: number;
+      cycle_status?: string | null;
     }
 
     const raw = await httpGet<ApiUnitDetail>(`/admin/units/${id}`, { token });
@@ -998,8 +1004,8 @@ class ApiService {
       unitNumber: raw.user.username,
       name: raw.user.unit_name ?? '',
       clergyDistrict: this.extractClergyDistrict(raw.user.username),
-      registrationYear: new Date().getFullYear(),
-      status: 'Completed',
+      registrationYear: raw.registration_year ?? new Date().getFullYear(),
+      status: this.mapUnitStatus(raw.cycle_status ?? 'Registration Completed'),
       membersCount: raw.member_count,
       officialsCount: 0,
       councilorsCount: 0,
@@ -1899,6 +1905,59 @@ class ApiService {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     await httpPost<{ message: string }>('/units/declaration', {}, { token });
+  }
+
+  // ── Unit Registration Payment ──────────────────────────────────────────────
+
+  async getUnitPaymentStatus(): Promise<UnitPaymentStatusResponse> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet<UnitPaymentStatusResponse>('/units/payment', { token });
+  }
+
+  async submitUnitPaymentProof(file: File): Promise<{ id: number; status: string; submitted_at: string; message: string }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const formData = new FormData();
+    formData.append('file', file);
+    return httpPost('/units/payment', formData, { token });
+  }
+
+  // ── Admin: Registration Payment Review ────────────────────────────────────
+
+  async getAdminRegistrationPayments(
+    paymentStatus?: string,
+    registrationYear?: number,
+  ): Promise<AdminRegistrationPayment[]> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const query: Record<string, string | number> = {};
+    if (paymentStatus) query.payment_status = paymentStatus;
+    if (registrationYear) query.registration_year = registrationYear;
+    return httpGet<AdminRegistrationPayment[]>('/admin/units/registration-payments', {
+      token,
+      query: Object.keys(query).length ? query : undefined,
+    });
+  }
+
+  async approveRegistrationPayment(paymentId: number): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost(`/admin/units/registration-payments/${paymentId}/approve`, {}, { token });
+  }
+
+  async rejectRegistrationPayment(paymentId: number, rejectionNote: string): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost(`/admin/units/registration-payments/${paymentId}/reject`, { rejection_note: rejectionNote }, { token });
+  }
+
+  async uploadPaymentQr(file: File): Promise<{ message: string; url: string }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const formData = new FormData();
+    formData.append('file', file);
+    return httpPost('/admin/units/payment-qr', formData, { token });
   }
 
   // User Request Submissions

@@ -15,7 +15,7 @@ import {
   canNavigateToStep,
   WizardStepId,
 } from './utils';
-import { membersMissingLocation } from '../../services/authRouting';
+import { membersMissingLocation, formatRegistrationSeason } from '../../services/authRouting';
 
 export const RegistrationWizard: React.FC = () => {
   const navigate = useNavigate();
@@ -92,6 +92,13 @@ export const RegistrationWizard: React.FC = () => {
           <p className="text-sm text-textMuted mt-1">
             {formData.user_data.unit_name} — Step {activeStep} of 6
           </p>
+          {formData.is_renewal && (
+            <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-textDark">
+              Renewing registration for{' '}
+              <strong>{formatRegistrationSeason(formData.registration_year)}</strong>. Review and
+              update your unit information below.
+            </div>
+          )}
         </div>
 
         <RegistrationStepper

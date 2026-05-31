@@ -11,6 +11,9 @@ export const unitRegistrationKeys = {
   all: ['unitRegistration'] as const,
   applicationForm: () => [...unitRegistrationKeys.all, 'applicationForm'] as const,
   finishRegistration: () => [...unitRegistrationKeys.all, 'finishRegistration'] as const,
+  paymentStatus: () => [...unitRegistrationKeys.all, 'paymentStatus'] as const,
+  adminPayments: (statusFilter?: string, yearFilter?: number) =>
+    [...unitRegistrationKeys.all, 'adminPayments', statusFilter, yearFilter] as const,
 };
 
 export const useApplicationForm = (enabled = true) => {
@@ -174,5 +177,69 @@ export const useCompleteDeclaration = () => {
       addToast('Registration completed successfully', 'success');
     },
     onError: (error: Error) => addToast(error.message || 'Failed to complete registration', 'error'),
+  });
+};
+
+// ── Payment hooks ─────────────────────────────────────────────────────────────
+
+export const useUnitPaymentStatus = (enabled = true) => {
+  return useQuery({
+    queryKey: unitRegistrationKeys.paymentStatus(),
+    queryFn: () => api.getUnitPaymentStatus(),
+    enabled,
+    staleTime: 0,
+  });
+};
+
+export const useSubmitUnitPaymentProof = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (file: File) => api.submitUnitPaymentProof(file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.paymentStatus() });
+      addToast('Payment proof submitted. Awaiting admin review.', 'success');
+    },
+    onError: (error: Error) => addToast(error.message || 'Failed to submit payment proof', 'error'),
+  });
+};
+
+// ── Admin payment review hooks ─────────────────────────────────────────────────
+
+export const useAdminRegistrationPayments = (statusFilter?: string, yearFilter?: number) => {
+  return useQuery({
+    queryKey: unitRegistrationKeys.adminPayments(statusFilter, yearFilter),
+    queryFn: () => api.getAdminRegistrationPayments(statusFilter, yearFilter),
+    staleTime: 0,
+  });
+};
+
+export const useApproveRegistrationPayment = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (paymentId: number) => api.approveRegistrationPayment(paymentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.adminPayments() });
+      addToast('Payment approved', 'success');
+    },
+    onError: (error: Error) => addToast(error.message || 'Failed to approve payment', 'error'),
+  });
+};
+
+export const useRejectRegistrationPayment = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: ({ paymentId, rejectionNote }: { paymentId: number; rejectionNote: string }) =>
+      api.rejectRegistrationPayment(paymentId, rejectionNote),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.adminPayments() });
+      addToast('Payment rejected', 'success');
+    },
+    onError: (error: Error) => addToast(error.message || 'Failed to reject payment', 'error'),
   });
 };

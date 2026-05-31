@@ -35,7 +35,10 @@ export const DeclarationStep: React.FC = () => {
           <Card>
             <h3 className="text-lg font-bold text-textDark mb-4">Unit Details</h3>
             <p className="text-sm text-textMuted">
-              Registration year: {summary.unit_details?.registration_year ?? new Date().getFullYear()}
+              Registration year:{' '}
+              {summary.unit_details?.registration_year != null
+                ? `${summary.unit_details.registration_year - 1}–${summary.unit_details.registration_year}`
+                : new Date().getFullYear()}
             </p>
             <p className="text-sm text-textMuted mt-1">Total members: {summary.members_count}</p>
           </Card>

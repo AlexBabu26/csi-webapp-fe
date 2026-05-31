@@ -1,0 +1,246 @@
+import React, { useMemo, useState } from 'react';
+import { Card, Badge, Button } from '../../components/ui';
+import { DataTable, ColumnDef } from '../../components/DataTable';
+import { Check, X, ExternalLink } from 'lucide-react';
+import { useToast } from '../../components/Toast';
+import {
+  useAdminRegistrationPayments,
+  useApproveRegistrationPayment,
+  useRejectRegistrationPayment,
+} from '../../hooks/queries';
+import { AdminRegistrationPayment } from '../../types';
+import { getMediaUrl } from '../../services/http';
+
+export const UnitRegistrationPayments: React.FC = () => {
+  const [statusFilter, setStatusFilter] = useState<string>('PENDING');
+  const [yearFilter, setYearFilter] = useState<string>('');
+  const [rejectDialogId, setRejectDialogId] = useState<number | null>(null);
+  const [rejectionNote, setRejectionNote] = useState('');
+  const { addToast } = useToast();
+
+  const { data: payments = [], isLoading } = useAdminRegistrationPayments(
+    statusFilter || undefined,
+    yearFilter ? Number(yearFilter) : undefined,
+  );
+  const approveMutation = useApproveRegistrationPayment();
+  const rejectMutation = useRejectRegistrationPayment();
+
+  const handleApprove = (id: number) => {
+    approveMutation.mutate(id);
+  };
+
+  const handleRejectSubmit = () => {
+    if (!rejectDialogId) return;
+    if (!rejectionNote.trim()) {
+      addToast('Please enter a rejection reason', 'warning');
+      return;
+    }
+    rejectMutation.mutate(
+      { paymentId: rejectDialogId, rejectionNote },
+      {
+        onSuccess: () => {
+          setRejectDialogId(null);
+          setRejectionNote('');
+        },
+      }
+    );
+  };
+
+  const statusBadge = (s: string) => {
+    const map: Record<string, any> = {
+      PENDING: 'warning',
+      APPROVED: 'success',
+      REJECTED: 'danger',
+    };
+    return <Badge variant={map[s] ?? 'secondary'}>{s}</Badge>;
+  };
+
+  const columns = useMemo<ColumnDef<AdminRegistrationPayment, any>[]>(
+    () => [
+      {
+        accessorKey: 'submitted_at',
+        header: 'Date',
+        cell: ({ row }) => (
+          <span className="text-textMuted text-sm">
+            {new Date(row.original.submitted_at).toLocaleDateString()}
+          </span>
+        ),
+        size: 100,
+      },
+      {
+        accessorKey: 'unit_name',
+        header: 'Unit',
+        cell: ({ row }) => (
+          <div className="text-sm">
+            <span className="font-medium text-textDark block">{row.original.unit_name ?? '-'}</span>
+            <span className="text-textMuted text-xs">{row.original.username}</span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'registration_year',
+        header: 'Year',
+        cell: ({ row }) => (
+          <span className="text-sm text-textMuted">
+            {row.original.registration_year
+              ? `${row.original.registration_year - 1}–${row.original.registration_year}`
+              : '-'}
+          </span>
+        ),
+        size: 100,
+      },
+      {
+        accessorKey: 'total_amount',
+        header: 'Amount',
+        cell: ({ row }) => (
+          <span className="text-sm font-medium">
+            {row.original.total_amount != null ? `₹${row.original.total_amount}` : '-'}
+          </span>
+        ),
+        size: 90,
+      },
+      {
+        id: 'proof',
+        header: 'Proof',
+        cell: ({ row }) => (
+          <a
+            href={getMediaUrl(row.original.file_url)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-primary text-xs underline"
+          >
+            View <ExternalLink className="w-3 h-3" />
+          </a>
+        ),
+        size: 70,
+        enableSorting: false,
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ row }) => statusBadge(row.original.status),
+        size: 90,
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => {
+          const p = row.original;
+          if (p.status !== 'PENDING') {
+            return (
+              <span className="text-xs text-textMuted">
+                {p.rejection_note ? `Note: ${p.rejection_note}` : '—'}
+              </span>
+            );
+          }
+          return (
+            <div className="flex items-center gap-2">
+              <button
+                title="Approve"
+                onClick={() => handleApprove(p.id)}
+                disabled={approveMutation.isPending}
+                className="p-1.5 rounded-full bg-success/10 hover:bg-success/20 text-success transition-colors"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+              <button
+                title="Reject"
+                onClick={() => {
+                  setRejectDialogId(p.id);
+                  setRejectionNote('');
+                }}
+                disabled={rejectMutation.isPending}
+                className="p-1.5 rounded-full bg-danger/10 hover:bg-danger/20 text-danger transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          );
+        },
+        size: 90,
+        enableSorting: false,
+      },
+    ],
+    [approveMutation.isPending, rejectMutation.isPending]
+  );
+
+  const currentYear = new Date().getFullYear();
+
+  return (
+    <div className="space-y-6 animate-slide-in">
+      <div>
+        <h1 className="text-2xl font-bold text-textDark">Unit Registration Payments</h1>
+        <p className="text-sm text-textMuted mt-1">
+          Review and approve payment proofs submitted by units as part of yearly registration.
+        </p>
+      </div>
+
+      <Card noPadding>
+        <div className="px-4 pt-4 pb-3 flex items-center gap-3 flex-wrap">
+          <p className="text-sm font-semibold text-textDark flex-1">Submissions</p>
+          <select
+            value={yearFilter}
+            onChange={(e) => setYearFilter(e.target.value)}
+            className="px-3 py-1.5 border border-borderColor rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="">All years</option>
+            <option value={String(currentYear)}>{currentYear - 1}–{currentYear}</option>
+            <option value={String(currentYear + 1)}>{currentYear}–{currentYear + 1}</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-1.5 border border-borderColor rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="">All</option>
+            <option value="PENDING">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+        </div>
+        <DataTable
+          data={payments}
+          columns={columns}
+          isLoading={isLoading}
+          emptyMessage="No payment submissions found."
+        />
+      </Card>
+
+      {rejectDialogId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="font-semibold text-textDark">Reject Payment Proof</h3>
+            <p className="text-sm text-textMuted">
+              Provide a clear rejection reason so the unit knows what to fix.
+            </p>
+            <textarea
+              value={rejectionNote}
+              onChange={(e) => setRejectionNote(e.target.value)}
+              placeholder="e.g. Screenshot is unclear, amount doesn't match..."
+              rows={3}
+              className="w-full px-3 py-2 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+            />
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setRejectDialogId(null)}
+                disabled={rejectMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                isLoading={rejectMutation.isPending}
+                onClick={handleRejectSubmit}
+              >
+                Reject
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

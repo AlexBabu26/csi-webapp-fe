@@ -46,6 +46,8 @@ const MemberInfoChangeRequests = lazy(() => import('./pages/UnitAdmin/MemberInfo
 const OfficialsChangeRequests = lazy(() => import('./pages/UnitAdmin/OfficialsChangeRequests').then(module => ({ default: module.OfficialsChangeRequests })));
 const CouncilorChangeRequests = lazy(() => import('./pages/UnitAdmin/CouncilorChangeRequests').then(module => ({ default: module.CouncilorChangeRequests })));
 const MemberAddRequests = lazy(() => import('./pages/UnitAdmin/MemberAddRequests').then(module => ({ default: module.MemberAddRequests })));
+const UnitRegistrationPayments = lazy(() => import('./pages/UnitAdmin/UnitRegistrationPayments').then(module => ({ default: module.UnitRegistrationPayments })));
+const PaymentSettings = lazy(() => import('./pages/UnitAdmin/PaymentSettings').then(module => ({ default: module.PaymentSettings })));
 const ExportData = lazy(() => import('./pages/UnitAdmin/ExportData').then(module => ({ default: module.ExportData })));
 const PrintForm = lazy(() => import('./pages/UnitAdmin/PrintForm').then(module => ({ default: module.PrintForm })));
 const SiteSettings = lazy(() => import('./pages/UnitAdmin/SiteSettings').then(module => ({ default: module.SiteSettings })));
@@ -274,6 +276,22 @@ const App: React.FC = () => {
                 <AdminRoute>
                   <MemberAddRequests />
                 </AdminRoute>
+              } />
+
+              <Route path="/admin/payments/settings" element={
+                <AdminRoute>
+                  <PaymentSettings />
+                </AdminRoute>
+              } />
+
+              <Route path="/admin/payments" element={
+                <AdminRoute>
+                  <UnitRegistrationPayments />
+                </AdminRoute>
+              } />
+
+              <Route path="/admin/requests/registration-payments" element={
+                <Navigate to="/admin/payments" replace />
               } />
 
               {/* Export & Print */}

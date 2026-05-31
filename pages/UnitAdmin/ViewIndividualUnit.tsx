@@ -114,7 +114,9 @@ export const ViewIndividualUnit: React.FC = () => {
           </div>
           <div>
             <span className="text-sm text-textMuted">Registration Year</span>
-            <p className="text-textDark font-medium">{unit.registrationYear}</p>
+            <p className="text-textDark font-medium">
+              {unit.registrationYear - 1}–{unit.registrationYear}
+            </p>
           </div>
           <div>
             <span className="text-sm text-textMuted">No of Members</span>

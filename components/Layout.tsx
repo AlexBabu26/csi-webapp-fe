@@ -28,12 +28,12 @@ import {
   Clock,
   Archive,
   Droplets,
+  BookOpen,
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '../constants';
 import { getAuthUser, clearAuthToken, clearAuthUser } from '../services/auth';
 import { AuthUser } from '../types';
-import { BookOpen } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -91,6 +91,13 @@ const NAV_GROUPS: NavGroup[] = [
           { label: 'Official Changes', path: '/admin/requests/officials', icon: <Shield size={18} /> },
           { label: 'Councilor Changes', path: '/admin/requests/councilors', icon: <UserCheck size={18} /> },
           { label: 'Member Add Requests', path: '/admin/requests/member-add', icon: <UserPlus size={18} /> },
+        ],
+      },
+      {
+        label: 'Payments',
+        items: [
+          { label: 'Payment Settings', path: '/admin/payments/settings', icon: <Settings size={18} /> },
+          { label: 'Unit Payments', path: '/admin/payments', icon: <CreditCard size={18} /> },
         ],
       },
       {
