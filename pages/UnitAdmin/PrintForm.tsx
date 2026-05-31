@@ -1,14 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui';
-import { ArrowLeft, Printer, ChevronDown, Download } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Download } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { Unit, UnitOfficial, UnitCouncilor, UnitMember } from '../../types';
-import {
-  UnitRegistrationFormDocument,
-  registrationFormPrintStyles,
-} from '../../components/UnitRegistrationFormDocument';
+import { UnitRegistrationFormDocument } from '../../components/UnitRegistrationFormDocument';
 import { mapAdminUnitToDocument } from '../UnitRegistration/utils/registrationFormMapper';
 import { useSiteSettings } from '../../hooks/queries/useSiteSettings';
 import { generatePdfFromElement } from '../../services/generatePdf';
@@ -69,9 +66,6 @@ export const PrintForm: React.FC = () => {
     loadUnitDetails();
   }, [unitId, addToast]);
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   const handleDownloadPdf = async () => {
     if (!formRef.current) return;
@@ -172,10 +166,6 @@ export const PrintForm: React.FC = () => {
               </div>
             )}
           </div>
-          <Button variant="outline" size="sm" onClick={handlePrint}>
-            <Printer className="w-4 h-4 mr-2" />
-            Print Form
-          </Button>
           <Button variant="primary" size="sm" onClick={handleDownloadPdf} isLoading={downloading}>
             <Download className="w-4 h-4 mr-2" />
             Download PDF
@@ -187,11 +177,10 @@ export const PrintForm: React.FC = () => {
         <UnitRegistrationFormDocument
           {...documentProps}
           youthLogoUrl={siteSettings?.logo_secondary_url}
-          csiLogoUrl={siteSettings?.logo_tertiary_url}
+          churchLogoUrl={siteSettings?.logo_primary_url}
         />
       </div>
 
-      <style>{registrationFormPrintStyles}</style>
     </div>
   );
 };

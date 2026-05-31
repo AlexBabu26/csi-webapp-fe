@@ -2,17 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 
-import { ArrowLeft, Download, Printer } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 
 import { Button } from '../../components/ui';
 
-import {
-
-  UnitRegistrationFormDocument,
-
-  registrationFormPrintStyles,
-
-} from '../../components/UnitRegistrationFormDocument';
+import { UnitRegistrationFormDocument } from '../../components/UnitRegistrationFormDocument';
 
 import { useApplicationForm } from '../../hooks/queries';
 
@@ -32,8 +26,6 @@ export const RegistrationFormPrint: React.FC = () => {
 
   const [searchParams] = useSearchParams();
 
-  const autoPrint = searchParams.get('print') === '1';
-
   const autoDownload = searchParams.get('download') === '1';
 
   const { data: formData, isLoading } = useApplicationForm();
@@ -42,11 +34,7 @@ export const RegistrationFormPrint: React.FC = () => {
 
   const { addToast } = useToast();
 
-  const [logosReady, setLogosReady] = useState(false);
-
   const [downloading, setDownloading] = useState(false);
-
-  const hasPrintedRef = useRef(false);
 
   const hasDownloadedRef = useRef(false);
 
@@ -54,11 +42,7 @@ export const RegistrationFormPrint: React.FC = () => {
 
 
 
-  const handleLogoLoad = useCallback(() => {
-
-    setLogosReady(true);
-
-  }, []);
+  const handleLogoLoad = useCallback(() => {}, []);
 
 
 
@@ -95,30 +79,6 @@ export const RegistrationFormPrint: React.FC = () => {
     }
 
   };
-
-
-
-  useEffect(() => {
-
-    if (!autoPrint || isLoading || settingsLoading || !formData || hasPrintedRef.current) return;
-
-    if (!logosReady) return;
-
-
-
-    const timer = window.setTimeout(() => {
-
-      hasPrintedRef.current = true;
-
-      window.print();
-
-    }, 300);
-
-
-
-    return () => window.clearTimeout(timer);
-
-  }, [autoPrint, formData, isLoading, settingsLoading, logosReady]);
 
 
 
@@ -180,13 +140,6 @@ export const RegistrationFormPrint: React.FC = () => {
 
 
 
-  const handlePrint = () => {
-
-    window.print();
-
-  };
-
-
 
   return (
 
@@ -207,14 +160,6 @@ export const RegistrationFormPrint: React.FC = () => {
         </Link>
 
         <div className="flex items-center gap-3">
-
-          <Button variant="outline" size="sm" onClick={handlePrint}>
-
-            <Printer className="w-4 h-4 mr-2" />
-
-            Print Form
-
-          </Button>
 
           <Button variant="primary" size="sm" onClick={handleDownloadPdf} isLoading={downloading}>
 
@@ -248,7 +193,7 @@ export const RegistrationFormPrint: React.FC = () => {
 
           youthLogoUrl={siteSettings?.logo_secondary_url}
 
-          csiLogoUrl={siteSettings?.logo_tertiary_url}
+          churchLogoUrl={siteSettings?.logo_primary_url}
 
           onLogoLoad={handleLogoLoad}
 
@@ -258,7 +203,6 @@ export const RegistrationFormPrint: React.FC = () => {
 
 
 
-      <style>{registrationFormPrintStyles}</style>
 
     </div>
 

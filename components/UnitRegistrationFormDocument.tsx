@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { CSLogo, LogoImage, YouthLogo } from './SiteLogos';
+import { ChurchLogo, LogoImage, YouthLogo } from './SiteLogos';
 
 export interface RegistrationFormCouncilor {
   name: string;
@@ -42,7 +42,7 @@ export interface UnitRegistrationFormDocumentProps {
   unitMemberFee: number;
   totalAmount: number;
   youthLogoUrl?: string | null;
-  csiLogoUrl?: string | null;
+  churchLogoUrl?: string | null;
   onLogoLoad?: () => void;
 }
 
@@ -88,7 +88,7 @@ export const UnitRegistrationFormDocument: React.FC<UnitRegistrationFormDocument
   unitMemberFee,
   totalAmount,
   youthLogoUrl,
-  csiLogoUrl,
+  churchLogoUrl,
   onLogoLoad,
 }) => {
   const registrationYearLabel = formatRegistrationYearLabel(registrationYear);
@@ -103,10 +103,10 @@ export const UnitRegistrationFormDocument: React.FC<UnitRegistrationFormDocument
   }, [onLogoLoad]);
 
   useEffect(() => {
-    if (!youthLogoUrl && !csiLogoUrl) {
+    if (!youthLogoUrl && !churchLogoUrl) {
       onLogoLoad?.();
     }
-  }, [youthLogoUrl, csiLogoUrl, onLogoLoad]);
+  }, [youthLogoUrl, churchLogoUrl, onLogoLoad]);
 
   return (
     <div className="p-8 max-w-[210mm] mx-auto print:p-5" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -126,7 +126,9 @@ export const UnitRegistrationFormDocument: React.FC<UnitRegistrationFormDocument
         <div className="w-20 h-20 flex items-center justify-center flex-shrink-0">
           <LogoImage
             src={youthLogoUrl}
-            fallback={<YouthLogo className="w-full h-full" />}
+            fallback={<YouthLogo className="w-20 h-20" />}
+            className="w-20 h-20 flex items-center justify-center"
+            imageClassName="max-w-full max-h-full w-auto h-auto"
             onLoad={handleLogoLoad}
           />
         </div>
@@ -138,8 +140,10 @@ export const UnitRegistrationFormDocument: React.FC<UnitRegistrationFormDocument
         </div>
         <div className="w-20 h-20 flex items-center justify-center flex-shrink-0">
           <LogoImage
-            src={csiLogoUrl}
-            fallback={<CSLogo className="w-full h-full" />}
+            src={churchLogoUrl}
+            fallback={<ChurchLogo className="w-20 h-20" />}
+            className="w-20 h-20 flex items-center justify-center"
+            imageClassName="max-w-full max-h-full w-auto h-auto"
             onLoad={handleLogoLoad}
           />
         </div>

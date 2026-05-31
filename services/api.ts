@@ -1894,17 +1894,6 @@ class ApiService {
     return httpGet<UnitFinishRegistration>('/units/finish-registration', { token });
   }
 
-  async downloadRegistrationFormPdf(): Promise<Blob> {
-    const token = this.getToken();
-    if (!token) throw new Error('Authentication required');
-    return httpGet<Blob>('/units/registration-form-pdf', { token, asBlob: true });
-  }
-
-  async downloadAdminRegistrationFormPdf(unitId: number): Promise<Blob> {
-    const token = this.getToken();
-    if (!token) throw new Error('Authentication required');
-    return httpGet<Blob>(`/admin/units/${unitId}/registration-form-pdf`, { token, asBlob: true });
-  }
 
   async completeDeclaration(): Promise<void> {
     const token = this.getToken();
