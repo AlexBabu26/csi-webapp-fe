@@ -94,16 +94,10 @@ const NAV_GROUPS: NavGroup[] = [
         ],
       },
       {
-        label: 'Payments',
-        items: [
-          { label: 'Payment Settings', path: '/admin/payments/settings', icon: <Settings size={18} /> },
-          { label: 'Unit Payments', path: '/admin/payments', icon: <CreditCard size={18} /> },
-        ],
-      },
-      {
         label: 'Data & Reports',
         items: [
           { label: 'Export Data', path: '/admin/export', icon: <Download size={18} /> },
+          { label: 'Unit Payments', path: '/admin/payments', icon: <CreditCard size={18} /> },
           { label: 'Archive Members', path: '/admin/archived-members', icon: <Archive size={18} /> },
           { label: 'Blood Bank', path: '/admin/blood-donor-search', icon: <Droplets size={18} /> },
         ],
@@ -112,6 +106,7 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Site Settings',
         items: [
           { label: 'Site Settings', path: '/admin/site-settings', icon: <Settings size={18} /> },
+          { label: 'Payment Settings', path: '/admin/payments/settings', icon: <Settings size={18} /> },
           { label: 'User Management', path: '/admin/user-management', icon: <KeyRound size={18} /> },
         ],
       },
