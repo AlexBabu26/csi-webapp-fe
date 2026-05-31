@@ -16,11 +16,32 @@ import {
 } from 'recharts';
 import { Card, Badge, Button, Skeleton, IconButton } from '../components/ui';
 import { DataTable, ColumnDef } from '../components/DataTable';
-import { Download, Plus, AlertCircle, Eye, Users, Building, UserCheck, FileText, TrendingUp, Droplets } from 'lucide-react';
+import { Download, AlertCircle, Eye, Users, Building, UserCheck, FileText, TrendingUp, Droplets, CreditCard } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
-import { Unit, UnitStats, DistrictWiseData } from '../types';
+import { Unit } from '../types';
 import { useDashboardData } from '../hooks/queries';
+import { formatRegistrationSeason } from '../services/authRouting';
+
+const unitStatusVariant = (status: Unit['status']) => {
+  if (status === 'Completed') return 'success';
+  if (status === 'In Progress') return 'warning';
+  return 'light';
+};
+
+const paymentStatusLabel: Record<NonNullable<Unit['paymentStatus']>, string> = {
+  not_submitted: 'Not submitted',
+  pending: 'Pending review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+};
+
+const paymentStatusVariant = (status?: Unit['paymentStatus']) => {
+  if (status === 'approved') return 'success';
+  if (status === 'pending') return 'warning';
+  if (status === 'rejected') return 'danger';
+  return 'light';
+};
 
 export const AdminDashboard: React.FC = () => {
   const { addToast } = useToast();
@@ -36,17 +57,9 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [error, addToast]);
 
-  const handleAction = (action: string) => {
-    addToast(`${action} action triggered`, 'info');
-  };
-
-  const handleBulkAction = (action: string) => {
-    if (selectedRows.length === 0) {
-      addToast('Please select at least one row', 'warning');
-      return;
-    }
-    addToast(`${action} ${selectedRows.length} unit(s)`, 'info');
-  };
+  const registrationSeason = stats
+    ? formatRegistrationSeason(stats.currentRegistrationYear)
+    : null;
 
   // Define table columns for unit registrations
   const columns = useMemo<ColumnDef<Unit, any>[]>(
@@ -84,14 +97,37 @@ export const AdminDashboard: React.FC = () => {
         size: 80,
       },
       {
+        accessorKey: 'registrationYear',
+        header: 'Season',
+        cell: ({ row }) => (
+          <span className="text-sm text-textMuted">
+            {formatRegistrationSeason(row.original.registrationYear)}
+          </span>
+        ),
+        size: 110,
+      },
+      {
         accessorKey: 'status',
-        header: 'Status',
+        header: 'Registration',
+        cell: ({ row }) => (
+          <Badge variant={unitStatusVariant(row.original.status)}>{row.original.status}</Badge>
+        ),
+        enableSorting: false,
+        size: 120,
+      },
+      {
+        accessorKey: 'paymentStatus',
+        header: 'Payment',
         cell: ({ row }) => {
-          const status = row.original.status;
-          const variant = status === 'Completed' ? 'success' : status === 'Pending' ? 'warning' : 'light';
-          return <Badge variant={variant}>{status}</Badge>;
+          const paymentStatus = row.original.paymentStatus ?? 'not_submitted';
+          return (
+            <Badge variant={paymentStatusVariant(paymentStatus)}>
+              {paymentStatusLabel[paymentStatus]}
+            </Badge>
+          );
         },
         enableSorting: false,
+        size: 130,
       },
       {
         id: 'actions',
@@ -167,13 +203,14 @@ export const AdminDashboard: React.FC = () => {
   // Pie chart data with gradient colors
   const pieData = stats ? [
     { name: 'Completed', value: stats.completedUnits, fill: '#0891b2' },
-    { name: 'Remaining', value: stats.totalUnits - stats.completedUnits, fill: '#10b981' }
-  ] : [];
+    { name: 'In Progress', value: stats.inProgressUnits, fill: '#f59e0b' },
+    { name: 'Not Started', value: stats.notStartedUnits, fill: '#94a3b8' },
+  ].filter((item) => item.value > 0) : [];
 
-  const completedUnits = units.filter(u => u.status === 'Completed');
-  const notRegisteredUnits = units.filter(u => u.status === 'Not Registered');
-  const unregisteredDistricts = notRegisteredUnits.length > 0 
-    ? Array.from(new Set(notRegisteredUnits.map(u => u.clergyDistrict))) 
+  const notStartedUnits = units.filter(u => u.status === 'Not Started');
+  const inProgressUnitsList = units.filter(u => u.status === 'In Progress');
+  const notStartedDistricts = notStartedUnits.length > 0
+    ? Array.from(new Set(notStartedUnits.map(u => u.clergyDistrict)))
     : [];
 
   if (error) {
@@ -193,7 +230,14 @@ export const AdminDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-textDark tracking-tight">Unit Admin Dashboard</h1>
-          <p className="mt-1 text-sm text-textMuted">CSI Madhya Kerala Diocese Youth Movement</p>
+          <p className="mt-1 text-sm text-textMuted">
+            CSI Madhya Kerala Diocese Youth Movement
+            {registrationSeason && (
+              <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                {registrationSeason} Registration Season
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="primary" size="sm" onClick={() => navigate('/admin/export')}>
@@ -222,7 +266,19 @@ export const AdminDashboard: React.FC = () => {
                 </dt>
                 <dd className="mt-2 text-3xl font-bold text-textDark">{stats.totalUnits}</dd>
                 <div className="mt-2 text-sm text-textMuted">
-                  <span className="text-success font-medium">{stats.completedUnits} Completed</span>
+                  <span className="text-success font-medium">{stats.completedUnits} completed</span>
+                  {registrationSeason && <span className="ml-1">for {registrationSeason}</span>}
+                </div>
+              </Card>
+
+              <Card className="hover:shadow-md transition-shadow cursor-default bg-white border-l-4 border-l-primary/20">
+                <dt className="text-sm font-medium text-textMuted flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  In Progress
+                </dt>
+                <dd className="mt-2 text-3xl font-bold text-textDark">{stats.inProgressUnits}</dd>
+                <div className="mt-2 text-sm text-textMuted">
+                  <span>{stats.notStartedUnits} not started yet</span>
                 </div>
               </Card>
 
@@ -237,29 +293,18 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </Card>
 
-              <Card className="hover:shadow-md transition-shadow cursor-default bg-white border-l-4 border-l-primary/20">
-                <dt className="text-sm font-medium text-textMuted flex items-center gap-2">
-                  <UserCheck className="w-4 h-4" />
-                  Total Districts
-                </dt>
-                <dd className="mt-2 text-3xl font-bold text-textDark">{stats.totalDistricts}</dd>
-                <div className="mt-2 text-sm text-textMuted">
-                  <span className="text-success font-medium">{stats.completedDistricts} Completed</span>
-                </div>
-              </Card>
-
               <Card className="hover:shadow-md transition-shadow cursor-default bg-white border-l-4 border-l-warning/20">
                 <dt className="text-sm font-medium text-textMuted flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Pending Requests
+                  <CreditCard className="w-4 h-4" />
+                  Pending Payments
                 </dt>
-                <dd className="mt-2 text-3xl font-bold text-textDark">{stats.pendingRequests}</dd>
+                <dd className="mt-2 text-3xl font-bold text-textDark">{stats.pendingPayments}</dd>
                 <div className="mt-2 text-sm text-textMuted">
-                  <button 
-                    onClick={() => navigate('/admin/requests/transfers')}
+                  <button
+                    onClick={() => navigate('/admin/payments')}
                     className="text-primary hover:underline"
                   >
-                    View all requests
+                    Review unit payments
                   </button>
                 </div>
               </Card>
@@ -267,12 +312,62 @@ export const AdminDashboard: React.FC = () => {
         ) : null}
       </div>
 
+      {/* Secondary KPI row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {loading ? (
+          Array(3).fill(0).map((_, i) => (
+            <Card key={i} className="h-24 border-l-4 border-l-gray-200">
+              <Skeleton className="h-4 w-1/2 mb-4" />
+              <Skeleton className="h-8 w-3/4" />
+            </Card>
+          ))
+        ) : stats ? (
+          <>
+              <Card className="hover:shadow-md transition-shadow cursor-default bg-white border-l-4 border-l-primary/20">
+                <dt className="text-sm font-medium text-textMuted flex items-center gap-2">
+                  <UserCheck className="w-4 h-4" />
+                  Districts Completed
+                </dt>
+                <dd className="mt-2 text-2xl font-bold text-textDark">
+                  {stats.completedDistricts}/{stats.totalDistricts}
+                </dd>
+              </Card>
+
+              <Card className="hover:shadow-md transition-shadow cursor-default bg-white border-l-4 border-l-primary/20">
+                <dt className="text-sm font-medium text-textMuted flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Pending Change Requests
+                </dt>
+                <dd className="mt-2 text-2xl font-bold text-textDark">{stats.pendingRequests}</dd>
+                <div className="mt-2 text-sm text-textMuted">
+                  <button
+                    onClick={() => navigate('/admin/requests/transfers')}
+                    className="text-primary hover:underline"
+                  >
+                    View all requests
+                  </button>
+                </div>
+              </Card>
+
+              <Card className="hover:shadow-md transition-shadow cursor-default bg-white border-l-4 border-l-primary/20">
+                <dt className="text-sm font-medium text-textMuted flex items-center gap-2">
+                  <Building className="w-4 h-4" />
+                  Largest Unit
+                </dt>
+                <dd className="mt-2 text-lg font-bold text-textDark truncate">{stats.maxMemberUnit}</dd>
+                <div className="mt-2 text-sm text-textMuted">{stats.maxMemberCount} members</div>
+              </Card>
+            </>
+        ) : null}
+      </div>
+
       {/* Quick Links */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
           { label: 'Members', icon: <Users className="w-5 h-5 text-primary" />, path: '/admin/members', bg: 'bg-blue-50' },
           { label: 'Export Data', icon: <Download className="w-5 h-5 text-green-600" />, path: '/admin/export', bg: 'bg-green-50' },
           { label: 'Archive Members', icon: <FileText className="w-5 h-5 text-amber-600" />, path: '/admin/archived-members', bg: 'bg-amber-50' },
+          { label: 'Unit Payments', icon: <CreditCard className="w-5 h-5 text-indigo-600" />, path: '/admin/payments', bg: 'bg-indigo-50' },
           { label: 'Blood Bank', icon: <Droplets className="w-5 h-5 text-red-600" />, path: '/admin/blood-donor-search', bg: 'bg-red-50' },
         ].map((link) => (
           <button
@@ -291,10 +386,34 @@ export const AdminDashboard: React.FC = () => {
       {/* Summary Stats */}
       {stats && !loading && (
         <Card>
-          <h3 className="text-lg font-bold text-textDark mb-4">Registration Summary</h3>
+          <h3 className="text-lg font-bold text-textDark mb-4">
+            {registrationSeason ? `${registrationSeason} Registration Summary` : 'Registration Summary'}
+          </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-textMuted">Unit with Highest Members:</span>
+              <span className="text-textMuted">Current registration season:</span>
+              <span className="font-medium text-textDark">
+                {registrationSeason ?? '—'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-textMuted">Units completed this season:</span>
+              <span className="font-medium text-success">{stats.completedUnits}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-textMuted">Units in progress:</span>
+              <span className="font-medium text-warning">{stats.inProgressUnits}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-textMuted">Units not started:</span>
+              <span className="font-medium text-textDark">{stats.notStartedUnits}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-textMuted">Payments awaiting review:</span>
+              <span className="font-medium text-primary">{stats.pendingPayments}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-textMuted">Unit with highest members:</span>
               <span className="font-medium text-textDark">{stats.maxMemberUnit} ({stats.maxMemberCount} members)</span>
             </div>
             <div className="flex items-center justify-between">
@@ -367,14 +486,16 @@ export const AdminDashboard: React.FC = () => {
         <Card className="min-h-[400px]">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-lg font-bold text-textDark">Units Registration Status</h3>
-              <p className="text-xs text-textMuted mt-1">Completion progress</p>
+              <h3 className="text-lg font-bold text-textDark">Registration Status by Unit</h3>
+              <p className="text-xs text-textMuted mt-1">
+                {registrationSeason ? `${registrationSeason} season progress` : 'Current season progress'}
+              </p>
             </div>
           </div>
           <div className="h-[300px] w-full">
             {loading ? (
               <Skeleton className="w-full h-full rounded" />
-            ) : (
+            ) : pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <defs>
@@ -382,9 +503,13 @@ export const AdminDashboard: React.FC = () => {
                       <stop offset="0%" stopColor="#06b6d4" />
                       <stop offset="100%" stopColor="#0891b2" />
                     </linearGradient>
-                    <linearGradient id="remainingGradient" x1="0" y1="0" x2="1" y2="1">
-                      <stop offset="0%" stopColor="#10b981" />
-                      <stop offset="100%" stopColor="#059669" />
+                    <linearGradient id="inProgressGradient" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#fbbf24" />
+                      <stop offset="100%" stopColor="#f59e0b" />
+                    </linearGradient>
+                    <linearGradient id="notStartedGradient" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor="#cbd5e1" />
+                      <stop offset="100%" stopColor="#94a3b8" />
                     </linearGradient>
                   </defs>
                   <Pie
@@ -398,8 +523,18 @@ export const AdminDashboard: React.FC = () => {
                     animationDuration={800}
                     animationBegin={200}
                   >
-                    <Cell fill="url(#completedGradient)" />
-                    <Cell fill="url(#remainingGradient)" />
+                    {pieData.map((entry, index) => (
+                      <Cell
+                        key={entry.name}
+                        fill={
+                          entry.name === 'Completed'
+                            ? 'url(#completedGradient)'
+                            : entry.name === 'In Progress'
+                              ? 'url(#inProgressGradient)'
+                              : 'url(#notStartedGradient)'
+                        }
+                      />
+                    ))}
                     <Label content={renderCenterLabel} />
                   </Pie>
                   <Tooltip content={<PieTooltip />} />
@@ -411,6 +546,10 @@ export const AdminDashboard: React.FC = () => {
                   />
                 </PieChart>
               </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-sm text-textMuted">
+                No registration data for the current season yet.
+              </div>
             )}
           </div>
         </Card>
@@ -419,9 +558,11 @@ export const AdminDashboard: React.FC = () => {
       {/* Progress Bars Section */}
       {stats && !loading && (
         <Card>
-          <h3 className="text-lg font-bold text-textDark mb-6">Progress Overview</h3>
+          <h3 className="text-lg font-bold text-textDark mb-6">
+            {registrationSeason ? `${registrationSeason} Progress Overview` : 'Progress Overview'}
+          </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Units Progress */}
             <div>
               <div className="flex justify-between mb-2">
@@ -434,6 +575,21 @@ export const AdminDashboard: React.FC = () => {
                 <div 
                   className="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-full transition-all duration-1000"
                   style={{ width: `${(stats.completedUnits / stats.totalUnits) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between mb-2">
+                <span className="text-sm font-medium text-slate-600">Units In Progress</span>
+                <span className="text-sm font-bold text-amber-600">
+                  {stats.inProgressUnits}/{stats.totalUnits} ({Math.round((stats.inProgressUnits / stats.totalUnits) * 100)}%)
+                </span>
+              </div>
+              <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-1000"
+                  style={{ width: `${(stats.inProgressUnits / stats.totalUnits) * 100}%` }}
                 />
               </div>
             </div>
@@ -494,30 +650,51 @@ export const AdminDashboard: React.FC = () => {
         </Card>
       )}
 
-      {/* Unregistered Units Warning */}
-      {unregisteredDistricts.length > 0 && !loading && (
+      {(notStartedDistricts.length > 0 || inProgressUnitsList.length > 0) && !loading && (
         <Card className="border-l-4 border-l-warning">
-          <h3 className="text-lg font-bold text-textDark mb-4">Not Registered Units & Districts</h3>
+          <h3 className="text-lg font-bold text-textDark mb-4">
+            {registrationSeason
+              ? `Units Not Yet Completed for ${registrationSeason}`
+              : 'Units Not Yet Completed This Season'}
+          </h3>
           <div className="space-y-3">
-            <div>
-              <p className="text-sm font-medium text-textMuted mb-2">Districts:</p>
-              <div className="flex flex-wrap gap-2">
-                {unregisteredDistricts.map((district, idx) => (
-                  <Badge key={idx} variant="warning">{district}</Badge>
-                ))}
+            {notStartedDistricts.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-textMuted mb-2">Districts with not-started units:</p>
+                <div className="flex flex-wrap gap-2">
+                  {notStartedDistricts.map((district, idx) => (
+                    <Badge key={idx} variant="warning">{district}</Badge>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             <div>
-              <p className="text-sm font-medium text-textMuted mb-2">Units:</p>
+              <p className="text-sm font-medium text-textMuted mb-2">Not started units:</p>
               <div className="flex flex-wrap gap-2">
-                {notRegisteredUnits.slice(0, 10).map((unit) => (
+                {notStartedUnits.slice(0, 10).map((unit) => (
                   <Badge key={unit.id} variant="danger">{unit.name}</Badge>
                 ))}
-                {notRegisteredUnits.length > 10 && (
-                  <span className="text-sm text-textMuted">+{notRegisteredUnits.length - 10} more</span>
+                {notStartedUnits.length > 10 && (
+                  <span className="text-sm text-textMuted">+{notStartedUnits.length - 10} more</span>
+                )}
+                {notStartedUnits.length === 0 && (
+                  <span className="text-sm text-textMuted">All registered units have started this season.</span>
                 )}
               </div>
             </div>
+            {inProgressUnitsList.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-textMuted mb-2">In progress ({inProgressUnitsList.length}):</p>
+                <div className="flex flex-wrap gap-2">
+                  {inProgressUnitsList.slice(0, 8).map((unit) => (
+                    <Badge key={unit.id} variant="warning">{unit.name}</Badge>
+                  ))}
+                  {inProgressUnitsList.length > 8 && (
+                    <span className="text-sm text-textMuted">+{inProgressUnitsList.length - 8} more</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </Card>
       )}
@@ -525,7 +702,12 @@ export const AdminDashboard: React.FC = () => {
       {/* Unit Registration Details */}
       <Card noPadding className="overflow-hidden">
         <div className="px-6 py-4 border-b border-borderColor flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gray-50/50">
-            <h3 className="text-lg font-bold text-textDark">View Registration Details</h3>
+            <div>
+              <h3 className="text-lg font-bold text-textDark">Current Season Registrations</h3>
+              {registrationSeason && (
+                <p className="text-xs text-textMuted mt-1">{registrationSeason} cycle status and payments</p>
+              )}
+            </div>
         </div>
         <div className="p-4">
           <DataTable

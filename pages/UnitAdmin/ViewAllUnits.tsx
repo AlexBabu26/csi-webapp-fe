@@ -56,7 +56,7 @@ export const ViewAllUnits: React.FC = () => {
         header: 'Status',
         cell: ({ row }) => {
           const status = row.original.status;
-          const variant = status === 'Completed' ? 'success' : status === 'Pending' ? 'warning' : 'light';
+          const variant = status === 'Completed' ? 'success' : status === 'In Progress' ? 'warning' : 'light';
           return <Badge variant={variant}>{status}</Badge>;
         },
         enableSorting: false,

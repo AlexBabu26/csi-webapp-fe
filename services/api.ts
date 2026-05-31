@@ -890,6 +890,10 @@ class ApiService {
       completed_units_count: number;
       completed_dists_percent: string;
       completed_units_percent: string;
+      current_registration_year: number;
+      in_progress_units_count: number;
+      not_started_units_count: number;
+      pending_payments_count: number;
       total_unit_members: number;
       total_male_members: number;
       total_female_members: number;
@@ -907,6 +911,10 @@ class ApiService {
       completedDistricts: rawData.completed_dist_count,
       totalUnits: rawData.total_units_count,
       completedUnits: rawData.completed_units_count,
+      inProgressUnits: rawData.in_progress_units_count ?? 0,
+      notStartedUnits: rawData.not_started_units_count ?? 0,
+      currentRegistrationYear: rawData.current_registration_year ?? new Date().getFullYear(),
+      pendingPayments: rawData.pending_payments_count ?? 0,
       totalMembers: rawData.total_unit_members,
       maleMembers: rawData.total_male_members,
       femaleMembers: rawData.total_female_members,
@@ -961,6 +969,9 @@ class ApiService {
       clergyDistrict: this.extractClergyDistrict(unit.username),
       registrationYear: unit.registration_year ?? new Date().getFullYear(),
       status: this.mapUnitStatus(unit.cycle_status ?? unit.status),
+      cycleStatus: unit.cycle_status ?? null,
+      paymentStatus: unit.payment_status as Unit['paymentStatus'],
+      pathType: unit.path_type as Unit['pathType'],
       membersCount: 0,
       officialsCount: 0,
       councilorsCount: 0,
@@ -976,10 +987,10 @@ class ApiService {
   }
 
   // Helper to map API status to Unit status
-  private mapUnitStatus(apiStatus: string): 'Completed' | 'Pending' | 'Not Registered' {
+  private mapUnitStatus(apiStatus: string): Unit['status'] {
     if (apiStatus === 'Registration Completed') return 'Completed';
-    if (apiStatus.includes('Started') || apiStatus.includes('Completed') || apiStatus.includes('Accepted')) return 'Pending';
-    return 'Not Registered';
+    if (apiStatus === 'Not Started' || apiStatus === 'Not Registered') return 'Not Started';
+    return 'In Progress';
   }
 
   // GET /admin/units/{unit_id} - Get unit by ID

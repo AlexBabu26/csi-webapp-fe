@@ -125,7 +125,7 @@ export const ViewIndividualUnit: React.FC = () => {
           <div>
             <span className="text-sm text-textMuted">Status</span>
             <div className="mt-1">
-              <Badge variant={unit.status === 'Completed' ? 'success' : unit.status === 'Pending' ? 'warning' : 'light'}>
+              <Badge variant={unit.status === 'Completed' ? 'success' : unit.status === 'In Progress' ? 'warning' : 'light'}>
                 {unit.status}
               </Badge>
             </div>
