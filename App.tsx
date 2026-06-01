@@ -399,7 +399,9 @@ const App: React.FC = () => {
 
               <Route path="/unit/update-locations" element={
                 <UnitRegistrationGuard>
-                  <UpdateMemberLocations />
+                  <AdminRoute>
+                    <UpdateMemberLocations />
+                  </AdminRoute>
                 </UnitRegistrationGuard>
               } />
 

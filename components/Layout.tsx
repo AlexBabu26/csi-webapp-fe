@@ -29,6 +29,7 @@ import {
   Archive,
   Droplets,
   BookOpen,
+  MapPin,
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '../constants';
@@ -51,7 +52,7 @@ interface NavSubGroup {
   defaultOpen?: boolean;
 }
 
-type UserRoleType = 'admin' | 'official' | 'bloodbank' | 'public';
+type UserRoleType = 'admin' | 'official' | 'unit' | 'bloodbank' | 'public';
 
 interface NavGroup {
   label: string;
@@ -151,6 +152,16 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Unit Registration',
+    defaultOpen: true,
+    roles: ['unit'],
+    items: [
+      { label: 'Registration', path: '/register/wizard', icon: <FileText size={18} /> },
+      { label: 'Member Locations', path: '/unit/update-locations', icon: <MapPin size={18} /> },
+      { label: 'My Requests', path: '/unit/my-requests', icon: <ArrowRightLeft size={18} /> },
+    ],
+  },
+  {
     label: 'Kalamela Registration',
     defaultOpen: true,
     roles: ['official'],
@@ -183,7 +194,8 @@ const getUserRole = (): UserRoleType => {
   const userType = localStorage.getItem('user_type');
   if (userType === '1') return 'admin';
   if (userType === '4') return 'bloodbank';
-  if (userType === '2' || userType === '3') return 'official';
+  if (userType === '2') return 'unit';
+  if (userType === '3') return 'official';
   return 'public';
 };
 

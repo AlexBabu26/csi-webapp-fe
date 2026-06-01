@@ -52,34 +52,39 @@ export const UpdateMemberLocations: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-bgLight flex items-center justify-center">
-        <p className="text-textMuted">Loading members...</p>
+      <div className="space-y-6 animate-slide-in">
+        <Card className="h-48 animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
+          <div className="h-8 bg-gray-200 rounded w-1/2" />
+        </Card>
       </div>
     );
   }
 
   if (!formData) {
     return (
-      <div className="min-h-screen bg-bgLight flex items-center justify-center px-4">
-        <p className="text-textMuted">Unable to load member data.</p>
+      <div className="space-y-6 animate-slide-in">
+        <Card className="p-8 text-center">
+          <p className="text-textMuted">Unable to load member data.</p>
+        </Card>
       </div>
     );
   }
 
   if (membersNeedingLocation.length === 0) {
     return (
-      <div className="min-h-screen bg-bgLight flex flex-col justify-center py-12 px-4">
-        <div className="max-w-lg mx-auto text-center">
+      <div className="space-y-6 animate-slide-in">
+        <Card className="p-8 text-center max-w-lg mx-auto">
           <h1 className="text-2xl font-bold text-textDark">All member locations are set</h1>
           <p className="mt-2 text-sm text-textMuted">No further updates are required.</p>
           <Button className="mt-6" onClick={handleContinue}>Continue</Button>
-        </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-bgLight py-8 px-4 sm:px-6">
+    <div className="space-y-6 animate-slide-in">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-6">
           <div className="h-10 w-10 bg-primary rounded-lg mx-auto flex items-center justify-center text-white mb-3">
