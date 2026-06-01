@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Button } from '../../../components/ui';
 import { FileText, CheckCircle } from 'lucide-react';
 import { useFinishRegistration, useCompleteDeclaration } from '../../../hooks/queries';
+import { formatRegistrationSeason } from '../../../services/authRouting';
 import { FeeSummary } from '../components/FeeSummary';
 
 export const DeclarationStep: React.FC = () => {
@@ -27,6 +28,10 @@ export const DeclarationStep: React.FC = () => {
   }
 
   const officials = summary.unit_officials;
+  const registrationSeason =
+    summary.unit_details?.registration_year != null
+      ? formatRegistrationSeason(summary.unit_details.registration_year)
+      : null;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -124,7 +129,7 @@ export const DeclarationStep: React.FC = () => {
             <p className="text-sm text-textDark leading-relaxed mb-4">
               I hereby declare that all the above-mentioned information provided by me is true and accurate to the best of my knowledge and belief.
               Additionally, I am submitting a payment of Rs.{summary.total_amount}/- (incl. unit reg. fee - Rs.{summary.unit_registration_fee}/- & Rs.{summary.unit_member_fee}/- for {summary.members_count} member{summary.members_count === 1 ? '' : 's'}).
-              Please register the above unit and its members for the year {new Date().getFullYear()}-{(new Date().getFullYear() + 1).toString().slice(-2)}.
+              Please register the above unit and its members for the year {registrationSeason ?? 'the current registration season'}.
             </p>
             <label className="flex items-start gap-3 cursor-pointer">
               <input

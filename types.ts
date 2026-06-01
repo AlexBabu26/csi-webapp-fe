@@ -631,7 +631,7 @@ export type PaymentProofStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface UnitPaymentSubmission {
   id: number;
-  file_url: string;
+  file_url: string | null;
   total_amount: number | null;
   status: PaymentProofStatus;
   rejection_note: string | null;
@@ -653,7 +653,7 @@ export interface AdminRegistrationPayment {
   username: string;
   unit_name: string | null;
   registration_year: number | null;
-  file_url: string;
+  file_url: string | null;
   total_amount: number | null;
   status: PaymentProofStatus;
   rejection_note: string | null;

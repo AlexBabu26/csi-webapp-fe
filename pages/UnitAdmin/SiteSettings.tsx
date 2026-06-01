@@ -218,7 +218,7 @@ export const SiteSettings: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-textDark mb-1">Current Registration Year</label>
               <p className="text-xs text-textMuted mb-2">
-                Ending year for the active season (e.g. 2025 means 2024–2025).
+                Ending year for the active season (e.g. 2027 means 2026–2027).
               </p>
               <input
                 type="number"

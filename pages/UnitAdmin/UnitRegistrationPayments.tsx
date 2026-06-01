@@ -7,6 +7,7 @@ import {
   useAdminRegistrationPayments,
   useApproveRegistrationPayment,
   useRejectRegistrationPayment,
+  useSiteSettings,
 } from '../../hooks/queries';
 import { AdminRegistrationPayment } from '../../types';
 import { getMediaUrl } from '../../services/http';
@@ -17,6 +18,10 @@ export const UnitRegistrationPayments: React.FC = () => {
   const [rejectDialogId, setRejectDialogId] = useState<number | null>(null);
   const [rejectionNote, setRejectionNote] = useState('');
   const { addToast } = useToast();
+
+  const { data: siteSettings } = useSiteSettings();
+  const activeRegistrationYear =
+    siteSettings?.current_registration_year ?? new Date().getFullYear();
 
   const { data: payments = [], isLoading } = useAdminRegistrationPayments(
     statusFilter || undefined,
@@ -102,16 +107,19 @@ export const UnitRegistrationPayments: React.FC = () => {
       {
         id: 'proof',
         header: 'Proof',
-        cell: ({ row }) => (
-          <a
-            href={getMediaUrl(row.original.file_url)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-primary text-xs underline"
-          >
-            View <ExternalLink className="w-3 h-3" />
-          </a>
-        ),
+        cell: ({ row }) =>
+          row.original.file_url ? (
+            <a
+              href={getMediaUrl(row.original.file_url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary text-xs underline"
+            >
+              View <ExternalLink className="w-3 h-3" />
+            </a>
+          ) : (
+            <span className="text-xs text-textMuted">—</span>
+          ),
         size: 70,
         enableSorting: false,
       },
@@ -164,7 +172,7 @@ export const UnitRegistrationPayments: React.FC = () => {
     [approveMutation.isPending, rejectMutation.isPending]
   );
 
-  const currentYear = new Date().getFullYear();
+  const currentYear = activeRegistrationYear;
 
   return (
     <div className="space-y-6 animate-slide-in">
@@ -172,6 +180,7 @@ export const UnitRegistrationPayments: React.FC = () => {
         <h1 className="text-2xl font-bold text-textDark">Unit Registration Payments</h1>
         <p className="text-sm text-textMuted mt-1">
           Review and approve payment proofs submitted by units as part of yearly registration.
+          Active season: {currentYear - 1}–{currentYear}.
         </p>
       </div>
 
@@ -184,8 +193,12 @@ export const UnitRegistrationPayments: React.FC = () => {
             className="px-3 py-1.5 border border-borderColor rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="">All years</option>
-            <option value={String(currentYear)}>{currentYear - 1}–{currentYear}</option>
-            <option value={String(currentYear + 1)}>{currentYear}–{currentYear + 1}</option>
+            <option value={String(currentYear - 1)}>
+              {currentYear - 2}–{currentYear - 1}
+            </option>
+            <option value={String(currentYear)}>
+              {currentYear - 1}–{currentYear}
+            </option>
           </select>
           <select
             value={statusFilter}
