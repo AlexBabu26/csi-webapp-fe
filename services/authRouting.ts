@@ -17,6 +17,10 @@ export const resolvePostLoginPath = async (
     return '/admin/dashboard';
   }
 
+  if (userType === '4') {
+    return '/admin/blood-donor-search';
+  }
+
   if (userType === '2') {
     try {
       const form = await api.getApplicationForm();

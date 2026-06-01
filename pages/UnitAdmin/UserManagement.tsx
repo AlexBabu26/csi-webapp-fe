@@ -35,17 +35,20 @@ import {
   useDistrictOfficials,
   useDistrictsWithOfficialStatus,
   useCreateDistrictOfficial,
+  useCreateBloodBankUser,
+  useUpdateBloodBankUser,
   useSiteSettings,
   useUpdateSiteSettings,
 } from '../../hooks/queries';
 
-type UserType = 'all' | 'UNIT' | 'DISTRICT_OFFICIAL';
+type UserType = 'all' | 'UNIT' | 'DISTRICT_OFFICIAL' | 'BLOOD_BANK';
 
 interface OfficialUser {
   id: number;
   username: string;
   email?: string;
   phone_number?: string;
+  first_name?: string;
   user_type: string;
   is_active: boolean;
   unit_name?: string;
@@ -130,9 +133,24 @@ export const UserManagement: React.FC = () => {
     default_password_hint: string;
   } | null>(null);
 
+  const [showCreateBloodBankModal, setShowCreateBloodBankModal] = useState(false);
+  const [showEditBloodBankModal, setShowEditBloodBankModal] = useState(false);
+  const [bloodBankForm, setBloodBankForm] = useState({
+    username: '',
+    email: '',
+    first_name: '',
+    phone_number: '',
+    password: '',
+    is_active: true,
+  });
+  const [editingBloodBankUser, setEditingBloodBankUser] = useState<OfficialUser | null>(null);
+
   // ── Data ─────────────────────────────────────────────────────────────────
   const { data: allUsers = [], isLoading: allUsersLoading, refetch: refetchAll } = useUsers({
-    user_type: activeTab === 'all' ? undefined : activeTab === 'UNIT' ? 'UNIT' : undefined,
+    user_type: activeTab === 'all' ? undefined
+      : activeTab === 'UNIT' ? 'UNIT'
+      : activeTab === 'BLOOD_BANK' ? 'BLOOD_BANK'
+      : undefined,
     search: searchTerm || undefined,
   });
   const { data: districtOfficials = [], isLoading: districtOfficialsLoading, refetch: refetchDistrictOfficials } = useDistrictOfficials();
@@ -177,6 +195,8 @@ export const UserManagement: React.FC = () => {
   const bulkResetMutation = useBulkResetPasswords();
   const resetAllMutation = useResetAllByType();
   const createOfficialMutation = useCreateDistrictOfficial();
+  const createBloodBankMutation = useCreateBloodBankUser();
+  const updateBloodBankMutation = useUpdateBloodBankUser();
 
   const districtStats = useMemo(() => {
     const total = districtsWithStatus.length;
@@ -188,6 +208,7 @@ export const UserManagement: React.FC = () => {
     { id: 'all' as UserType,             label: 'All Users',          icon: <Users size={15} />,   count: summary?.total || 0 },
     { id: 'UNIT' as UserType,            label: 'Unit Officials',      icon: <Building size={15} />, count: summary?.unit_officials || 0 },
     { id: 'DISTRICT_OFFICIAL' as UserType, label: 'District Officials', icon: <UserCog size={15} />, count: districtOfficials.length || summary?.district_officials || 0 },
+    { id: 'BLOOD_BANK' as UserType,       label: 'Blood Bank Users',    icon: <Droplets size={15} />, count: summary?.blood_bank_users || 0 },
   ];
 
   const districtsWithoutOfficials = useMemo(() => districtsWithStatus.filter(d => !d.has_official), [districtsWithStatus]);
@@ -219,7 +240,7 @@ export const UserManagement: React.FC = () => {
   const executeResetAll = () => {
     if (activeTab === 'all') return;
     resetAllMutation.mutate({ user_type: activeTab, new_password: newPassword }, {
-      onSuccess: (data) => { addToast(`Passwords reset for ${data.total_reset} ${activeTab === 'UNIT' ? 'unit' : 'district'} officials`, 'success'); setShowResetAllConfirm(false); setNewPassword(''); refetch(); },
+      onSuccess: (data) => { addToast(`Passwords reset for ${data.total_reset} ${activeTab === 'UNIT' ? 'unit' : activeTab === 'BLOOD_BANK' ? 'blood bank' : 'district'} officials`, 'success'); setShowResetAllConfirm(false); setNewPassword(''); refetch(); },
       onError: () => setShowResetAllConfirm(false),
     });
   };
@@ -233,6 +254,81 @@ export const UserManagement: React.FC = () => {
   };
   const closeCreateOfficialModal = () => { setShowCreateOfficialModal(false); setCreateOfficialForm({ district_id: 0, official_name: '', phone_number: '' }); setCreatedOfficialResult(null); };
 
+  const openCreateBloodBankModal = () => {
+    setBloodBankForm({ username: '', email: '', first_name: '', phone_number: '', password: generatePassword(), is_active: true });
+    setShowCreateBloodBankModal(true);
+  };
+
+  const openEditBloodBankModal = (user: OfficialUser) => {
+    setEditingBloodBankUser(user);
+    setBloodBankForm({
+      username: user.username,
+      email: user.email || '',
+      first_name: user.first_name || '',
+      phone_number: user.phone_number || '',
+      password: '',
+      is_active: user.is_active,
+    });
+    setShowEditBloodBankModal(true);
+  };
+
+  const handleCreateBloodBankUser = () => {
+    if (!bloodBankForm.username.trim() || !bloodBankForm.email.trim() || !bloodBankForm.password) {
+      addToast('Username, email, and password are required', 'error');
+      return;
+    }
+    if (bloodBankForm.phone_number && !/^\d{10}$/.test(bloodBankForm.phone_number)) {
+      addToast('Phone number must be exactly 10 digits', 'error');
+      return;
+    }
+    createBloodBankMutation.mutate({
+      username: bloodBankForm.username.trim(),
+      email: bloodBankForm.email.trim(),
+      first_name: bloodBankForm.first_name.trim() || undefined,
+      phone_number: bloodBankForm.phone_number || undefined,
+      password: bloodBankForm.password,
+    }, {
+      onSuccess: () => {
+        setShowCreateBloodBankModal(false);
+        refetch();
+      },
+    });
+  };
+
+  const handleUpdateBloodBankUser = () => {
+    if (!editingBloodBankUser) return;
+    if (!bloodBankForm.email.trim()) {
+      addToast('Email is required', 'error');
+      return;
+    }
+    if (bloodBankForm.phone_number && !/^\d{10}$/.test(bloodBankForm.phone_number)) {
+      addToast('Phone number must be exactly 10 digits', 'error');
+      return;
+    }
+    updateBloodBankMutation.mutate({
+      userId: editingBloodBankUser.id,
+      data: {
+        email: bloodBankForm.email.trim(),
+        first_name: bloodBankForm.first_name.trim() || undefined,
+        phone_number: bloodBankForm.phone_number || undefined,
+        is_active: bloodBankForm.is_active,
+        password: bloodBankForm.password || undefined,
+      },
+    }, {
+      onSuccess: () => {
+        setShowEditBloodBankModal(false);
+        setEditingBloodBankUser(null);
+        refetch();
+      },
+    });
+  };
+
+  const getUserTypeLabel = (userType: string) => {
+    if (userType === 'UNIT') return 'Unit Official';
+    if (userType === 'BLOOD_BANK') return 'Blood Bank User';
+    return 'District Official';
+  };
+
   // ── Table columns ─────────────────────────────────────────────────────────
   const columns: ColumnDef<OfficialUser, any>[] = useMemo(() => [
     {
@@ -241,17 +337,19 @@ export const UserManagement: React.FC = () => {
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-            row.original.user_type === 'UNIT' ? 'bg-primary/10' : 'bg-amber-100'
+            row.original.user_type === 'UNIT' ? 'bg-primary/10'
+              : row.original.user_type === 'BLOOD_BANK' ? 'bg-red-50'
+              : 'bg-amber-100'
           }`}>
             {row.original.user_type === 'UNIT'
               ? <Building className="w-4 h-4 text-primary" />
-              : <UserCog className="w-4 h-4 text-amber-600" />}
+              : row.original.user_type === 'BLOOD_BANK'
+                ? <Droplets className="w-4 h-4 text-red-500" />
+                : <UserCog className="w-4 h-4 text-amber-600" />}
           </div>
           <div>
             <p className="font-semibold text-textDark text-sm">{row.original.username}</p>
-            <p className="text-xs text-textMuted">
-              {row.original.user_type === 'UNIT' ? 'Unit Official' : 'District Official'}
-            </p>
+            <p className="text-xs text-textMuted">{getUserTypeLabel(row.original.user_type)}</p>
           </div>
         </div>
       ),
@@ -261,9 +359,17 @@ export const UserManagement: React.FC = () => {
       header: 'Unit / District',
       cell: ({ row }) => (
         <div className="text-sm">
+          {row.original.user_type === 'BLOOD_BANK' && row.original.first_name && (
+            <p className="font-medium text-textDark">{row.original.first_name}</p>
+          )}
           {row.original.unit_name && <p className="font-medium text-textDark">{row.original.unit_name}</p>}
           {row.original.district_name && <p className="text-textMuted text-xs mt-0.5">{row.original.district_name}</p>}
-          {!row.original.unit_name && !row.original.district_name && <span className="text-textMuted">—</span>}
+          {row.original.user_type === 'BLOOD_BANK' && !row.original.first_name && (
+            <span className="text-textMuted text-xs">Blood Bank access only</span>
+          )}
+          {row.original.user_type !== 'BLOOD_BANK' && !row.original.unit_name && !row.original.district_name && (
+            <span className="text-textMuted">—</span>
+          )}
         </div>
       ),
     },
@@ -301,18 +407,30 @@ export const UserManagement: React.FC = () => {
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleSingleReset(row.original)}
-          disabled={resetPasswordMutation.isPending}
-          className="gap-1.5"
-        >
-          <KeyRound className="w-3.5 h-3.5" />
-          Reset
-        </Button>
+        <div className="flex items-center gap-2">
+          {row.original.user_type === 'BLOOD_BANK' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openEditBloodBankModal(row.original)}
+              className="gap-1.5"
+            >
+              Edit
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleSingleReset(row.original)}
+            disabled={resetPasswordMutation.isPending}
+            className="gap-1.5"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            Reset
+          </Button>
+        </div>
       ),
-      size: 90,
+      size: 120,
     },
   ], [resetPasswordMutation.isPending]);
 
@@ -338,6 +456,12 @@ export const UserManagement: React.FC = () => {
               Add District Official
             </Button>
           )}
+          {activeTab === 'BLOOD_BANK' && (
+            <Button variant="primary" onClick={openCreateBloodBankModal}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Add Blood Bank User
+            </Button>
+          )}
           {selectedUsers.length > 0 && (
             <Button variant="primary" onClick={() => { if (selectedUsers.length > 0) { setUserToReset(null); openPasswordModal(); } }} disabled={bulkResetMutation.isPending}>
               <RefreshCw className={`w-4 h-4 mr-2 ${bulkResetMutation.isPending ? 'animate-spin' : ''}`} />
@@ -347,18 +471,19 @@ export const UserManagement: React.FC = () => {
           {activeTab !== 'all' && selectedUsers.length === 0 && (
             <Button variant="danger" onClick={handleResetAll} disabled={resetAllMutation.isPending}>
               <Shield className="w-4 h-4 mr-2" />
-              Reset All {activeTab === 'UNIT' ? 'Unit' : 'District'}
+              Reset All {activeTab === 'UNIT' ? 'Unit' : activeTab === 'BLOOD_BANK' ? 'Blood Bank' : 'District'}
             </Button>
           )}
         </div>
       </div>
 
       {/* ── Stats Strip ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
           { label: 'Total Users',        value: summary?.total || 0,                                                icon: <Users className="w-5 h-5 text-primary" />,         bg: 'bg-primary/10' },
           { label: 'Unit Officials',     value: summary?.unit_officials || 0,                                       icon: <Building className="w-5 h-5 text-blue-600" />,      bg: 'bg-blue-50' },
           { label: 'District Officials', value: districtOfficials.length || summary?.district_officials || 0,       icon: <UserCog className="w-5 h-5 text-amber-600" />,       bg: 'bg-amber-50' },
+          { label: 'Blood Bank Users',   value: summary?.blood_bank_users || 0,                                       icon: <Droplets className="w-5 h-5 text-red-500" />,        bg: 'bg-red-50' },
           { label: 'Selected',           value: selectedUsers.length,                                               icon: <CheckCircle2 className="w-5 h-5 text-success" />,    bg: 'bg-green-50' },
         ].map((s) => (
           <Card key={s.label} className="py-3.5 px-4">
@@ -395,9 +520,9 @@ export const UserManagement: React.FC = () => {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-textDark">Blood Donor Search</p>
-              <p className="text-xs text-textMuted">Admins always have access — enable for other roles below</p>
+              <p className="text-xs text-textMuted">Admins and dedicated Blood Bank users always have access — enable for other roles below</p>
             </div>
-            <Badge variant="success" className="text-xs">Admin</Badge>
+            <Badge variant="success" className="text-xs">Admin + Blood Bank</Badge>
           </div>
 
           <div className="divide-y divide-borderColor">
@@ -472,6 +597,8 @@ export const UserManagement: React.FC = () => {
             ? 'Viewing all users. Select a specific tab to enable bulk reset options.'
             : activeTab === 'UNIT'
               ? 'Unit officials manage unit registrations and member data.'
+              : activeTab === 'BLOOD_BANK'
+                ? 'Blood bank users can only access the Blood Donor Search page after login.'
               : 'District officials manage Kalamela and Conference registrations.'}
           {' '}Passwords can be reset individually, in bulk, or all at once.
         </span>
@@ -561,7 +688,10 @@ export const UserManagement: React.FC = () => {
             </div>
             <div>
               <h3 className="font-bold text-textDark">
-                {activeTab === 'all' ? 'All Users' : activeTab === 'UNIT' ? 'Unit Officials' : 'District Officials'}
+                {activeTab === 'all' ? 'All Users'
+                  : activeTab === 'UNIT' ? 'Unit Officials'
+                  : activeTab === 'BLOOD_BANK' ? 'Blood Bank Users'
+                  : 'District Officials'}
               </h3>
               <p className="text-xs text-textMuted">{users.length} user{users.length !== 1 ? 's' : ''}</p>
             </div>
@@ -694,8 +824,8 @@ export const UserManagement: React.FC = () => {
       <ConfirmDialog
         isOpen={showResetAllConfirm}
         title="⚠️ Reset ALL Passwords"
-        message={`This will reset passwords for ALL ${activeTab === 'UNIT' ? 'unit' : 'district'} officials (${activeTab === 'UNIT' ? summary?.unit_officials : summary?.district_officials} users). This cannot be undone.`}
-        confirmLabel={`Reset All ${activeTab === 'UNIT' ? 'Unit' : 'District'} Official Passwords`}
+        message={`This will reset passwords for ALL ${activeTab === 'UNIT' ? 'unit' : activeTab === 'BLOOD_BANK' ? 'blood bank' : 'district'} officials (${activeTab === 'UNIT' ? summary?.unit_officials : activeTab === 'BLOOD_BANK' ? summary?.blood_bank_users : summary?.district_officials} users). This cannot be undone.`}
+        confirmLabel={`Reset All ${activeTab === 'UNIT' ? 'Unit' : activeTab === 'BLOOD_BANK' ? 'Blood Bank' : 'District'} Official Passwords`}
         cancelLabel="Cancel"
         variant="danger"
         onConfirm={executeResetAll}
@@ -813,6 +943,110 @@ export const UserManagement: React.FC = () => {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </Portal>
+      )}
+      {/* ── Create Blood Bank User Modal ───────────────────────────────────── */}
+      {showCreateBloodBankModal && (
+        <Portal>
+          <div className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[100]" onClick={() => setShowCreateBloodBankModal(false)} />
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slide-in" onClick={(e) => e.stopPropagation()}>
+              <div className="px-6 py-4 border-b border-borderColor flex items-center gap-3">
+                <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center">
+                  <Droplets className="w-4 h-4 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-textDark">Create Blood Bank User</h3>
+                  <p className="text-xs text-textMuted">Dedicated access to Blood Donor Search only</p>
+                </div>
+              </div>
+              <div className="px-6 py-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-textDark mb-1.5">Username <span className="text-danger">*</span></label>
+                  <input type="text" value={bloodBankForm.username} onChange={(e) => setBloodBankForm(p => ({ ...p, username: e.target.value }))} placeholder="Login username" className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-textDark mb-1.5">Email <span className="text-danger">*</span></label>
+                  <input type="email" value={bloodBankForm.email} onChange={(e) => setBloodBankForm(p => ({ ...p, email: e.target.value }))} placeholder="user@example.com" className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-textDark mb-1.5">Display Name</label>
+                  <input type="text" value={bloodBankForm.first_name} onChange={(e) => setBloodBankForm(p => ({ ...p, first_name: e.target.value }))} placeholder="Full name (optional)" className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-textDark mb-1.5">Phone</label>
+                  <input type="tel" value={bloodBankForm.phone_number} onChange={(e) => setBloodBankForm(p => ({ ...p, phone_number: e.target.value.replace(/\D/g, '').slice(0, 10) }))} placeholder="10-digit phone (optional)" className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-textDark mb-1.5">Password <span className="text-danger">*</span></label>
+                  <div className="flex gap-2">
+                    <input type="text" value={bloodBankForm.password} onChange={(e) => setBloodBankForm(p => ({ ...p, password: e.target.value }))} className="flex-1 px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono text-sm" />
+                    <Button variant="outline" size="sm" onClick={() => setBloodBankForm(p => ({ ...p, password: generatePassword() }))}>Generate</Button>
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-borderColor flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowCreateBloodBankModal(false)}>Cancel</Button>
+                <Button variant="primary" onClick={handleCreateBloodBankUser} isLoading={createBloodBankMutation.isPending} disabled={createBloodBankMutation.isPending || !bloodBankForm.username.trim() || !bloodBankForm.email.trim() || bloodBankForm.password.length < 6}>
+                  <Plus className="w-4 h-4 mr-1.5" />Create User
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* ── Edit Blood Bank User Modal ─────────────────────────────────────── */}
+      {showEditBloodBankModal && editingBloodBankUser && (
+        <Portal>
+          <div className="fixed inset-0 bg-black/35 backdrop-blur-sm z-[100]" onClick={() => { setShowEditBloodBankModal(false); setEditingBloodBankUser(null); }} />
+          <div className="fixed inset-0 z-[101] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slide-in" onClick={(e) => e.stopPropagation()}>
+              <div className="px-6 py-4 border-b border-borderColor flex items-center gap-3">
+                <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center">
+                  <Droplets className="w-4 h-4 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-textDark">Edit Blood Bank User</h3>
+                  <p className="text-xs text-textMuted font-mono">{editingBloodBankUser.username}</p>
+                </div>
+              </div>
+              <div className="px-6 py-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-textDark mb-1.5">Email <span className="text-danger">*</span></label>
+                  <input type="email" value={bloodBankForm.email} onChange={(e) => setBloodBankForm(p => ({ ...p, email: e.target.value }))} className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-textDark mb-1.5">Display Name</label>
+                  <input type="text" value={bloodBankForm.first_name} onChange={(e) => setBloodBankForm(p => ({ ...p, first_name: e.target.value }))} className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-textDark mb-1.5">Phone</label>
+                  <input type="tel" value={bloodBankForm.phone_number} onChange={(e) => setBloodBankForm(p => ({ ...p, phone_number: e.target.value.replace(/\D/g, '').slice(0, 10) }))} className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <div>
+                    <p className="text-sm font-semibold text-textDark">Active</p>
+                    <p className="text-xs text-textMuted">Inactive users cannot log in</p>
+                  </div>
+                  <Toggle checked={bloodBankForm.is_active} onChange={(v) => setBloodBankForm(p => ({ ...p, is_active: v }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-textDark mb-1.5">New Password</label>
+                  <div className="flex gap-2">
+                    <input type="text" value={bloodBankForm.password} onChange={(e) => setBloodBankForm(p => ({ ...p, password: e.target.value }))} placeholder="Leave blank to keep current" className="flex-1 px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono text-sm" />
+                    <Button variant="outline" size="sm" onClick={() => setBloodBankForm(p => ({ ...p, password: generatePassword() }))}>Generate</Button>
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-borderColor flex justify-end gap-2">
+                <Button variant="outline" onClick={() => { setShowEditBloodBankModal(false); setEditingBloodBankUser(null); }}>Cancel</Button>
+                <Button variant="primary" onClick={handleUpdateBloodBankUser} isLoading={updateBloodBankMutation.isPending} disabled={updateBloodBankMutation.isPending || !bloodBankForm.email.trim()}>
+                  Save Changes
+                </Button>
+              </div>
             </div>
           </div>
         </Portal>

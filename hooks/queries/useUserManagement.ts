@@ -6,7 +6,7 @@ import { useToast } from '../../components/Toast';
 // ============ TYPES ============
 
 interface UserFilters {
-  user_type?: 'UNIT' | 'DISTRICT_OFFICIAL';
+  user_type?: 'UNIT' | 'DISTRICT_OFFICIAL' | 'BLOOD_BANK';
   district_id?: number;
   search?: string;
   is_active?: boolean;
@@ -17,6 +17,7 @@ interface OfficialUser {
   username: string;
   email?: string;
   phone_number?: string;
+  first_name?: string;
   user_type: string;
   is_active: boolean;
   unit_name?: string;
@@ -48,6 +49,7 @@ interface DistrictWithStatus {
 interface UsersSummary {
   unit_officials: number;
   district_officials: number;
+  blood_bank_users: number;
   total: number;
 }
 
@@ -174,7 +176,7 @@ export const useResetAllByType = () => {
 
   return useMutation({
     mutationFn: async (params: {
-      user_type: 'UNIT' | 'DISTRICT_OFFICIAL';
+      user_type: 'UNIT' | 'DISTRICT_OFFICIAL' | 'BLOOD_BANK';
       new_password: string;
       district_id?: number;
     }): Promise<BulkResetResponse> => {
@@ -210,6 +212,58 @@ export const useCreateDistrictOfficial = () => {
     onError: (error: Error) => {
       const message = error.message || 'Failed to create district official';
       addToast(message, 'error');
+    },
+  });
+};
+
+// Create blood bank user
+export const useCreateBloodBankUser = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (data: {
+      username: string;
+      email: string;
+      first_name?: string;
+      phone_number?: string;
+      password: string;
+    }) => api.createBloodBankUser(data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.userManagement.all });
+      addToast(`Blood bank user created: ${data.username}`, 'success');
+    },
+    onError: (error: Error) => {
+      addToast(error.message || 'Failed to create blood bank user', 'error');
+    },
+  });
+};
+
+// Update blood bank user
+export const useUpdateBloodBankUser = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      data,
+    }: {
+      userId: number;
+      data: {
+        email?: string;
+        first_name?: string;
+        phone_number?: string;
+        is_active?: boolean;
+        password?: string;
+      };
+    }) => api.updateBloodBankUser(userId, data),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.userManagement.all });
+      addToast(`Updated ${data.username}`, 'success');
+    },
+    onError: (error: Error) => {
+      addToast(error.message || 'Failed to update blood bank user', 'error');
     },
   });
 };

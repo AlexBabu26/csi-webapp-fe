@@ -179,6 +179,8 @@ export const isDistrictOfficial = (): boolean => getAuthUser()?.user_type === '3
 
 export const isAdminUser = (): boolean => getAuthUser()?.user_type === '1';
 
+export const isBloodBankUser = (): boolean => getAuthUser()?.user_type === '4';
+
 /**
  * Check if we can refresh the session (have a valid refresh token)
  */

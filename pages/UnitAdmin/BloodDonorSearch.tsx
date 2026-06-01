@@ -210,10 +210,12 @@ export const BloodDonorSearch: React.FC = () => {
 
   // ── Permission guard ──────────────────────────────────────────────────────
   const isAdmin = user?.user_type === '1' || user?.user_type === 'ADMIN';
-  const isDistrictOfficial = user?.user_type === 'DISTRICT_OFFICIAL';
-  const isUnit = user?.user_type === 'UNIT';
+  const isBloodBank = user?.user_type === '4' || user?.user_type === 'BLOOD_BANK';
+  const isDistrictOfficial = user?.user_type === 'DISTRICT_OFFICIAL' || user?.user_type === '3';
+  const isUnit = user?.user_type === 'UNIT' || user?.user_type === '2';
   const hasAccess =
     isAdmin ||
+    isBloodBank ||
     (isDistrictOfficial && siteSettings?.blood_donor_district_access) ||
     (isUnit && siteSettings?.blood_donor_unit_access);
 

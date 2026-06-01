@@ -7,6 +7,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Skeleton } from './components/ui';
 import { UserRole } from './types';
 import { QueryProvider } from './providers/QueryProvider';
+import { isBloodBankUser } from './services/auth';
 
 // Lazy Load Pages
 const PublicHome = lazy(() => import('./pages/PublicHome').then(module => ({ default: module.PublicHome })));
@@ -131,7 +132,13 @@ const PageLoader = () => (
 );
 
 // Wrapper for Admin Routes that applies the Dashboard Layout
-const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AdminRoute: React.FC<{ children: React.ReactNode; allowBloodBank?: boolean }> = ({
+  children,
+  allowBloodBank = false,
+}) => {
+  if (isBloodBankUser() && !allowBloodBank) {
+    return <Navigate to="/admin/blood-donor-search" replace />;
+  }
   return <Layout>{children}</Layout>;
 };
 
@@ -249,7 +256,7 @@ const App: React.FC = () => {
               } />
 
               <Route path="/admin/blood-donor-search" element={
-                <AdminRoute>
+                <AdminRoute allowBloodBank>
                   <BloodDonorSearch />
                 </AdminRoute>
               } />

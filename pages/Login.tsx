@@ -103,12 +103,17 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           }
           
           const userType = me.user_type || tokens.user_type;
-          const role = userType === '1' ? UserRole.ADMIN : userType === '2' || userType === '3' ? UserRole.OFFICIAL : UserRole.PUBLIC;
+          const role = userType === '1' ? UserRole.ADMIN
+            : userType === '4' ? UserRole.OFFICIAL
+            : userType === '2' || userType === '3' ? UserRole.OFFICIAL
+            : UserRole.PUBLIC;
           onLogin?.(role);
 
           // Use redirect_url from login response if available, otherwise route based on user role
           if (tokens.redirect_url && userType !== '2') {
             navigate(tokens.redirect_url);
+          } else if (userType === '4') {
+            navigate('/admin/blood-donor-search');
           } else {
             const path = await resolvePostLoginPath(userType, portalContext);
             navigate(path);
@@ -116,11 +121,16 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         } catch (profileErr) {
           // If profile fetch fails, use redirect_url from login response or route based on portal context
           const userType = tokens.user_type;
-          const role = userType === '1' ? UserRole.ADMIN : userType === '2' || userType === '3' ? UserRole.OFFICIAL : UserRole.PUBLIC;
+          const role = userType === '1' ? UserRole.ADMIN
+            : userType === '4' ? UserRole.OFFICIAL
+            : userType === '2' || userType === '3' ? UserRole.OFFICIAL
+            : UserRole.PUBLIC;
           onLogin?.(role);
           
           if (tokens.redirect_url && userType !== '2') {
             navigate(tokens.redirect_url);
+          } else if (userType === '4') {
+            navigate('/admin/blood-donor-search');
           } else {
             const path = await resolvePostLoginPath(userType, portalContext);
             navigate(path);

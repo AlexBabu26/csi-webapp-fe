@@ -51,7 +51,7 @@ interface NavSubGroup {
   defaultOpen?: boolean;
 }
 
-type UserRoleType = 'admin' | 'official' | 'public';
+type UserRoleType = 'admin' | 'official' | 'bloodbank' | 'public';
 
 interface NavGroup {
   label: string;
@@ -168,12 +168,21 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'YM Portal', path: '/yuvalokham/admin/dashboard', icon: <BookOpen size={18} /> },
     ],
   },
+  {
+    label: 'Blood Bank',
+    defaultOpen: true,
+    roles: ['bloodbank'],
+    items: [
+      { label: 'Blood Donor Search', path: '/admin/blood-donor-search', icon: <Droplets size={18} /> },
+    ],
+  },
 ];
 
 // Helper function to get user role from localStorage
 const getUserRole = (): UserRoleType => {
   const userType = localStorage.getItem('user_type');
   if (userType === '1') return 'admin';
+  if (userType === '4') return 'bloodbank';
   if (userType === '2' || userType === '3') return 'official';
   return 'public';
 };
@@ -324,6 +333,8 @@ const UserDropdown: React.FC = () => {
     return user?.email || '';
   };
 
+  const isBloodBankUser = localStorage.getItem('user_type') === '4';
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -349,25 +360,27 @@ const UserDropdown: React.FC = () => {
           </div>
 
           {/* Menu Items */}
-          <div className="py-1">
-            <button
-              onClick={() => { navigate('/admin/settings'); setIsOpen(false); }}
-              className="w-full flex items-center px-4 py-2 text-sm text-textMuted hover:bg-bgLight hover:text-textDark transition-colors"
-            >
-              <User className="w-4 h-4 mr-3" />
-              My Profile
-            </button>
-            <button
-              onClick={() => { navigate('/admin/settings'); setIsOpen(false); }}
-              className="w-full flex items-center px-4 py-2 text-sm text-textMuted hover:bg-bgLight hover:text-textDark transition-colors"
-            >
-              <Settings className="w-4 h-4 mr-3" />
-              Settings
-            </button>
-          </div>
+          {!isBloodBankUser && (
+            <div className="py-1">
+              <button
+                onClick={() => { navigate('/admin/settings'); setIsOpen(false); }}
+                className="w-full flex items-center px-4 py-2 text-sm text-textMuted hover:bg-bgLight hover:text-textDark transition-colors"
+              >
+                <User className="w-4 h-4 mr-3" />
+                My Profile
+              </button>
+              <button
+                onClick={() => { navigate('/admin/settings'); setIsOpen(false); }}
+                className="w-full flex items-center px-4 py-2 text-sm text-textMuted hover:bg-bgLight hover:text-textDark transition-colors"
+              >
+                <Settings className="w-4 h-4 mr-3" />
+                Settings
+              </button>
+            </div>
+          )}
 
           {/* Logout */}
-          <div className="border-t border-borderColor py-1">
+          <div className={`${isBloodBankUser ? '' : 'border-t border-borderColor'} py-1`}>
             <button
               onClick={handleLogout}
               className="w-full flex items-center px-4 py-2 text-sm text-danger hover:bg-red-50 transition-colors"
@@ -434,14 +447,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             
             <div className="flex items-center gap-2 sm:gap-4">
-              {/* Notifications */}
-              <button 
-                className="p-2 rounded-full text-textMuted hover:text-primary hover:bg-bgLight relative transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                aria-label="Notifications"
-              >
-                <Bell size={20} />
-                <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-danger ring-2 ring-white" />
-              </button>
+              {/* Notifications — hidden for blood bank-only users */}
+              {userRole !== 'bloodbank' && (
+                <button 
+                  className="p-2 rounded-full text-textMuted hover:text-primary hover:bg-bgLight relative transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                  aria-label="Notifications"
+                >
+                  <Bell size={20} />
+                  <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-danger ring-2 ring-white" />
+                </button>
+              )}
 
               {/* User Dropdown */}
               <UserDropdown />

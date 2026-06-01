@@ -3290,7 +3290,7 @@ class ApiService {
 
   // GET /admin/users - List all users with optional filters
   async getUsers(params?: {
-    user_type?: 'UNIT' | 'DISTRICT_OFFICIAL';
+    user_type?: 'UNIT' | 'DISTRICT_OFFICIAL' | 'BLOOD_BANK';
     district_id?: number;
     search?: string;
     is_active?: boolean;
@@ -3320,6 +3320,7 @@ class ApiService {
   async getUsersSummary(): Promise<{
     unit_officials: number;
     district_officials: number;
+    blood_bank_users: number;
     total: number;
   }> {
     const token = this.getToken();
@@ -3442,6 +3443,35 @@ class ApiService {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     return httpPost('/admin/users/district-officials', data, { token });
+  }
+
+  // POST /admin/users/blood-bank-users - Create dedicated blood bank user
+  async createBloodBankUser(data: {
+    username: string;
+    email: string;
+    first_name?: string;
+    phone_number?: string;
+    password: string;
+  }): Promise<{ message: string; user_id: number; username: string }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpPost('/admin/users/blood-bank-users', data, { token });
+  }
+
+  // PUT /admin/users/blood-bank-users/{id} - Update blood bank user
+  async updateBloodBankUser(
+    userId: number,
+    data: {
+      email?: string;
+      first_name?: string;
+      phone_number?: string;
+      is_active?: boolean;
+      password?: string;
+    },
+  ): Promise<{ message: string; user_id: number; username: string }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpPut(`/admin/users/blood-bank-users/${userId}`, data, { token });
   }
 }
 

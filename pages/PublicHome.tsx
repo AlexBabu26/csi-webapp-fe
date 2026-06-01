@@ -92,6 +92,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
       
       // Determine role based on user_type
       const role = me.user_type === '1' ? UserRole.ADMIN : 
+                   me.user_type === '4' ? UserRole.OFFICIAL :
                    me.user_type === '2' || me.user_type === '3' ? UserRole.OFFICIAL : 
                    UserRole.PUBLIC;
       
