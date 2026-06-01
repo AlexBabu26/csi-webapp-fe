@@ -36,6 +36,7 @@ const ScoreEntry = lazy(() => import('./pages/ScoreEntry').then(module => ({ def
 
 // Unit Admin Pages
 const ViewAllUnits = lazy(() => import('./pages/UnitAdmin/ViewAllUnits').then(module => ({ default: module.ViewAllUnits })));
+const NotOnboardedUnits = lazy(() => import('./pages/UnitAdmin/NotOnboardedUnits').then(module => ({ default: module.NotOnboardedUnits })));
 const ViewAllOfficials = lazy(() => import('./pages/UnitAdmin/ViewAllOfficials').then(module => ({ default: module.ViewAllOfficials })));
 const ViewAllCouncilors = lazy(() => import('./pages/UnitAdmin/ViewAllCouncilors').then(module => ({ default: module.ViewAllCouncilors })));
 const ViewAllMembers = lazy(() => import('./pages/UnitAdmin/ViewAllMembers').then(module => ({ default: module.ViewAllMembers })));
@@ -208,6 +209,12 @@ const App: React.FC = () => {
               <Route path="/admin/units" element={
                 <AdminRoute>
                   <ViewAllUnits />
+                </AdminRoute>
+              } />
+
+              <Route path="/admin/units/not-onboarded" element={
+                <AdminRoute>
+                  <NotOnboardedUnits />
                 </AdminRoute>
               } />
 

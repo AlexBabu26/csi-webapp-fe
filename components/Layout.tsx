@@ -78,6 +78,7 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Units Management',
         items: [
           { label: 'All Units', path: '/admin/units', icon: <Building size={18} /> },
+          { label: 'Not Onboarded', path: '/admin/units/not-onboarded', icon: <UserPlus size={18} /> },
           { label: 'Officials', path: '/admin/officials', icon: <Shield size={18} /> },
           { label: 'Councilors', path: '/admin/councilors', icon: <UserCheck size={18} /> },
           { label: 'Members', path: '/admin/members', icon: <Users size={18} /> },

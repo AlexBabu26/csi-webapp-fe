@@ -28,6 +28,17 @@ export const useUnits = () => {
   });
 };
 
+// Master-list units without platform accounts
+export const useNotOnboardedUnits = () => {
+  return useQuery({
+    queryKey: queryKeys.units.notOnboarded(),
+    queryFn: async () => {
+      const response = await api.getNotOnboardedUnits();
+      return response.data;
+    },
+  });
+};
+
 // District chart data
 export const useDistrictChartData = () => {
   return useQuery({

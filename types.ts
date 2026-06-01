@@ -458,6 +458,13 @@ export interface Unit {
   councilorsCount: number;
 }
 
+export interface MasterListUnit {
+  id: number;
+  name: string;
+  clergyDistrict: string;
+  clergyDistrictId: number;
+}
+
 export type ResidenceLocation = 'WITHIN_KERALA' | 'OUTSIDE_KERALA' | 'OUTSIDE_INDIA';
 
 export const RESIDENCE_LOCATION_OPTIONS: { value: ResidenceLocation; label: string }[] = [
@@ -768,6 +775,7 @@ export interface UnitStats {
   completedUnits: number;
   inProgressUnits: number;
   notStartedUnits: number;
+  notOnboardedUnits: number;
   currentRegistrationYear: number;
   pendingPayments: number;
   totalMembers: number;

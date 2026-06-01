@@ -27,6 +27,7 @@ import {
   CouncilorChangeRequest,
   MemberAddRequest,
   UnitStats,
+  MasterListUnit,
   DistrictWiseData,
   ClergyDistrict,
   RequestStatus,
@@ -894,6 +895,7 @@ class ApiService {
       current_registration_year: number;
       in_progress_units_count: number;
       not_started_units_count: number;
+      not_onboarded_units_count: number;
       pending_payments_count: number;
       total_unit_members: number;
       total_male_members: number;
@@ -915,6 +917,10 @@ class ApiService {
       completedUnits: rawData.completed_units_count,
       inProgressUnits: rawData.in_progress_units_count ?? 0,
       notStartedUnits: rawData.not_started_units_count ?? 0,
+      notOnboardedUnits: rawData.not_onboarded_units_count ?? Math.max(
+        0,
+        (rawData.total_units_count ?? 0) - (rawData.registered_units_count ?? rawData.total_units_count ?? 0),
+      ),
       currentRegistrationYear: rawData.current_registration_year ?? new Date().getFullYear(),
       pendingPayments: rawData.pending_payments_count ?? 0,
       totalMembers: rawData.total_unit_members,
@@ -944,6 +950,7 @@ class ApiService {
       cycle_status?: string | null;
       path_type?: string | null;
       payment_status?: string;
+      member_count?: number;
     }
 
     // API may return paginated response or direct array
@@ -974,9 +981,32 @@ class ApiService {
       cycleStatus: unit.cycle_status ?? null,
       paymentStatus: unit.payment_status as Unit['paymentStatus'],
       pathType: unit.path_type as Unit['pathType'],
-      membersCount: 0,
+      membersCount: unit.member_count ?? 0,
       officialsCount: 0,
       councilorsCount: 0,
+    }));
+
+    return { data, status: 200 };
+  }
+
+  // GET /admin/units/not-onboarded - Master-list units without platform accounts
+  async getNotOnboardedUnits(): Promise<ApiResponse<MasterListUnit[]>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+
+    interface ApiMasterListUnit {
+      id: number;
+      name: string;
+      clergy_district_id: number;
+      clergy_district: string;
+    }
+
+    const raw = await httpGet<ApiMasterListUnit[]>('/admin/units/not-onboarded', { token });
+    const data: MasterListUnit[] = raw.map((unit) => ({
+      id: unit.id,
+      name: unit.name,
+      clergyDistrict: unit.clergy_district,
+      clergyDistrictId: unit.clergy_district_id,
     }));
 
     return { data, status: 200 };

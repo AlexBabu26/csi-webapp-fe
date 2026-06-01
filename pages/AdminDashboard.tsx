@@ -287,6 +287,17 @@ export const AdminDashboard: React.FC = () => {
                   <span className="text-success font-medium">{stats.completedUnits} completed</span>
                   {registrationSeason && <span className="ml-1">for {registrationSeason}</span>}
                 </div>
+                {stats.notOnboardedUnits > 0 && (
+                  <div className="mt-2 text-sm">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin/units/not-onboarded')}
+                      className="text-warning font-medium hover:underline"
+                    >
+                      {stats.notOnboardedUnits} not onboarded
+                    </button>
+                  </div>
+                )}
               </Card>
 
               <Card className="hover:shadow-md transition-shadow cursor-default bg-white border-l-4 border-l-primary/20">
@@ -429,6 +440,20 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Units not started:</span>
               <span className="font-medium text-textDark">{stats.notStartedUnits}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-textMuted">Units not onboarded:</span>
+              {stats.notOnboardedUnits > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/units/not-onboarded')}
+                  className="font-medium text-warning hover:underline"
+                >
+                  {stats.notOnboardedUnits}
+                </button>
+              ) : (
+                <span className="font-medium text-success">0</span>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Payments awaiting review:</span>
