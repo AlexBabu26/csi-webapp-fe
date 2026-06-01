@@ -67,11 +67,17 @@ interface BulkResetResponse {
     user_id: number;
     username: string;
     user_type: string;
+    unit_name?: string;
+    district_name?: string;
+    phone_number?: string;
+    display_name?: string;
   }>;
   failed_users: Array<{
     user_id: number;
     reason: string;
   }>;
+  spreadsheet_filename?: string;
+  spreadsheet_base64?: string;
 }
 
 interface CreateDistrictOfficialResponse {
@@ -177,8 +183,10 @@ export const useResetAllByType = () => {
   return useMutation({
     mutationFn: async (params: {
       user_type: 'UNIT' | 'DISTRICT_OFFICIAL' | 'BLOOD_BANK';
-      new_password: string;
+      new_password?: string;
       district_id?: number;
+      export_spreadsheet?: boolean;
+      unique_passwords?: boolean;
     }): Promise<BulkResetResponse> => {
       return api.resetAllPasswordsByType(params);
     },

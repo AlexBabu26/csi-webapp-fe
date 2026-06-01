@@ -3367,9 +3367,11 @@ class ApiService {
 
   // POST /admin/users/reset-all-by-type - Reset all passwords by user type
   async resetAllPasswordsByType(params: {
-    user_type: 'UNIT' | 'DISTRICT_OFFICIAL';
-    new_password: string;
+    user_type: 'UNIT' | 'DISTRICT_OFFICIAL' | 'BLOOD_BANK';
+    new_password?: string;
     district_id?: number;
+    export_spreadsheet?: boolean;
+    unique_passwords?: boolean;
   }): Promise<{
     message: string;
     total_requested: number;
@@ -3378,22 +3380,33 @@ class ApiService {
       user_id: number;
       username: string;
       user_type: string;
+      unit_name?: string;
+      district_name?: string;
+      phone_number?: string;
+      display_name?: string;
     }>;
     failed_users: Array<{
       user_id: number;
       reason: string;
     }>;
+    spreadsheet_filename?: string;
+    spreadsheet_base64?: string;
   }> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
 
-    const query: Record<string, string | number> = {
+    const query: Record<string, string | number | boolean> = {
       user_type: params.user_type,
-      new_password: params.new_password,
     };
+    if (params.new_password) query.new_password = params.new_password;
     if (params.district_id) query.district_id = params.district_id;
+    if (params.export_spreadsheet) query.export_spreadsheet = true;
+    if (params.unique_passwords) query.unique_passwords = true;
 
-    return httpPost('/admin/users/reset-all-by-type', null, { token, query });
+    // Bulk unit reset hashes hundreds of passwords — allow extra time.
+    const timeout = params.unique_passwords ? 180000 : 60000;
+
+    return httpPost('/admin/users/reset-all-by-type', null, { token, query, timeout });
   }
 
   // GET /admin/users/district-officials - List all district officials

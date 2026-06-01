@@ -26,6 +26,7 @@ import { useToast } from '../../components/Toast';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Portal } from '../../components/Portal';
+import { downloadBase64Spreadsheet } from '../../utils/downloadSpreadsheet';
 import {
   useUsers,
   useUsersSummary,
@@ -235,12 +236,38 @@ export const UserManagement: React.FC = () => {
       onError: () => setShowBulkResetConfirm(false),
     });
   };
-  const handleResetAll = () => { if (activeTab === 'all') { addToast('Select a specific tab first', 'warning'); return; } openPasswordModal(); };
+  const handleResetAll = () => {
+    if (activeTab === 'all') { addToast('Select a specific tab first', 'warning'); return; }
+    if (activeTab === 'UNIT') {
+      setShowResetAllConfirm(true);
+      return;
+    }
+    openPasswordModal();
+  };
   const confirmResetAll = () => { if (!newPassword || activeTab === 'all') return; setShowPasswordModal(false); setShowResetAllConfirm(true); };
   const executeResetAll = () => {
     if (activeTab === 'all') return;
-    resetAllMutation.mutate({ user_type: activeTab, new_password: newPassword }, {
-      onSuccess: (data) => { addToast(`Passwords reset for ${data.total_reset} ${activeTab === 'UNIT' ? 'unit' : activeTab === 'BLOOD_BANK' ? 'blood bank' : 'district'} officials`, 'success'); setShowResetAllConfirm(false); setNewPassword(''); refetch(); },
+    const isUnitResetAll = activeTab === 'UNIT';
+    resetAllMutation.mutate({
+      user_type: activeTab,
+      new_password: isUnitResetAll ? undefined : newPassword,
+      export_spreadsheet: isUnitResetAll,
+      unique_passwords: isUnitResetAll,
+    }, {
+      onSuccess: (data) => {
+        if (data.spreadsheet_base64 && data.spreadsheet_filename) {
+          downloadBase64Spreadsheet(data.spreadsheet_base64, data.spreadsheet_filename);
+        }
+        addToast(
+          isUnitResetAll
+            ? `Unique passwords generated for ${data.total_reset} unit officials. Excel file downloaded.`
+            : `Passwords reset for ${data.total_reset} ${activeTab === 'BLOOD_BANK' ? 'blood bank' : 'district'} officials`,
+          'success',
+        );
+        setShowResetAllConfirm(false);
+        setNewPassword('');
+        refetch();
+      },
       onError: () => setShowResetAllConfirm(false),
     });
   };
@@ -824,12 +851,17 @@ export const UserManagement: React.FC = () => {
       <ConfirmDialog
         isOpen={showResetAllConfirm}
         title="⚠️ Reset ALL Passwords"
-        message={`This will reset passwords for ALL ${activeTab === 'UNIT' ? 'unit' : activeTab === 'BLOOD_BANK' ? 'blood bank' : 'district'} officials (${activeTab === 'UNIT' ? summary?.unit_officials : activeTab === 'BLOOD_BANK' ? summary?.blood_bank_users : summary?.district_officials} users). This cannot be undone.`}
+        message={
+          activeTab === 'UNIT'
+            ? `This will generate a unique new password for all ${summary?.unit_officials ?? 0} unit officials. An Excel file with each unit's login credentials will download automatically. This may take up to a minute for many units. This cannot be undone.`
+            : `This will reset passwords for ALL ${activeTab === 'BLOOD_BANK' ? 'blood bank' : 'district'} officials (${activeTab === 'BLOOD_BANK' ? summary?.blood_bank_users : summary?.district_officials} users). This cannot be undone.`
+        }
         confirmLabel={`Reset All ${activeTab === 'UNIT' ? 'Unit' : activeTab === 'BLOOD_BANK' ? 'Blood Bank' : 'District'} Official Passwords`}
         cancelLabel="Cancel"
         variant="danger"
+        isLoading={resetAllMutation.isPending}
         onConfirm={executeResetAll}
-        onCancel={() => { setShowResetAllConfirm(false); setNewPassword(''); }}
+        onCancel={() => { if (!resetAllMutation.isPending) { setShowResetAllConfirm(false); setNewPassword(''); } }}
       />
 
       {/* ── Create District Official Modal ───────────────────────────────── */}
