@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
   AlertCircle,
-  ArrowLeft,
   CheckCircle,
   Clock,
   CreditCard,
@@ -220,12 +219,6 @@ export const RegistrationComplete: React.FC = () => {
             </>
           )}
 
-          <Link to="/">
-            <Button variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
-          </Link>
           <Link to="/unit/my-requests">
             <Button variant="outline">View My Requests</Button>
           </Link>
