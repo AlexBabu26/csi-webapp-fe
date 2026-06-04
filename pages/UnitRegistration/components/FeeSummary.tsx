@@ -7,6 +7,7 @@ interface FeeSummaryProps {
   unitMemberFee: number;
   membersAmount?: number;
   totalAmount?: number;
+  className?: string;
 }
 
 export const FeeSummary: React.FC<FeeSummaryProps> = ({
@@ -15,12 +16,13 @@ export const FeeSummary: React.FC<FeeSummaryProps> = ({
   unitMemberFee,
   membersAmount,
   totalAmount,
+  className = '',
 }) => {
   const membersFee = membersAmount ?? memberCount * unitMemberFee;
   const total = totalAmount ?? membersFee + unitRegistrationFee;
 
   return (
-    <Card className="bg-primary/5 border-primary/20">
+    <Card className={`bg-primary/5 border-primary/20 xl:sticky xl:top-4 ${className}`}>
       <h4 className="text-sm font-semibold text-textDark mb-3">Registration Fee</h4>
       <dl className="space-y-2 text-sm">
         <div className="flex justify-between">

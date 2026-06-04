@@ -4,15 +4,21 @@ import { Shield } from 'lucide-react';
 import { UnitApplicationForm } from '../../../types';
 import { useSaveUnitDetails, useConfirmUnitDetails } from '../../../hooks/queries';
 import { RenewalChangeRequestNotice } from '../components/RenewalChangeRequestNotice';
+import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
 
-interface UnitDetailsStepProps {
+interface UnitDetailsStepProps extends WizardStepNavigationProps {
   formData: UnitApplicationForm;
   onComplete: () => void;
 }
 
 const DESIGNATIONS = ['Vicar', 'Catechist', 'Reader'];
 
-export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({ formData, onComplete }) => {
+export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
+  formData,
+  onComplete,
+  onPrevious,
+  showPrevious,
+}) => {
   const isRenewal = formData.is_renewal;
   const officials = formData.unit_officials;
   const [presidentDesignation, setPresidentDesignation] = useState(officials?.president_designation || '');
@@ -52,14 +58,15 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({ formData, onCo
   const readOnlyClass = isRenewal ? 'bg-gray-50 text-textMuted cursor-not-allowed' : '';
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {isRenewal && (
-        <RenewalChangeRequestNotice
-          requestPath="/unit/submit-officials"
-          requestLabel="Officials Change request"
-        />
-      )}
-      <Card>
+    <div className="space-y-6">
+      <form id="unit-details-form" onSubmit={handleSubmit} className="space-y-4">
+        {isRenewal && (
+          <RenewalChangeRequestNotice
+            requestPath="/unit/submit-officials"
+            requestLabel="Officials Change request"
+          />
+        )}
+        <Card>
         <div className="flex items-center gap-2 mb-4">
           <Shield className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-bold text-textDark">Unit President Details</h3>
@@ -110,12 +117,14 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({ formData, onCo
             />
           </div>
         </div>
-        <div className="mt-6 flex justify-end">
-          <Button type="submit" isLoading={saveDetails.isPending || confirmDetails.isPending}>
-            {isRenewal ? 'Confirm & Continue' : 'Save & Continue'}
-          </Button>
-        </div>
-      </Card>
-    </form>
+        </Card>
+      </form>
+
+      <WizardStepActions standalone onPrevious={onPrevious} showPrevious={showPrevious}>
+        <Button type="submit" form="unit-details-form" isLoading={saveDetails.isPending || confirmDetails.isPending}>
+          {isRenewal ? 'Confirm & Continue' : 'Save & Continue'}
+        </Button>
+      </WizardStepActions>
+    </div>
   );
 };

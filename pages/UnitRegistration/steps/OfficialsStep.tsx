@@ -4,8 +4,9 @@ import { Shield } from 'lucide-react';
 import { UnitApplicationForm, UnitOfficialPayload } from '../../../types';
 import { useSaveUnitOfficials, useConfirmUnitOfficials } from '../../../hooks/queries';
 import { RenewalChangeRequestNotice } from '../components/RenewalChangeRequestNotice';
+import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
 
-interface OfficialsStepProps {
+interface OfficialsStepProps extends WizardStepNavigationProps {
   formData: UnitApplicationForm;
   onComplete: () => void;
 }
@@ -20,7 +21,12 @@ const POSITIONS = [
 
 const DESIGNATIONS = ['Vicar', 'Catechist', 'Reader'];
 
-export const OfficialsStep: React.FC<OfficialsStepProps> = ({ formData, onComplete }) => {
+export const OfficialsStep: React.FC<OfficialsStepProps> = ({
+  formData,
+  onComplete,
+  onPrevious,
+  showPrevious,
+}) => {
   const isRenewal = formData.is_renewal;
   const officials = formData.unit_officials;
   const saveOfficials = useSaveUnitOfficials();
@@ -92,14 +98,15 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({ formData, onComple
   const readOnlyClass = isRenewal ? 'bg-gray-50 text-textMuted cursor-not-allowed' : '';
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {isRenewal && (
-        <RenewalChangeRequestNotice
-          requestPath="/unit/submit-officials"
-          requestLabel="Officials Change request"
-        />
-      )}
-      {POSITIONS.map((pos) => {
+    <div className="space-y-6">
+      <form id="officials-form" onSubmit={handleSubmit} className="space-y-6">
+        {isRenewal && (
+          <RenewalChangeRequestNotice
+            requestPath="/unit/submit-officials"
+            requestLabel="Officials Change request"
+          />
+        )}
+        {POSITIONS.map((pos) => {
         const isPresident = pos.key === 'president';
         const nameKey = `${pos.key}Name` as keyof typeof form;
         const phoneKey = `${pos.key}Phone` as keyof typeof form;
@@ -153,11 +160,13 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({ formData, onComple
           </Card>
         );
       })}
-      <div className="flex justify-end">
-        <Button type="submit" isLoading={saveOfficials.isPending || confirmOfficials.isPending}>
+      </form>
+
+      <WizardStepActions standalone onPrevious={onPrevious} showPrevious={showPrevious}>
+        <Button type="submit" form="officials-form" isLoading={saveOfficials.isPending || confirmOfficials.isPending}>
           {isRenewal ? 'Confirm & Continue to Councilors' : 'Save & Continue to Councilors'}
         </Button>
-      </div>
-    </form>
+      </WizardStepActions>
+    </div>
   );
 };

@@ -5,8 +5,12 @@ import { FileText, CheckCircle } from 'lucide-react';
 import { useFinishRegistration, useCompleteDeclaration } from '../../../hooks/queries';
 import { formatRegistrationSeason } from '../../../services/authRouting';
 import { FeeSummary } from '../components/FeeSummary';
+import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
 
-export const DeclarationStep: React.FC = () => {
+export const DeclarationStep: React.FC<WizardStepNavigationProps> = ({
+  onPrevious,
+  showPrevious,
+}) => {
   const navigate = useNavigate();
   const [confirmed, setConfirmed] = useState(false);
   const { data: summary, isLoading } = useFinishRegistration(true);
@@ -142,15 +146,9 @@ export const DeclarationStep: React.FC = () => {
                 I confirm all information is accurate and agree to the declaration above.
               </span>
             </label>
-            <div className="mt-6 flex justify-end">
-              <Button type="submit" disabled={!confirmed} isLoading={completeDeclaration.isPending}>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Complete Registration
-              </Button>
-            </div>
           </Card>
         </div>
-        <div>
+        <div className="lg:col-span-1">
           <FeeSummary
             memberCount={summary.members_count}
             unitRegistrationFee={summary.unit_registration_fee}
@@ -160,6 +158,13 @@ export const DeclarationStep: React.FC = () => {
           />
         </div>
       </div>
+
+      <WizardStepActions standalone onPrevious={onPrevious} showPrevious={showPrevious}>
+        <Button type="submit" disabled={!confirmed} isLoading={completeDeclaration.isPending}>
+          <CheckCircle className="w-4 h-4 mr-2" />
+          Complete Registration
+        </Button>
+      </WizardStepActions>
     </form>
   );
 };

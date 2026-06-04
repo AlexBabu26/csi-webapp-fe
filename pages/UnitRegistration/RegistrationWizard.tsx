@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Building, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Building, AlertCircle } from 'lucide-react';
 import { Skeleton, Button } from '../../components/ui';
 import { useApplicationForm } from '../../hooks/queries';
 import { RegistrationStepper } from './components/RegistrationStepper';
@@ -48,6 +48,17 @@ export const RegistrationWizard: React.FC = () => {
     }
   };
 
+  const handlePrevious = () => {
+    if (activeStep > 2) {
+      setActiveStep((activeStep - 1) as WizardStepId);
+    }
+  };
+
+  const stepNavigation = {
+    onPrevious: handlePrevious,
+    showPrevious: activeStep > 2,
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-bgLight py-12 px-4">
@@ -82,9 +93,9 @@ export const RegistrationWizard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-bgLight py-8 px-4 sm:px-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-6">
+    <div className="min-h-screen bg-bgLight py-4 sm:py-6 px-3 sm:px-5">
+      <div className="max-w-7xl mx-auto space-y-4">
+        <header className="text-center">
           <div className="h-10 w-10 bg-primary rounded-lg mx-auto flex items-center justify-center text-white mb-3">
             <Building size={22} />
           </div>
@@ -93,14 +104,14 @@ export const RegistrationWizard: React.FC = () => {
             {formData.user_data.unit_name} — Step {activeStep} of 6
           </p>
           {formData.is_renewal && (
-            <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-textDark">
+            <div className="mt-4 mx-auto max-w-4xl rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-textDark text-left sm:text-center">
               Renewing registration for{' '}
               <strong>{formatRegistrationSeason(formData.registration_year)}</strong>. Review your
               information below. Corrections to existing records must be submitted as change
               requests from My Requests.
             </div>
           )}
-        </div>
+        </header>
 
         <RegistrationStepper
           activeStep={activeStep}
@@ -108,23 +119,44 @@ export const RegistrationWizard: React.FC = () => {
           onStepClick={handleStepClick}
         />
 
-        {activeStep === 2 && (
-          <UnitDetailsStep formData={formData} onComplete={() => handleStepComplete()} />
-        )}
-        {activeStep === 3 && (
-          <MembersStep formData={formData} onComplete={() => handleStepComplete()} />
-        )}
-        {activeStep === 4 && (
-          <OfficialsStep formData={formData} onComplete={() => handleStepComplete()} />
-        )}
-        {activeStep === 5 && (
-          <CouncilorsStep formData={formData} onComplete={() => handleStepComplete()} />
-        )}
-        {activeStep === 6 && <DeclarationStep />}
+        <div className="space-y-4">
+          {activeStep === 2 && (
+            <UnitDetailsStep
+              formData={formData}
+              onComplete={() => handleStepComplete()}
+              {...stepNavigation}
+            />
+          )}
+          {activeStep === 3 && (
+            <MembersStep
+              formData={formData}
+              onComplete={() => handleStepComplete()}
+              {...stepNavigation}
+            />
+          )}
+          {activeStep === 4 && (
+            <OfficialsStep
+              formData={formData}
+              onComplete={() => handleStepComplete()}
+              {...stepNavigation}
+            />
+          )}
+          {activeStep === 5 && (
+            <CouncilorsStep
+              formData={formData}
+              onComplete={() => handleStepComplete()}
+              {...stepNavigation}
+            />
+          )}
+          {activeStep === 6 && <DeclarationStep {...stepNavigation} />}
+        </div>
 
-        <div className="mt-8 text-center">
-          <Link to="/" className="text-sm font-medium text-primary inline-flex items-center gap-1">
-            <ArrowLeft size={16} /> Back to Home
+        <div className="pt-2 border-t border-borderColor/60 text-center">
+          <Link
+            to="/unit/my-requests"
+            className="inline-flex items-center text-sm font-medium text-textMuted hover:text-primary transition-colors"
+          >
+            Go to My Requests
           </Link>
         </div>
       </div>

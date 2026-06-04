@@ -7,13 +7,19 @@ import {
   useDeleteUnitCouncilor,
   useConfirmUnitCouncilors,
 } from '../../../hooks/queries';
+import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
 
-interface CouncilorsStepProps {
+interface CouncilorsStepProps extends WizardStepNavigationProps {
   formData: UnitApplicationForm;
   onComplete: () => void;
 }
 
-export const CouncilorsStep: React.FC<CouncilorsStepProps> = ({ formData, onComplete }) => {
+export const CouncilorsStep: React.FC<CouncilorsStepProps> = ({
+  formData,
+  onComplete,
+  onPrevious,
+  showPrevious,
+}) => {
   const [selectedMemberId, setSelectedMemberId] = useState<number | ''>('');
 
   const addCouncilor = useAddUnitCouncilor();
@@ -95,16 +101,17 @@ export const CouncilorsStep: React.FC<CouncilorsStepProps> = ({ formData, onComp
           </ul>
         )}
 
-        <div className="mt-6 flex justify-end">
-          <Button
-            onClick={handleContinue}
-            disabled={councilors.length !== requiredCount}
-            isLoading={confirmCouncilors.isPending}
-          >
-            Continue to Declaration
-          </Button>
-        </div>
       </Card>
+
+      <WizardStepActions standalone onPrevious={onPrevious} showPrevious={showPrevious}>
+        <Button
+          onClick={handleContinue}
+          disabled={councilors.length !== requiredCount}
+          isLoading={confirmCouncilors.isPending}
+        >
+          Continue to Declaration
+        </Button>
+      </WizardStepActions>
     </div>
   );
 };
