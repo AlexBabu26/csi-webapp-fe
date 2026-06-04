@@ -1877,6 +1877,12 @@ class ApiService {
     await httpPost<{ message: string }>('/units/details', payload, { token });
   }
 
+  async confirmUnitDetails(): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost<{ message: string }>('/units/details/confirm', {}, { token });
+  }
+
   async addUnitMember(payload: UnitMemberPayload): Promise<{ member_id: number }> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');

@@ -48,6 +48,20 @@ export const useSaveUnitDetails = () => {
   });
 };
 
+export const useConfirmUnitDetails = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: () => api.confirmUnitDetails(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.applicationForm() });
+      addToast('Unit details confirmed', 'success');
+    },
+    onError: (error: Error) => addToast(error.message || 'Failed to confirm details', 'error'),
+  });
+};
+
 export const useAddUnitMember = () => {
   const queryClient = useQueryClient();
   const { addToast } = useToast();
@@ -121,6 +135,20 @@ export const useSaveUnitOfficials = () => {
       addToast('Officials section completed', 'success');
     },
     onError: (error: Error) => addToast(error.message || 'Failed to save officials', 'error'),
+  });
+};
+
+export const useConfirmUnitOfficials = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: () => api.confirmUnitOfficials(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.applicationForm() });
+      addToast('Officials section confirmed', 'success');
+    },
+    onError: (error: Error) => addToast(error.message || 'Failed to confirm officials', 'error'),
   });
 };
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, Button } from '../../../components/ui';
 import { UserPlus, Trash2, Pencil } from 'lucide-react';
 import {
@@ -16,6 +17,7 @@ import {
 } from '../../../hooks/queries';
 import { useSiteSettings } from '../../../hooks/queries';
 import { FeeSummary } from '../components/FeeSummary';
+import { RenewalChangeRequestNotice } from '../components/RenewalChangeRequestNotice';
 
 interface MembersStepProps {
   formData: UnitApplicationForm;
@@ -35,6 +37,7 @@ const emptyMemberForm = {
 };
 
 export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }) => {
+  const isRenewal = formData.is_renewal;
   const { data: siteSettings } = useSiteSettings();
   const minDob = siteSettings?.member_min_dob ?? '1990-01-01';
   const maxDob = siteSettings?.member_max_dob ?? '2011-12-31';
@@ -117,11 +120,24 @@ export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
+        {isRenewal && (
+          <RenewalChangeRequestNotice
+            requestPath="/unit/submit-member-info"
+            requestLabel="Member Info Change request"
+          />
+        )}
         <Card>
           <div className="flex items-center gap-2 mb-4">
             <UserPlus className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-bold text-textDark">{editingId ? 'Edit Member' : 'Add Member'}</h3>
+            <h3 className="text-lg font-bold text-textDark">
+              {isRenewal ? 'Add Member' : editingId ? 'Edit Member' : 'Add Member'}
+            </h3>
           </div>
+          <p className="text-sm text-textMuted mb-4">
+            {isRenewal
+              ? 'Add new members for this season. To change existing member details, use a change request.'
+              : 'Add unit members for registration.'}
+          </p>
           <form onSubmit={handleAddOrUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-textDark mb-1">Full Name *</label>
@@ -216,7 +232,16 @@ export const MembersStep: React.FC<MembersStepProps> = ({ formData, onComplete }
                         {getResidenceLocationLabel(m.residence_location)}
                       </td>
                       <td className="py-2 flex gap-1">
-                        <button type="button" onClick={() => startEdit(m)} className="p-1 text-primary hover:bg-primary/10 rounded"><Pencil className="w-4 h-4" /></button>
+                        {isRenewal ? (
+                          <Link
+                            to="/unit/submit-member-info"
+                            className="text-xs font-medium text-primary hover:underline"
+                          >
+                            Request change
+                          </Link>
+                        ) : (
+                          <button type="button" onClick={() => startEdit(m)} className="p-1 text-primary hover:bg-primary/10 rounded"><Pencil className="w-4 h-4" /></button>
+                        )}
                         <button type="button" onClick={() => deleteMember.mutate(m.id)} className="p-1 text-danger hover:bg-danger/10 rounded"><Trash2 className="w-4 h-4" /></button>
                       </td>
                     </tr>

@@ -95,8 +95,9 @@ export const RegistrationWizard: React.FC = () => {
           {formData.is_renewal && (
             <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-textDark">
               Renewing registration for{' '}
-              <strong>{formatRegistrationSeason(formData.registration_year)}</strong>. Review and
-              update your unit information below.
+              <strong>{formatRegistrationSeason(formData.registration_year)}</strong>. Review your
+              information below. Corrections to existing records must be submitted as change
+              requests from My Requests.
             </div>
           )}
         </div>

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button } from '../../../components/ui';
 import { Shield } from 'lucide-react';
 import { UnitApplicationForm, UnitOfficialPayload } from '../../../types';
-import { useSaveUnitOfficials } from '../../../hooks/queries';
+import { useSaveUnitOfficials, useConfirmUnitOfficials } from '../../../hooks/queries';
+import { RenewalChangeRequestNotice } from '../components/RenewalChangeRequestNotice';
 
 interface OfficialsStepProps {
   formData: UnitApplicationForm;
@@ -20,8 +21,10 @@ const POSITIONS = [
 const DESIGNATIONS = ['Vicar', 'Catechist', 'Reader'];
 
 export const OfficialsStep: React.FC<OfficialsStepProps> = ({ formData, onComplete }) => {
+  const isRenewal = formData.is_renewal;
   const officials = formData.unit_officials;
   const saveOfficials = useSaveUnitOfficials();
+  const confirmOfficials = useConfirmUnitOfficials();
 
   const [form, setForm] = useState({
     presidentDesignation: '',
@@ -58,6 +61,12 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({ formData, onComple
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isRenewal) {
+      await confirmOfficials.mutateAsync();
+      onComplete();
+      return;
+    }
+
     const payloads: UnitOfficialPayload[] = [
       {
         position: 'President',
@@ -80,8 +89,16 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({ formData, onComple
     onComplete();
   };
 
+  const readOnlyClass = isRenewal ? 'bg-gray-50 text-textMuted cursor-not-allowed' : '';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {isRenewal && (
+        <RenewalChangeRequestNotice
+          requestPath="/unit/submit-officials"
+          requestLabel="Officials Change request"
+        />
+      )}
       {POSITIONS.map((pos) => {
         const isPresident = pos.key === 'president';
         const nameKey = `${pos.key}Name` as keyof typeof form;
@@ -100,8 +117,9 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({ formData, onComple
                   <select
                     value={form.presidentDesignation}
                     onChange={(e) => setForm({ ...form, presidentDesignation: e.target.value })}
-                    className="w-full px-3 py-2 border border-borderColor rounded-md bg-white"
+                    className={`w-full px-3 py-2 border border-borderColor rounded-md bg-white ${readOnlyClass}`}
                     required
+                    disabled={isRenewal}
                   >
                     <option value="">Select</option>
                     {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
@@ -114,8 +132,9 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({ formData, onComple
                   type="text"
                   value={form[nameKey]}
                   onChange={(e) => setForm({ ...form, [nameKey]: e.target.value })}
-                  className="w-full px-3 py-2 border border-borderColor rounded-md"
+                  className={`w-full px-3 py-2 border border-borderColor rounded-md ${readOnlyClass}`}
                   required
+                  readOnly={isRenewal}
                 />
               </div>
               <div>
@@ -125,8 +144,9 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({ formData, onComple
                   value={form[phoneKey]}
                   onChange={(e) => setForm({ ...form, [phoneKey]: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                   pattern="[6-9]\d{9}"
-                  className="w-full px-3 py-2 border border-borderColor rounded-md"
+                  className={`w-full px-3 py-2 border border-borderColor rounded-md ${readOnlyClass}`}
                   required
+                  readOnly={isRenewal}
                 />
               </div>
             </div>
@@ -134,8 +154,8 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({ formData, onComple
         );
       })}
       <div className="flex justify-end">
-        <Button type="submit" isLoading={saveOfficials.isPending}>
-          Save & Continue to Councilors
+        <Button type="submit" isLoading={saveOfficials.isPending || confirmOfficials.isPending}>
+          {isRenewal ? 'Confirm & Continue to Councilors' : 'Save & Continue to Councilors'}
         </Button>
       </div>
     </form>
