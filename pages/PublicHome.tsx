@@ -386,9 +386,6 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
                 <Button type="submit" variant="primary" size="block" isLoading={loading}>
                   Login to Dashboard
                 </Button>
-                <div className="text-center text-xs text-textMuted mt-4 bg-yellow-50 p-3 rounded-md border border-yellow-200">
-                  <span className="font-bold">Demo:</span> Use <strong>admin</strong> / <strong>password</strong>
-                </div>
               </form>
             </div>
           </div>
