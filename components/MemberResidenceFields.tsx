@@ -32,7 +32,6 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingStates, setLoadingStates] = useState(false);
   const [loadingCities, setLoadingCities] = useState(false);
-  const [cityRequired, setCityRequired] = useState<boolean | undefined>(value.cityRequired);
   const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
@@ -109,30 +108,6 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
   useEffect(() => {
     if (value.livesInKerala !== false || !value.stateId) {
       setCities([]);
-      setCityRequired(undefined);
-      return;
-    }
-
-    let active = true;
-    api.getMasterStateSummary(value.stateId).then((summary) => {
-      if (!active) return;
-      setCityRequired(summary.city_required);
-      if (value.cityRequired !== summary.city_required) {
-        onChange({
-          ...value,
-          cityRequired: summary.city_required,
-          cityId: summary.city_required ? value.cityId : null,
-        });
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [value.livesInKerala, value.stateId]);
-
-  useEffect(() => {
-    if (value.livesInKerala !== false || !value.stateId) {
       return;
     }
 
@@ -193,8 +168,6 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
     return cities;
   }, [cities, selectedCity, value.cityId]);
 
-  const cityIsOptional = value.stateId !== null && cityRequired === false;
-
   return (
     <div className="space-y-4">
       <fieldset>
@@ -233,7 +206,6 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
                   stateId: value.stateId,
                   cityId: value.cityId,
                   countryIsoCode: value.countryIsoCode,
-                  cityRequired: value.cityRequired,
                 })
               }
               className="text-primary focus:ring-primary/20"
@@ -258,7 +230,6 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
                 countryId: countryValue ? Number(countryValue) : null,
                 stateId: null,
                 cityId: null,
-                cityRequired: undefined,
                 countryIsoCode: option?.isoCode,
               });
               setStateSearch('');
@@ -281,9 +252,7 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
                 livesInKerala: false,
                 stateId: stateValue ? Number(stateValue) : null,
                 cityId: null,
-                cityRequired: undefined,
               });
-              setCityRequired(undefined);
               setCitySearch('');
             }}
             options={stateOptions}
@@ -300,8 +269,7 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
             }
           />
           <SearchableSelect
-            label="City"
-            required={!cityIsOptional}
+            label="City (optional)"
             value={value.cityId ? String(value.cityId) : ''}
             onChange={(cityValue) =>
               onChange({
@@ -314,28 +282,24 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
             placeholder={
               !value.stateId
                 ? 'Select a state first'
-                : cityIsOptional
-                  ? 'Optional for this state'
-                  : 'Select city'
+                : cities.length === 0 && !loadingCities
+                  ? 'No cities listed — state is enough'
+                  : 'Optional'
             }
             searchPlaceholder="Search cities..."
-            disabled={disabled || !value.stateId || loadingCities || cityIsOptional && cities.length === 0}
+            disabled={disabled || !value.stateId || loadingCities}
             onSearchChange={setCitySearch}
             emptyMessage={
               !value.stateId
                 ? 'Select a state to load cities.'
                 : loadingCities
                   ? 'Loading cities...'
-                  : cityIsOptional
-                    ? 'No cities listed for this state. State selection is enough.'
-                    : 'No cities match your search.'
+                  : 'No cities match your search. You can save with country and state only.'
             }
           />
-          {cityIsOptional && (
-            <p className="text-xs text-textMuted md:col-span-3">
-              City is optional for the selected state. You can save after choosing the state.
-            </p>
-          )}
+          <p className="text-xs text-textMuted md:col-span-3">
+            Country and state are required. City is optional — for example, selecting Dubai (UAE) is enough without a city.
+          </p>
         </div>
       )}
     </div>

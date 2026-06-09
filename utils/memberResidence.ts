@@ -6,7 +6,6 @@ export interface ResidenceFormValue {
   stateId: number | null;
   cityId: number | null;
   countryIsoCode?: string;
-  cityRequired?: boolean;
 }
 
 export interface ResidencePayload {
@@ -50,7 +49,6 @@ export const parseResidenceFormValue = (member: ResidenceMemberLike): ResidenceF
     countryId: member.residence_country_id ?? null,
     stateId: member.residence_state_id ?? null,
     cityId: member.residence_city_id ?? null,
-    cityRequired: Boolean(member.residence_city_id),
   };
 };
 
@@ -66,9 +64,6 @@ export const buildResidencePayload = (value: ResidenceFormValue): ResidencePaylo
   if (value.livesInKerala === false) {
     if (!value.countryId || !value.stateId) {
       throw new Error('Country and state are required when the member does not live in Kerala');
-    }
-    if (value.cityRequired && !value.cityId) {
-      throw new Error('City is required for the selected state');
     }
 
     return {
