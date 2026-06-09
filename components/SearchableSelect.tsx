@@ -18,6 +18,8 @@ interface SearchableSelectProps {
   label?: string;
   emptyMessage?: string;
   onSearchChange?: (search: string) => void;
+  /** When true, option list stays hidden until the user focuses the search input. */
+  initiallyCollapsed?: boolean;
 }
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -31,9 +33,13 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   label,
   emptyMessage = 'No options match your search.',
   onSearchChange,
+  initiallyCollapsed = false,
 }) => {
   const [search, setSearch] = useState('');
-  const [showPicker, setShowPicker] = useState(!value);
+  const [showPicker, setShowPicker] = useState(() => {
+    if (value) return false;
+    return !initiallyCollapsed;
+  });
 
   const filteredOptions = useMemo(() => {
     if (onSearchChange) return options;
@@ -79,10 +85,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             <input
               type="search"
               value={search}
+              onFocus={() => {
+                if (initiallyCollapsed) setShowPicker(true);
+              }}
               onChange={(e) => {
                 const nextSearch = e.target.value;
                 setSearch(nextSearch);
                 onSearchChange?.(nextSearch);
+                if (initiallyCollapsed) setShowPicker(true);
               }}
               placeholder={searchPlaceholder}
               disabled={disabled}
@@ -90,33 +100,35 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             />
           </div>
 
-          {filteredOptions.length === 0 ? (
-            <p className="text-sm text-textMuted py-3 text-center">{emptyMessage}</p>
-          ) : (
-            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 border border-borderColor rounded-lg p-2">
-              {filteredOptions.map((option) => {
-                const isSelected = option.value === value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => {
-                      onChange(option.value);
-                      setShowPicker(false);
-                      setSearch('');
-                    }}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors disabled:opacity-60 ${
-                      isSelected
-                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
-                        : 'border-borderColor hover:border-primary/40 hover:bg-bgLight'
-                    }`}
-                  >
-                    <p className="font-medium text-textDark">{option.label}</p>
-                  </button>
-                );
-              })}
-            </div>
+          {showPicker && (
+            filteredOptions.length === 0 ? (
+              <p className="text-sm text-textMuted py-3 text-center">{emptyMessage}</p>
+            ) : (
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 border border-borderColor rounded-lg p-2">
+                {filteredOptions.map((option) => {
+                  const isSelected = option.value === value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => {
+                        onChange(option.value);
+                        setShowPicker(false);
+                        setSearch('');
+                      }}
+                      className={`w-full text-left p-3 rounded-lg border transition-colors disabled:opacity-60 ${
+                        isSelected
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                          : 'border-borderColor hover:border-primary/40 hover:bg-bgLight'
+                      }`}
+                    >
+                      <p className="font-medium text-textDark">{option.label}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            )
           )}
 
           {!value && (

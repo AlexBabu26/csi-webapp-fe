@@ -269,7 +269,9 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
             }
           />
           <SearchableSelect
+            key={value.stateId ?? 'no-state'}
             label="City (optional)"
+            initiallyCollapsed
             value={value.cityId ? String(value.cityId) : ''}
             onChange={(cityValue) =>
               onChange({
@@ -284,9 +286,9 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
                 ? 'Select a state first'
                 : cities.length === 0 && !loadingCities
                   ? 'No cities listed — state is enough'
-                  : 'Optional'
+                  : 'Optional — click search to pick a city'
             }
-            searchPlaceholder="Search cities..."
+            searchPlaceholder="Search cities (optional)..."
             disabled={disabled || !value.stateId || loadingCities}
             onSearchChange={setCitySearch}
             emptyMessage={
