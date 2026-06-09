@@ -65,14 +65,14 @@ export const useArchivedMemberConcernRequests = () => {
   });
 };
 
-export const useMyRequests = (unitId: number) => {
+export const useMyRequests = (enabled = true) => {
   return useQuery({
-    queryKey: queryKeys.requests.myRequests(unitId),
+    queryKey: queryKeys.requests.myRequests(),
     queryFn: async () => {
-      const response = await api.getMyRequests(unitId);
+      const response = await api.getMyRequests();
       return response.data;
     },
-    enabled: !!unitId,
+    enabled,
   });
 };
 

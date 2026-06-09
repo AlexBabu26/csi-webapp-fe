@@ -6,8 +6,9 @@ import { ArrowLeft, Send } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
-import { ChangeRequestNavigationState, UnitMember } from '../../types';
+import { ChangeRequestNavigationState } from '../../types';
 import { useActiveUnitMembers, useTransferDestinations } from '../../hooks/queries';
+import { SearchableUnitSelect } from '../../components/SearchableUnitSelect';
 
 export const SubmitTransferRequest: React.FC = () => {
   const { addToast } = useToast();
@@ -61,13 +62,23 @@ export const SubmitTransferRequest: React.FC = () => {
       return;
     }
 
+    if (reason.trim().length < 10) {
+      addToast("Transfer reason must be at least 10 characters", "warning");
+      return;
+    }
+
+    if (!proofFile) {
+      addToast("Please upload a proof document", "warning");
+      return;
+    }
+
     try {
       setLoading(true);
       await api.submitTransferRequest({
         memberId: selectedMemberId,
         destinationUnitId,
         reason,
-        proof: proofFile || undefined,
+        proof: proofFile,
       });
       addToast("Transfer request submitted successfully", "success");
       navigate('/unit/my-requests');
@@ -149,27 +160,13 @@ export const SubmitTransferRequest: React.FC = () => {
               </Card>
             )}
 
-            {/* Destination Unit */}
-            <div>
-              <label className="block text-sm font-medium text-textDark mb-2">
-                Destination Unit <span className="text-danger">*</span>
-              </label>
-              <select
-                value={destinationUnitId}
-                onChange={(e) => setDestinationUnitId(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                required
-              >
-                <option value={0}>
-                  {unitsLoading ? 'Loading units...' : '-- Select Destination Unit --'}
-                </option>
-                {units.map(unit => (
-                  <option key={unit.id} value={unit.id}>
-                    {unit.name} - {unit.clergyDistrict} ({unit.unitNumber})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableUnitSelect
+              units={units}
+              value={destinationUnitId}
+              onChange={setDestinationUnitId}
+              isLoading={unitsLoading}
+              required
+            />
 
             {/* Reason */}
             <div>
@@ -182,17 +179,22 @@ export const SubmitTransferRequest: React.FC = () => {
                 placeholder="Enter the reason for transfer (e.g., family relocation, job transfer, marriage, higher studies)..."
                 className="w-full px-3 py-2 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
                 rows={4}
+                minLength={10}
                 required
               />
+              <p className="text-xs text-textMuted mt-1">
+                {reason.trim().length}/10 characters minimum
+              </p>
             </div>
 
             {/* Proof Upload */}
             <FileUpload
-              label="Upload Proof (Optional)"
+              label="Upload Proof"
               helperText="Supported formats: PDF, PNG, JPG (max 5MB)"
               onFileSelect={setProofFile}
               accept=".pdf,.png,.jpg,.jpeg"
               maxSize={5}
+              required
             />
           </div>
 

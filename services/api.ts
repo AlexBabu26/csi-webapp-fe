@@ -2130,7 +2130,18 @@ class ApiService {
   async submitTransferRequest(payload: TransferRequestSubmission): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    await httpPost<any>('/units/transfer-request', payload, { token });
+
+    if (!payload.proof) {
+      throw new Error('Proof document is required');
+    }
+
+    const formData = new FormData();
+    formData.append('unit_member_id', String(payload.memberId));
+    formData.append('destination_unit_id', String(payload.destinationUnitId));
+    formData.append('reason', payload.reason);
+    formData.append('proof', payload.proof, payload.proof.name);
+
+    await httpPost<any>('/units/transfer-request', formData, { token });
     return { data: true, message: 'Transfer request submitted successfully', status: 200 };
   }
 
@@ -2162,8 +2173,8 @@ class ApiService {
     return { data: true, message: 'Member add request submitted successfully', status: 200 };
   }
 
-  // Get requests for a specific unit (for unit officials)
-  async getMyRequests(unitId: number): Promise<ApiResponse<{
+  // Get all requests submitted by the logged-in unit user
+  async getMyRequests(): Promise<ApiResponse<{
     transfers: TransferRequest[];
     memberInfoChanges: MemberInfoChangeRequest[];
     officialsChanges: OfficialsChangeRequest[];
@@ -2180,7 +2191,7 @@ class ApiService {
       councilorChanges: CouncilorChangeRequest[];
       memberAdds: MemberAddRequest[];
       archivedMemberConcerns: ArchivedMemberConcernRequest[];
-    }>(`/units/${unitId}/my-requests`, { token });
+    }>('/units/my-requests', { token });
     return {
       data: {
         ...data,

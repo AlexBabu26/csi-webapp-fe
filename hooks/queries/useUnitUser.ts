@@ -43,7 +43,7 @@ export const useSubmitMemberInfoChange = () => {
       return api.submitMemberInfoChange(data.memberId, data.changes, data.reason, data.proof);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests(0) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests() });
       addToast('Member info change request submitted successfully', 'success');
     },
     onError: (error: any) => {
@@ -69,7 +69,7 @@ export const useSubmitOfficialsChange = () => {
       return api.submitOfficialsChange(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests(0) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests() });
       addToast('Officials change request submitted successfully', 'success');
     },
     onError: (error: any) => {
@@ -93,7 +93,7 @@ export const useSubmitCouncilorChange = () => {
       return api.submitCouncilorChange(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests(0) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests() });
       addToast('Councilor change request submitted successfully', 'success');
     },
     onError: (error: any) => {
@@ -110,15 +110,14 @@ export const useSubmitTransferRequest = () => {
   return useMutation({
     mutationFn: async (data: {
       memberId: number;
-      fromUnitId: number;
-      toUnitId: number;
+      destinationUnitId: number;
       reason: string;
-      proof?: File;
+      proof: File;
     }) => {
       return api.submitTransferRequest(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests(0) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests() });
       addToast('Transfer request submitted successfully', 'success');
     },
     onError: (error: any) => {
@@ -167,7 +166,7 @@ export const useSubmitMemberAdd = () => {
       return api.submitMemberAdd(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests(0) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests() });
       addToast('Member add request submitted successfully', 'success');
     },
     onError: (error: any) => {

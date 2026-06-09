@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '../../../../components/ui';
 import { FileUpload } from '../../../../components/FileUpload';
 import { useToast } from '../../../../components/Toast';
 import { api } from '../../../../services/api';
 import { UnitMember } from '../../../../types';
+import { queryKeys } from '../../../../constants/queryKeys';
 import { useTransferDestinations } from '../../../../hooks/queries';
+import { SearchableUnitSelect } from '../../../../components/SearchableUnitSelect';
 import { WizardFormActions } from '../../components/WizardFormActions';
 
 interface TransferFormStepProps {
@@ -19,6 +22,7 @@ export const TransferFormStep: React.FC<TransferFormStepProps> = ({
   onSuccess,
 }) => {
   const { addToast } = useToast();
+  const queryClient = useQueryClient();
   const { data: units = [], isLoading: unitsLoading } = useTransferDestinations();
   const [loading, setLoading] = useState(false);
   const [destinationUnitId, setDestinationUnitId] = useState(0);
@@ -36,6 +40,14 @@ export const TransferFormStep: React.FC<TransferFormStepProps> = ({
       addToast('Please provide a reason', 'warning');
       return;
     }
+    if (reason.trim().length < 10) {
+      addToast('Transfer reason must be at least 10 characters', 'warning');
+      return;
+    }
+    if (!proofFile) {
+      addToast('Please upload a proof document', 'warning');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -43,8 +55,9 @@ export const TransferFormStep: React.FC<TransferFormStepProps> = ({
         memberId: selectedMember.id,
         destinationUnitId,
         reason,
-        proof: proofFile || undefined,
+        proof: proofFile,
       });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests() });
       addToast('Transfer request submitted successfully', 'success');
       onSuccess();
     } catch {
@@ -85,26 +98,13 @@ export const TransferFormStep: React.FC<TransferFormStepProps> = ({
             </div>
           </Card>
 
-          <div>
-            <label className="block text-sm font-medium text-textDark mb-2">
-              Destination Unit <span className="text-danger">*</span>
-            </label>
-            <select
-              value={destinationUnitId}
-              onChange={(e) => setDestinationUnitId(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              required
-            >
-              <option value={0}>
-                {unitsLoading ? 'Loading units...' : '-- Select Destination Unit --'}
-              </option>
-              {units.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.name} - {unit.clergyDistrict} ({unit.unitNumber})
-                </option>
-              ))}
-            </select>
-          </div>
+          <SearchableUnitSelect
+            units={units}
+            value={destinationUnitId}
+            onChange={setDestinationUnitId}
+            isLoading={unitsLoading}
+            required
+          />
 
           <div>
             <label className="block text-sm font-medium text-textDark mb-2">
@@ -113,19 +113,24 @@ export const TransferFormStep: React.FC<TransferFormStepProps> = ({
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Enter the reason for transfer..."
+              placeholder="Enter the reason for transfer (minimum 10 characters)..."
               className="w-full px-3 py-2 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
               rows={4}
+              minLength={10}
               required
             />
+            <p className="text-xs text-textMuted mt-1">
+              {reason.trim().length}/10 characters minimum
+            </p>
           </div>
 
           <FileUpload
-            label="Upload Proof (Optional)"
+            label="Upload Proof"
             helperText="Supported formats: PDF, PNG, JPG (max 5MB)"
             onFileSelect={setProofFile}
             accept=".pdf,.png,.jpg,.jpeg"
             maxSize={5}
+            required
           />
         </div>
         <WizardFormActions onPrevious={onPrevious} isSubmitting={loading} />

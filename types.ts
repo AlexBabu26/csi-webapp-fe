@@ -925,7 +925,7 @@ export interface TransferRequestSubmission {
   memberId: number;
   destinationUnitId: number;
   reason: string;
-  proof?: File;
+  proof: File;
 }
 
 export interface MemberInfoChangeSubmission {

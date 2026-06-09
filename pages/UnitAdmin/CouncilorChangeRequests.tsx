@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { Card, Badge, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
-import { FileText, ExternalLink, Check, X, RotateCcw } from 'lucide-react';
+import { FileText, Check, X, RotateCcw } from 'lucide-react';
+import { ProofViewButton } from '../../components/ProofDocumentViewer';
 import { useToast } from '../../components/Toast';
 import { CouncilorChangeRequest, RequestStatus } from '../../types';
 import { useCouncilorChangeRequests, useRequestActions } from '../../hooks/queries';
@@ -84,18 +85,11 @@ export const CouncilorChangeRequests: React.FC = () => {
         id: 'proof',
         header: 'Proof',
         cell: ({ row }) => (
-          row.original.proof ? (
-            <a
-              href={row.original.proof}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline text-sm inline-flex items-center gap-1"
-            >
-              View <ExternalLink className="w-3 h-3" />
-            </a>
-          ) : (
-            <span className="text-textMuted text-sm">No proof</span>
-          )
+          <ProofViewButton
+            proof={row.original.proof}
+            title="Councilor Change Proof"
+            subtitle={row.original.unitName}
+          />
         ),
         enableSorting: false,
         size: 80,

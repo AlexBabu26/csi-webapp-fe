@@ -4,21 +4,32 @@ import { Card, Badge, Button } from '../../components/ui';
 import { RequestStatusBadge } from '../../components/RequestStatusBadge';
 import { FileText, ArrowRightLeft, Users, Shield, UserCheck, UserPlus, Archive, Plus } from 'lucide-react';
 import { useToast } from '../../components/Toast';
+import { ProofViewButton } from '../../components/ProofDocumentViewer';
 import { getCurrentUnitId } from '../../services/auth';
 import { useMyRequests } from '../../hooks/queries';
+
+const RequestProofRow: React.FC<{
+  proof?: string;
+  title: string;
+  subtitle?: string;
+}> = ({ proof, title, subtitle }) => {
+  if (!proof) return null;
+
+  return (
+    <div className="mt-2 pt-2 border-t border-borderColor/60">
+      <ProofViewButton proof={proof} title={title} subtitle={subtitle} />
+    </div>
+  );
+};
 
 export const ViewMyRequests: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
 
-  // Get current unit ID from authenticated user
   const unitId = getCurrentUnitId();
+  const { data: requests, isLoading: loading } = useMyRequests(Boolean(unitId));
 
-  // Use TanStack Query
-  const { data: requests, isLoading: loading } = useMyRequests(unitId || 0);
-
-  // Redirect if not logged in
   if (!unitId) {
     addToast("Please login to access this page", "error");
     navigate('/');
@@ -154,6 +165,11 @@ export const ViewMyRequests: React.FC = () => {
                     <p className="text-xs text-textMuted mt-1">
                       Submitted: {new Date(request.createdAt).toLocaleDateString()}
                     </p>
+                    <RequestProofRow
+                      proof={request.proof}
+                      title="Transfer Proof"
+                      subtitle={request.memberName}
+                    />
                   </div>
                   <RequestStatusBadge status={request.status} timestamp={request.createdAt} />
                 </div>
@@ -181,6 +197,11 @@ export const ViewMyRequests: React.FC = () => {
                     <p className="text-xs text-textMuted mt-1">
                       Submitted: {new Date(request.createdAt).toLocaleDateString()}
                     </p>
+                    <RequestProofRow
+                      proof={request.proof}
+                      title="Member Info Change Proof"
+                      subtitle={request.memberName}
+                    />
                   </div>
                   <RequestStatusBadge status={request.status} timestamp={request.createdAt} />
                 </div>
@@ -208,6 +229,11 @@ export const ViewMyRequests: React.FC = () => {
                     <p className="text-xs text-textMuted mt-1">
                       Submitted: {new Date(request.createdAt).toLocaleDateString()}
                     </p>
+                    <RequestProofRow
+                      proof={request.proof}
+                      title="Officials Change Proof"
+                      subtitle={request.unitName}
+                    />
                   </div>
                   <RequestStatusBadge status={request.status} timestamp={request.createdAt} />
                 </div>
@@ -237,6 +263,11 @@ export const ViewMyRequests: React.FC = () => {
                     <p className="text-xs text-textMuted mt-1">
                       Submitted: {new Date(request.createdAt).toLocaleDateString()}
                     </p>
+                    <RequestProofRow
+                      proof={request.proof}
+                      title="Councilor Change Proof"
+                      subtitle={request.unitName}
+                    />
                   </div>
                   <RequestStatusBadge status={request.status} timestamp={request.createdAt} />
                 </div>
@@ -264,6 +295,11 @@ export const ViewMyRequests: React.FC = () => {
                     <p className="text-xs text-textMuted mt-1">
                       Submitted: {new Date(request.createdAt).toLocaleDateString()}
                     </p>
+                    <RequestProofRow
+                      proof={request.proof}
+                      title="Member Add Proof"
+                      subtitle={request.name}
+                    />
                   </div>
                   <RequestStatusBadge status={request.status} timestamp={request.createdAt} />
                 </div>

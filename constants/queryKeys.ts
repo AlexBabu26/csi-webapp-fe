@@ -39,7 +39,7 @@ export const queryKeys = {
     councilors: () => [...queryKeys.requests.all, 'councilors'] as const,
     memberAdd: () => [...queryKeys.requests.all, 'memberAdd'] as const,
     archivedMemberConcern: () => [...queryKeys.requests.all, 'archivedMemberConcern'] as const,
-    myRequests: (unitId: number) => [...queryKeys.requests.all, 'my', unitId] as const,
+    myRequests: () => [...queryKeys.requests.all, 'my'] as const,
     transferDestinations: () => [...queryKeys.requests.all, 'transferDestinations'] as const,
   },
   unitArchived: {
