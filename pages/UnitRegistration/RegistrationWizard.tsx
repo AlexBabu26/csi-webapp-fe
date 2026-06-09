@@ -46,7 +46,7 @@ export const RegistrationWizard: React.FC = () => {
     }
     const step = statusToStep(formData.registration_status);
     if (step > 3 && membersMissingLocation(formData.unit_members)) {
-      navigate('/unit/update-locations', { replace: true });
+      setActiveStep(3);
       return;
     }
     setActiveStep(step);

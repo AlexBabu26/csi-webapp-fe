@@ -94,6 +94,10 @@ import {
   DistrictOfficialCreate,
   DistrictOfficialUpdate,
   ConferenceOfficialView,
+  MasterCountry,
+  MasterState,
+  MasterStateSummary,
+  MasterCity,
 } from '../types';
 import { httpGet, httpPost, httpPut, httpDelete, httpPostFormData } from './http';
 
@@ -103,6 +107,28 @@ class ApiService {
   // -------------------------
   healthCheck() {
     return httpGet<{ status: string }>('/health');
+  }
+
+  async getMasterCountries(search?: string): Promise<MasterCountry[]> {
+    const query: Record<string, string | number> = { limit: 200 };
+    if (search?.trim()) query.search = search.trim();
+    return httpGet<MasterCountry[]>('/master/countries', { query });
+  }
+
+  async getMasterStates(countryId: number, search?: string): Promise<MasterState[]> {
+    const query: Record<string, string | number> = { country_id: countryId, limit: 200 };
+    if (search?.trim()) query.search = search.trim();
+    return httpGet<MasterState[]>('/master/states', { query });
+  }
+
+  async getMasterStateSummary(stateId: number): Promise<MasterStateSummary> {
+    return httpGet<MasterStateSummary>(`/master/states/${stateId}/summary`);
+  }
+
+  async getMasterCities(stateId: number, search?: string): Promise<MasterCity[]> {
+    const query: Record<string, string | number> = { state_id: stateId, limit: 100 };
+    if (search?.trim()) query.search = search.trim();
+    return httpGet<MasterCity[]>('/master/cities', { query });
   }
 
   // Helper to get token from localStorage
@@ -1083,6 +1109,12 @@ class ApiService {
       qualification: string;
       blood_group: string;
       residence_location?: ResidenceLocation;
+      residence_state_id?: number;
+      residence_city_id?: number;
+      residence_state_name?: string;
+      residence_city_name?: string;
+      residence_country_name?: string;
+      residence_country_id?: number;
     }
 
     const query: Record<string, string | number> = { page: 1, page_size: 1000 };
@@ -1106,6 +1138,12 @@ class ApiService {
       qualification: m.qualification || undefined,
       bloodGroup: m.blood_group || undefined,
       residenceLocation: m.residence_location || undefined,
+      residenceStateId: m.residence_state_id || undefined,
+      residenceCityId: m.residence_city_id || undefined,
+      residenceStateName: m.residence_state_name || undefined,
+      residenceCityName: m.residence_city_name || undefined,
+      residenceCountryName: m.residence_country_name || undefined,
+      residenceCountryId: m.residence_country_id || undefined,
       unitId: m.registered_user_id,
       unitName: m.unit_name,
       isArchived: false,

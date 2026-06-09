@@ -1,16 +1,23 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Button, Skeleton } from '../../../components/ui';
 import { UserPlus, Trash2, Pencil } from 'lucide-react';
 import { ArchivedMembersSection } from '../../../components/ArchivedMembersSection';
 import { useRecentArchivedMembers } from '../../../hooks/queries';
+import { UnitApplicationForm, UnitRegistrationMember } from '../../../types';
+const MemberResidenceFields = lazy(() =>
+  import('../../../components/MemberResidenceFields').then((module) => ({
+    default: module.MemberResidenceFields,
+  })),
+);
 import {
-  UnitApplicationForm,
-  UnitRegistrationMember,
-  ResidenceLocation,
-  RESIDENCE_LOCATION_OPTIONS,
-  getResidenceLocationLabel,
-} from '../../../types';
+  ResidenceFormValue,
+  buildResidencePayload,
+  getMemberResidenceLabel,
+  isResidenceComplete,
+  parseResidenceFormValue,
+  validateResidenceFormValue,
+} from '../../../utils/memberResidence';
 import {
   useAddUnitMember,
   useUpdateUnitMember,
@@ -36,7 +43,7 @@ const emptyMemberForm = {
   dob: '',
   qualification: '',
   blood_group: '',
-  residence_location: '' as ResidenceLocation | '',
+  residence: { livesInKerala: null, countryId: null, stateId: null, cityId: null } as ResidenceFormValue,
 };
 
 const inputClass =
@@ -57,10 +64,12 @@ export const MembersStep: React.FC<MembersStepProps> = ({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [addFormError, setAddFormError] = useState('');
   const [continueError, setContinueError] = useState('');
-  const [savingLocationId, setSavingLocationId] = useState<number | null>(null);
   const [savingBloodGroupId, setSavingBloodGroupId] = useState<number | null>(null);
   const [savingPhoneId, setSavingPhoneId] = useState<number | null>(null);
   const [savingQualificationId, setSavingQualificationId] = useState<number | null>(null);
+  const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
+  const [locationDrafts, setLocationDrafts] = useState<Record<number, ResidenceFormValue>>({});
+  const [savingLocationId, setSavingLocationId] = useState<number | null>(null);
   const [inlineFieldError, setInlineFieldError] = useState<string | null>(null);
 
   const {
@@ -74,7 +83,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
   const submitMembers = useSubmitUnitMembers();
 
   const members = formData.unit_members;
-  const missingLocationCount = members.filter((m) => !m.residence_location).length;
+  const missingLocationCount = members.filter((m) => !isResidenceComplete(m)).length;
   const missingBloodGroupCount = members.filter((m) => !m.blood_group).length;
 
   const resetForm = () => {
@@ -86,8 +95,9 @@ export const MembersStep: React.FC<MembersStepProps> = ({
   const handleAddOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberForm.name.trim() || !memberForm.dob || !memberForm.number.match(/^[6-9]\d{9}$/)) return;
-    if (!memberForm.residence_location) {
-      setAddFormError('Please select a living location.');
+    const residenceError = validateResidenceFormValue(memberForm.residence);
+    if (residenceError) {
+      setAddFormError(residenceError);
       return;
     }
     if (!memberForm.blood_group) {
@@ -103,7 +113,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
       number: memberForm.number,
       qualification: memberForm.qualification || undefined,
       blood_group: memberForm.blood_group,
-      residence_location: memberForm.residence_location,
+      ...buildResidencePayload(memberForm.residence),
     };
 
     if (editingId) {
@@ -123,14 +133,14 @@ export const MembersStep: React.FC<MembersStepProps> = ({
       dob: member.dob || '',
       qualification: member.qualification || '',
       blood_group: member.blood_group || '',
-      residence_location: member.residence_location || '',
+      residence: parseResidenceFormValue(member),
     });
     setAddFormError('');
   };
 
   const handleContinue = async () => {
     if (members.length === 0) return;
-    if (members.some((member) => !member.residence_location)) {
+    if (members.some((member) => !isResidenceComplete(member))) {
       setContinueError('Set the living location for every member before continuing.');
       return;
     }
@@ -141,19 +151,6 @@ export const MembersStep: React.FC<MembersStepProps> = ({
     setContinueError('');
     await submitMembers.mutateAsync();
     onComplete();
-  };
-
-  const handleInlineLocationUpdate = async (memberId: number, value: ResidenceLocation) => {
-    setSavingLocationId(memberId);
-    setContinueError('');
-    try {
-      await updateMember.mutateAsync({
-        memberId,
-        payload: { residence_location: value },
-      });
-    } finally {
-      setSavingLocationId(null);
-    }
   };
 
   const handleInlineBloodGroupUpdate = async (memberId: number, value: string) => {
@@ -214,6 +211,49 @@ export const MembersStep: React.FC<MembersStepProps> = ({
       });
     } finally {
       setSavingQualificationId(null);
+    }
+  };
+
+  const getLocationDraft = (member: UnitRegistrationMember): ResidenceFormValue =>
+    locationDrafts[member.id] ?? parseResidenceFormValue(member);
+
+  const openLocationEditor = (member: UnitRegistrationMember) => {
+    setEditingLocationId(member.id);
+    setLocationDrafts((prev) => ({
+      ...prev,
+      [member.id]: prev[member.id] ?? parseResidenceFormValue(member),
+    }));
+    setInlineFieldError(null);
+  };
+
+  const closeLocationEditor = (memberId: number) => {
+    setEditingLocationId((current) => (current === memberId ? null : current));
+    setLocationDrafts((prev) => {
+      const next = { ...prev };
+      delete next[memberId];
+      return next;
+    });
+  };
+
+  const handleInlineLocationSave = async (member: UnitRegistrationMember) => {
+    const draft = getLocationDraft(member);
+    const validationError = validateResidenceFormValue(draft);
+    if (validationError) {
+      setInlineFieldError(validationError);
+      return;
+    }
+
+    setSavingLocationId(member.id);
+    setContinueError('');
+    setInlineFieldError(null);
+    try {
+      await updateMember.mutateAsync({
+        memberId: member.id,
+        payload: buildResidencePayload(draft),
+      });
+      closeLocationEditor(member.id);
+    } finally {
+      setSavingLocationId(null);
     }
   };
 
@@ -335,22 +375,12 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-textDark mb-1.5">Living Location *</label>
-                <select
-                  value={memberForm.residence_location}
-                  onChange={(e) =>
-                    setMemberForm({ ...memberForm, residence_location: e.target.value as ResidenceLocation | '' })
-                  }
-                  className={`${inputClass} bg-white`}
-                  required
-                >
-                  <option value="">Select living location</option>
-                  {RESIDENCE_LOCATION_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <Suspense fallback={<p className="text-sm text-textMuted">Loading location fields...</p>}>
+                  <MemberResidenceFields
+                    value={memberForm.residence}
+                    onChange={(residence) => setMemberForm({ ...memberForm, residence })}
+                  />
+                </Suspense>
               </div>
               {addFormError && (
                 <div className="sm:col-span-2 bg-danger/10 border border-danger/30 text-danger text-sm rounded-md px-3 py-2">
@@ -388,9 +418,9 @@ export const MembersStep: React.FC<MembersStepProps> = ({
             </div>
             {members.length > 0 && (
               <p className="text-sm text-textMuted mb-4">
-                You can update phone number and qualification on this page. Blood group can also be edited
-                here if it was not added previously. For other changes such as name or unit changes, please
-                use Request Change.
+                You can update phone number, qualification, and living location directly in the table below.
+                Blood group can also be edited here if it was not added previously. For other changes such as
+                name, date of birth, or unit transfer, please use Request Change.
               </p>
             )}
             {inlineFieldError && (
@@ -419,142 +449,184 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                   </thead>
                   <tbody>
                     {members.map((m) => (
-                      <tr key={m.id} className="border-b border-borderColor/50 last:border-0">
-                        <td className="py-2.5 pr-3 font-medium max-w-[180px] truncate" title={m.name}>
-                          {m.name}
-                        </td>
-                        <td className="py-2.5 pr-3">{m.gender}</td>
-                        <td className="py-2.5 pr-3">
-                          <input
-                            type="tel"
-                            key={`phone-${m.id}-${m.number ?? ''}`}
-                            defaultValue={m.number || ''}
-                            disabled={savingPhoneId === m.id || updateMember.isPending}
-                            onBlur={(e) => handleInlinePhoneSave(m.id, e.target.value, m.number || '')}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.currentTarget.blur();
+                      <React.Fragment key={m.id}>
+                        <tr className="border-b border-borderColor/50 last:border-0">
+                          <td className="py-2.5 pr-3 font-medium max-w-[180px] truncate" title={m.name}>
+                            {m.name}
+                          </td>
+                          <td className="py-2.5 pr-3">{m.gender}</td>
+                          <td className="py-2.5 pr-3">
+                            <input
+                              type="tel"
+                              key={`phone-${m.id}-${m.number ?? ''}`}
+                              defaultValue={m.number || ''}
+                              disabled={savingPhoneId === m.id || updateMember.isPending}
+                              onBlur={(e) => handleInlinePhoneSave(m.id, e.target.value, m.number || '')}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                              aria-label={`Phone for ${m.name}`}
+                              className={inlineInputClass(savingPhoneId === m.id)}
+                            />
+                          </td>
+                          <td className="py-2.5 pr-3 whitespace-nowrap">{m.dob}</td>
+                          <td className="py-2.5 pr-3">
+                            <input
+                              type="text"
+                              key={`qualification-${m.id}-${m.qualification ?? ''}`}
+                              defaultValue={m.qualification || ''}
+                              disabled={savingQualificationId === m.id || updateMember.isPending}
+                              onBlur={(e) =>
+                                handleInlineQualificationSave(
+                                  m.id,
+                                  e.target.value,
+                                  (m.qualification || '').trim(),
+                                )
                               }
-                            }}
-                            aria-label={`Phone for ${m.name}`}
-                            className={inlineInputClass(savingPhoneId === m.id)}
-                          />
-                        </td>
-                        <td className="py-2.5 pr-3 whitespace-nowrap">{m.dob}</td>
-                        <td className="py-2.5 pr-3">
-                          <input
-                            type="text"
-                            key={`qualification-${m.id}-${m.qualification ?? ''}`}
-                            defaultValue={m.qualification || ''}
-                            disabled={savingQualificationId === m.id || updateMember.isPending}
-                            onBlur={(e) =>
-                              handleInlineQualificationSave(
-                                m.id,
-                                e.target.value,
-                                (m.qualification || '').trim(),
-                              )
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.currentTarget.blur();
-                              }
-                            }}
-                            placeholder="Not set"
-                            aria-label={`Qualification for ${m.name}`}
-                            className={inlineInputClass(savingQualificationId === m.id)}
-                          />
-                        </td>
-                        <td className="py-2.5 pr-3">
-                          {!m.blood_group ? (
-                            <select
-                              value=""
-                              disabled={savingBloodGroupId === m.id || updateMember.isPending}
-                              onChange={(e) => handleInlineBloodGroupUpdate(m.id, e.target.value)}
-                              aria-label={`Blood group for ${m.name}`}
-                              className={inlineSelectClass(savingBloodGroupId === m.id, true)}
-                            >
-                              <option value="">Not set</option>
-                              {BLOOD_GROUPS.map((bg) => (
-                                <option key={bg} value={bg}>
-                                  {bg}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="whitespace-nowrap font-medium">{m.blood_group}</span>
-                          )}
-                        </td>
-                        <td className="py-2.5 pr-3">
-                          {!m.residence_location ? (
-                            <select
-                              value=""
-                              disabled={savingLocationId === m.id || updateMember.isPending}
-                              onChange={(e) =>
-                                handleInlineLocationUpdate(m.id, e.target.value as ResidenceLocation)
-                              }
-                              aria-label={`Living location for ${m.name}`}
-                              className={`w-full min-w-[150px] px-2 py-1.5 border rounded-md bg-white text-sm ${
-                                savingLocationId === m.id
-                                  ? 'border-borderColor text-textMuted'
-                                  : 'border-danger/40 text-danger focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary'
-                              }`}
-                            >
-                              <option value="">Not set</option>
-                              {RESIDENCE_LOCATION_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="whitespace-nowrap">
-                              {getResidenceLocationLabel(m.residence_location)}
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2.5">
-                          <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                            {isRenewal ? (
-                              <Link
-                                to="/unit/change-request"
-                                state={{
-                                  memberId: m.id,
-                                  memberSnapshot: {
-                                    id: m.id,
-                                    name: m.name,
-                                    gender: m.gender,
-                                    number: m.number,
-                                    dob: m.dob,
-                                    qualification: m.qualification,
-                                    blood_group: m.blood_group,
-                                    residence_location: m.residence_location,
-                                  },
-                                }}
-                                className="text-xs font-medium text-primary hover:underline"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur();
+                                }
+                              }}
+                              placeholder="Not set"
+                              aria-label={`Qualification for ${m.name}`}
+                              className={inlineInputClass(savingQualificationId === m.id)}
+                            />
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            {!m.blood_group ? (
+                              <select
+                                value=""
+                                disabled={savingBloodGroupId === m.id || updateMember.isPending}
+                                onChange={(e) => handleInlineBloodGroupUpdate(m.id, e.target.value)}
+                                aria-label={`Blood group for ${m.name}`}
+                                className={inlineSelectClass(savingBloodGroupId === m.id, true)}
                               >
-                                Request change
-                              </Link>
+                                <option value="">Not set</option>
+                                {BLOOD_GROUPS.map((bg) => (
+                                  <option key={bg} value={bg}>
+                                    {bg}
+                                  </option>
+                                ))}
+                              </select>
                             ) : (
+                              <span className="whitespace-nowrap font-medium">{m.blood_group}</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 pr-3">
+                            <div className="space-y-1">
+                              <span
+                                className={`block whitespace-nowrap ${
+                                  !isResidenceComplete(m) ? 'text-danger' : 'text-textDark'
+                                }`}
+                              >
+                                {isResidenceComplete(m) ? getMemberResidenceLabel(m) : 'Not set'}
+                              </span>
                               <button
                                 type="button"
-                                onClick={() => startEdit(m)}
-                                className="p-1.5 text-primary hover:bg-primary/10 rounded"
-                                aria-label={`Edit ${m.name}`}
+                                onClick={() =>
+                                  editingLocationId === m.id
+                                    ? closeLocationEditor(m.id)
+                                    : openLocationEditor(m)
+                                }
+                                className={`text-xs font-medium hover:underline whitespace-nowrap ${
+                                  !isResidenceComplete(m) ? 'text-danger' : 'text-primary'
+                                }`}
                               >
-                                <Pencil className="w-4 h-4" />
+                                {editingLocationId === m.id
+                                  ? 'Close'
+                                  : isResidenceComplete(m)
+                                    ? 'Change location'
+                                    : 'Set location'}
                               </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => deleteMember.mutate(m.id)}
-                              className="p-1.5 text-danger hover:bg-danger/10 rounded"
-                              aria-label={`Remove ${m.name}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                            </div>
+                          </td>
+                          <td className="py-2.5">
+                            <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                              {isRenewal ? (
+                                <Link
+                                  to="/unit/change-request"
+                                  state={{
+                                    memberId: m.id,
+                                    memberSnapshot: {
+                                      id: m.id,
+                                      name: m.name,
+                                      gender: m.gender,
+                                      number: m.number,
+                                      dob: m.dob,
+                                      qualification: m.qualification,
+                                      blood_group: m.blood_group,
+                                      residence_location: m.residence_location,
+                                    },
+                                  }}
+                                  className="text-xs font-medium text-primary hover:underline"
+                                >
+                                  Request change
+                                </Link>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => startEdit(m)}
+                                  className="p-1.5 text-primary hover:bg-primary/10 rounded"
+                                  aria-label={`Edit ${m.name}`}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => deleteMember.mutate(m.id)}
+                                className="p-1.5 text-danger hover:bg-danger/10 rounded"
+                                aria-label={`Remove ${m.name}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {editingLocationId === m.id && (
+                          <tr className="border-b border-borderColor/50 bg-bgLight/60">
+                            <td colSpan={8} className="py-4 px-3">
+                              <div className="max-w-3xl space-y-4">
+                                <p className="text-sm font-medium text-textDark">
+                                  Living location for {m.name}
+                                </p>
+                                <Suspense fallback={<p className="text-sm text-textMuted">Loading location fields...</p>}>
+                                  <MemberResidenceFields
+                                    value={getLocationDraft(m)}
+                                    onChange={(residence) =>
+                                      setLocationDrafts((prev) => ({
+                                        ...prev,
+                                        [m.id]: residence,
+                                      }))
+                                    }
+                                    disabled={savingLocationId === m.id || updateMember.isPending}
+                                  />
+                                </Suspense>
+                                <div className="flex flex-wrap gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleInlineLocationSave(m)}
+                                    isLoading={savingLocationId === m.id}
+                                  >
+                                    Save location
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => closeLocationEditor(m.id)}
+                                    disabled={savingLocationId === m.id}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     ))}
                   </tbody>
                 </table>

@@ -1,39 +1,51 @@
-import React, { useMemo, useState } from 'react';
+import React, { Suspense, lazy, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, AlertCircle } from 'lucide-react';
 import { Card, Button } from '../../components/ui';
-import {
-  ResidenceLocation,
-  RESIDENCE_LOCATION_OPTIONS,
-  getResidenceLocationLabel,
-} from '../../types';
+const MemberResidenceFields = lazy(() =>
+  import('../../components/MemberResidenceFields').then((module) => ({
+    default: module.MemberResidenceFields,
+  })),
+);
 import { useApplicationForm, useUpdateUnitMember } from '../../hooks/queries';
 import { resolvePostLoginPath } from '../../services/authRouting';
 import { getAuthUser } from '../../services/auth';
+import {
+  ResidenceFormValue,
+  buildResidencePayload,
+  getMemberResidenceLabel,
+  isResidenceComplete,
+  parseResidenceFormValue,
+  validateResidenceFormValue,
+} from '../../utils/memberResidence';
 
 export const UpdateMemberLocations: React.FC = () => {
   const navigate = useNavigate();
   const { data: formData, isLoading, refetch } = useApplicationForm();
   const updateMember = useUpdateUnitMember();
-  const [drafts, setDrafts] = useState<Record<number, ResidenceLocation | ''>>({});
+  const [drafts, setDrafts] = useState<Record<number, ResidenceFormValue>>({});
   const [formError, setFormError] = useState('');
 
   const membersNeedingLocation = useMemo(
-    () => (formData?.unit_members ?? []).filter((member) => !member.residence_location),
+    () => (formData?.unit_members ?? []).filter((member) => !isResidenceComplete(member)),
     [formData?.unit_members],
   );
 
+  const getDraft = (memberId: number) =>
+    drafts[memberId] ?? { livesInKerala: null, countryId: null, stateId: null, cityId: null };
+
   const handleSaveMember = async (memberId: number) => {
-    const residenceLocation = drafts[memberId];
-    if (!residenceLocation) {
-      setFormError('Please select a living location for each member.');
+    const draft = getDraft(memberId);
+    const validationError = validateResidenceFormValue(draft);
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
 
     setFormError('');
     await updateMember.mutateAsync({
       memberId,
-      payload: { residence_location: residenceLocation },
+      payload: buildResidencePayload(draft),
     });
     await refetch();
     setDrafts((prev) => {
@@ -92,41 +104,41 @@ export const UpdateMemberLocations: React.FC = () => {
           </div>
           <h1 className="text-2xl font-bold text-textDark">Update Member Living Locations</h1>
           <p className="mt-2 text-sm text-textMuted">
-            Set the living location for each member. This information is required before you can continue.
+            Tell us whether each member lives in Kerala. If not, select their current country and city.
           </p>
         </div>
 
         <Card>
-          <div className="space-y-4">
+          <div className="space-y-6">
             {membersNeedingLocation.map((member) => (
               <div key={member.id} className="border border-borderColor rounded-lg p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-textDark">{member.name}</p>
-                    <p className="text-sm text-textMuted">
-                      {member.number ? `+91 ${member.number}` : 'No phone'} · Current: {getResidenceLocationLabel(member.residence_location)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-                    <select
-                      value={drafts[member.id] ?? ''}
-                      onChange={(e) => setDrafts((prev) => ({ ...prev, [member.id]: e.target.value as ResidenceLocation | '' }))}
-                      className="px-3 py-2 border border-borderColor rounded-md bg-white text-sm min-w-[220px]"
-                    >
-                      <option value="">Select living location</option>
-                      {RESIDENCE_LOCATION_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
-                      ))}
-                    </select>
-                    <Button
-                      size="sm"
-                      onClick={() => handleSaveMember(member.id)}
-                      isLoading={updateMember.isPending}
-                      disabled={!drafts[member.id]}
-                    >
-                      Save
-                    </Button>
-                  </div>
+                <div className="mb-4">
+                  <p className="font-medium text-textDark">{member.name}</p>
+                  <p className="text-sm text-textMuted">
+                    {member.number ? `+91 ${member.number}` : 'No phone'} · Current: {getMemberResidenceLabel(member)}
+                  </p>
+                </div>
+
+                <Suspense fallback={<p className="text-sm text-textMuted">Loading location fields...</p>}>
+                  <MemberResidenceFields
+                    value={drafts[member.id] ?? parseResidenceFormValue(member)}
+                    onChange={(nextValue) =>
+                      setDrafts((prev) => ({
+                        ...prev,
+                        [member.id]: nextValue,
+                      }))
+                    }
+                  />
+                </Suspense>
+
+                <div className="mt-4 flex justify-end">
+                  <Button
+                    size="sm"
+                    onClick={() => handleSaveMember(member.id)}
+                    isLoading={updateMember.isPending}
+                  >
+                    Save
+                  </Button>
                 </div>
               </div>
             ))}

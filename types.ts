@@ -473,8 +473,14 @@ export const RESIDENCE_LOCATION_OPTIONS: { value: ResidenceLocation; label: stri
   { value: 'OUTSIDE_INDIA', label: 'Outside India' },
 ];
 
-export const getResidenceLocationLabel = (value?: ResidenceLocation | string | null): string => {
+export const getResidenceLocationLabel = (
+  value?: ResidenceLocation | string | null,
+  country?: string | null,
+  city?: string | null,
+): string => {
   if (!value) return 'Not set';
+  if (value === 'WITHIN_KERALA') return 'Lives in Kerala';
+  if (country && city) return `${city}, ${country}`;
   const option = RESIDENCE_LOCATION_OPTIONS.find((item) => item.value === value);
   return option?.label ?? 'Not set';
 };
@@ -489,6 +495,12 @@ export interface UnitMember {
   qualification?: string;
   bloodGroup?: string;
   residenceLocation?: ResidenceLocation;
+  residenceStateId?: number;
+  residenceCityId?: number;
+  residenceStateName?: string;
+  residenceCityName?: string;
+  residenceCountryName?: string;
+  residenceCountryId?: number;
   unitId: number;
   unitName: string;
   isArchived: boolean;
@@ -544,6 +556,39 @@ export interface UnitRegistrationMember {
   qualification?: string;
   blood_group?: string;
   residence_location?: ResidenceLocation;
+  residence_state_id?: number | null;
+  residence_city_id?: number | null;
+  residence_state_name?: string | null;
+  residence_city_name?: string | null;
+  residence_country_name?: string | null;
+  residence_country_id?: number | null;
+}
+
+export interface MasterCountry {
+  id: number;
+  name: string;
+  iso_code?: string | null;
+}
+
+export interface MasterState {
+  id: number;
+  country_id: number;
+  name: string;
+}
+
+export interface MasterStateSummary {
+  id: number;
+  country_id: number;
+  name: string;
+  city_count: number;
+  city_required: boolean;
+}
+
+export interface MasterCity {
+  id: number;
+  country_id: number;
+  state_id?: number | null;
+  name: string;
 }
 
 export interface UnitRegistrationOfficial {
@@ -623,6 +668,8 @@ export interface UnitMemberPayload {
   qualification?: string;
   blood_group?: string;
   residence_location?: ResidenceLocation;
+  residence_state_id?: number | null;
+  residence_city_id?: number | null;
 }
 
 export interface UnitOfficialPayload {

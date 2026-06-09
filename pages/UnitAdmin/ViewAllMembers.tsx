@@ -4,7 +4,8 @@ import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Download, Users, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
-import { UnitMember, ResidenceLocation, RESIDENCE_LOCATION_OPTIONS, getResidenceLocationLabel } from '../../types';
+import { UnitMember, ResidenceLocation, RESIDENCE_LOCATION_OPTIONS } from '../../types';
+import { getMemberResidenceLabel } from '../../utils/memberResidence';
 import { useMembers } from '../../hooks/queries';
 
 export const ViewAllMembers: React.FC = () => {
@@ -97,7 +98,16 @@ export const ViewAllMembers: React.FC = () => {
         accessorKey: 'residenceLocation',
         header: 'Living Location',
         cell: ({ row }) => (
-          <span className="text-textMuted text-sm">{getResidenceLocationLabel(row.original.residenceLocation)}</span>
+          <span className="text-textMuted text-sm">
+            {getMemberResidenceLabel({
+              residence_location: row.original.residenceLocation,
+              residence_state_id: row.original.residenceStateId,
+              residence_city_id: row.original.residenceCityId,
+              residence_state_name: row.original.residenceStateName,
+              residence_city_name: row.original.residenceCityName,
+              residence_country_name: row.original.residenceCountryName,
+            })}
+          </span>
         ),
         size: 180,
       },

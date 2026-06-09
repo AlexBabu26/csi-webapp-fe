@@ -1,8 +1,14 @@
 import { api } from './api';
 
+import { isResidenceComplete } from '../utils/memberResidence';
+
 export const membersMissingLocation = (
-  members: Array<{ residence_location?: string | null }> = [],
-) => members.some((member) => !member.residence_location);
+  members: Array<{
+    residence_location?: string | null;
+    residence_state_id?: number | null;
+    residence_city_id?: number | null;
+  }> = [],
+) => members.some((member) => !isResidenceComplete(member));
 
 /**
  * Resolve post-login navigation path based on user type.
