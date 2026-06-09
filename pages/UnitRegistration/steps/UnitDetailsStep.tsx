@@ -62,7 +62,7 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
       <form id="unit-details-form" onSubmit={handleSubmit} className="space-y-4">
         {isRenewal && (
           <RenewalChangeRequestNotice
-            requestPath="/unit/submit-officials"
+            requestPath="/unit/change-request"
             requestLabel="Officials Change request"
           />
         )}

@@ -767,6 +767,81 @@ export interface MemberAddRequest {
   proof?: string;
 }
 
+export interface ArchivedMemberConcernRequest {
+  id: number;
+  createdAt: string;
+  archivedMemberId: number;
+  archivedMemberName: string;
+  archiveYear?: string;
+  unitName: string;
+  concernText: string;
+  adminResponse?: string;
+  status: RequestStatus;
+}
+
+export interface ArchivedMemberConcernSubmission {
+  archivedUnitMemberId: number;
+  concernText: string;
+}
+
+export interface RecentArchivedMembersSummary {
+  total: number;
+  male: number;
+  female: number;
+}
+
+export interface RecentArchivedMember {
+  id: number;
+  registered_user_id: number;
+  name: string;
+  gender?: string;
+  dob: string;
+  number: string;
+  qualification?: string;
+  blood_group?: string;
+  archived_at: string;
+  archive_year?: string;
+  archive_reason?: string;
+}
+
+export interface ArchivedMemberConcernStatus {
+  status: RequestStatus;
+  admin_response?: string | null;
+}
+
+export interface RecentArchivedMembersResponse {
+  archive_year: string | null;
+  archive_reason: string | null;
+  summary: RecentArchivedMembersSummary;
+  members: RecentArchivedMember[];
+  pending_concern_member_ids: number[];
+  member_concerns: Record<string, ArchivedMemberConcernStatus>;
+}
+
+export interface WizardReturnState {
+  returnTo?: string;
+  returnLabel?: string;
+  wizardStep?: number;
+}
+
+export interface ChangeRequestMemberSnapshot {
+  id: number;
+  name: string;
+  gender?: string;
+  number?: string;
+  dob?: string;
+  qualification?: string;
+  blood_group?: string;
+  residence_location?: ResidenceLocation;
+}
+
+export interface ChangeRequestNavigationState {
+  memberId?: number;
+  councilorId?: number;
+  fromWizard?: boolean;
+  memberSnapshot?: ChangeRequestMemberSnapshot;
+}
+
 export interface UnitStats {
   totalDistricts: number;
   completedDistricts: number;

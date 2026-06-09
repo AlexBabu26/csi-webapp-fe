@@ -55,6 +55,16 @@ export const useMemberAddRequests = () => {
   });
 };
 
+export const useArchivedMemberConcernRequests = () => {
+  return useQuery({
+    queryKey: queryKeys.requests.archivedMemberConcern(),
+    queryFn: async () => {
+      const response = await api.getArchivedMemberConcernRequests();
+      return response.data;
+    },
+  });
+};
+
 export const useMyRequests = (unitId: number) => {
   return useQuery({
     queryKey: queryKeys.requests.myRequests(unitId),
@@ -68,7 +78,13 @@ export const useMyRequests = (unitId: number) => {
 
 // ============ MUTATIONS ============
 
-type RequestType = 'Transfer' | 'Member Info Change' | 'Officials Change' | 'Councilor Change' | 'Member Add';
+type RequestType =
+  | 'Transfer'
+  | 'Member Info Change'
+  | 'Officials Change'
+  | 'Councilor Change'
+  | 'Member Add'
+  | 'Archived Member Concern';
 
 // Get the query key for a request type
 const getQueryKeyForRequestType = (requestType: RequestType) => {
@@ -78,6 +94,7 @@ const getQueryKeyForRequestType = (requestType: RequestType) => {
     'Officials Change': queryKeys.requests.officials(),
     'Councilor Change': queryKeys.requests.councilors(),
     'Member Add': queryKeys.requests.memberAdd(),
+    'Archived Member Concern': queryKeys.requests.archivedMemberConcern(),
   };
   return queryKeyMap[requestType];
 };

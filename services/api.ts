@@ -26,6 +26,9 @@ import {
   OfficialsChangeRequest,
   CouncilorChangeRequest,
   MemberAddRequest,
+  ArchivedMemberConcernRequest,
+  ArchivedMemberConcernSubmission,
+  RecentArchivedMembersResponse,
   UnitStats,
   MasterListUnit,
   DistrictWiseData,
@@ -1581,6 +1584,7 @@ class ApiService {
       'Officials Change': 'officials-change-requests',
       'Councilor Change': 'councilor-change-requests',
       'Member Add': 'member-add-requests',
+      'Archived Member Concern': 'archived-member-concern-requests',
     };
     return typeMap[type] || type.toLowerCase().replace(/\s+/g, '-') + 's';
   }
@@ -1687,6 +1691,28 @@ class ApiService {
     if (!token) throw new Error('Authentication required');
     const data = await httpPost<any>('/admin/units/bulk-archive', payload, { token });
     return { data, message: 'Members archived successfully', status: 200 };
+  }
+
+  // GET /admin/units/archived-members/export - Export archived members (Excel or CSV)
+  async exportArchivedMembers(options?: {
+    format?: 'xlsx' | 'csv';
+    archiveYear?: string;
+  }): Promise<Blob> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+
+    const query: Record<string, string> = {
+      format: options?.format ?? 'xlsx',
+    };
+    if (options?.archiveYear && options.archiveYear !== 'all') {
+      query.archive_year = options.archiveYear;
+    }
+
+    return httpGet<Blob>('/admin/units/archived-members/export', {
+      token,
+      query,
+      asBlob: true,
+    });
   }
 
   // GET /admin/units/export/{export_type} - Export various unit data
@@ -1949,6 +1975,73 @@ class ApiService {
     return httpGet<UnitFinishRegistration>('/units/finish-registration', { token });
   }
 
+  async getRecentArchivedMembers(): Promise<RecentArchivedMembersResponse> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet<RecentArchivedMembersResponse>('/units/archived-members/recent', { token });
+  }
+
+  async submitArchivedMemberConcern(
+    payload: ArchivedMemberConcernSubmission,
+  ): Promise<ApiResponse<boolean>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost<any>(
+      '/units/archived-member-concern-request',
+      {
+        archived_unit_member_id: payload.archivedUnitMemberId,
+        concern_text: payload.concernText,
+      },
+      { token },
+    );
+    return {
+      data: true,
+      message: 'Concern submitted successfully. Admin will review and respond.',
+      status: 200,
+    };
+  }
+
+  async getArchivedMemberConcernRequests(): Promise<ApiResponse<ArchivedMemberConcernRequest[]>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+
+    interface ApiConcern {
+      id: number;
+      archived_unit_member_id: number;
+      registered_user_id: number;
+      concern_text: string;
+      admin_response?: string;
+      status: string;
+      created_at: string;
+      updated_at: string;
+      archived_member_name?: string;
+      unit_name?: string;
+      archive_year?: string;
+    }
+
+    const rawResponse = await httpGet<ApiConcern[] | { data?: ApiConcern[] }>(
+      '/admin/units/archived-member-concern-requests',
+      { token },
+    );
+    const rawData: ApiConcern[] = Array.isArray(rawResponse)
+      ? rawResponse
+      : rawResponse.data || [];
+
+    const data: ArchivedMemberConcernRequest[] = rawData.map((request) => ({
+      id: request.id,
+      createdAt: request.created_at,
+      archivedMemberId: request.archived_unit_member_id,
+      archivedMemberName: request.archived_member_name || `Member #${request.archived_unit_member_id}`,
+      archiveYear: request.archive_year,
+      unitName: request.unit_name || '',
+      concernText: request.concern_text,
+      adminResponse: request.admin_response,
+      status: request.status as RequestStatus,
+    }));
+
+    return { data, status: 200 };
+  }
+
 
   async completeDeclaration(): Promise<void> {
     const token = this.getToken();
@@ -2052,6 +2145,7 @@ class ApiService {
     officialsChanges: OfficialsChangeRequest[];
     councilorChanges: CouncilorChangeRequest[];
     memberAdds: MemberAddRequest[];
+    archivedMemberConcerns: ArchivedMemberConcernRequest[];
   }>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
@@ -2061,8 +2155,15 @@ class ApiService {
       officialsChanges: OfficialsChangeRequest[];
       councilorChanges: CouncilorChangeRequest[];
       memberAdds: MemberAddRequest[];
+      archivedMemberConcerns: ArchivedMemberConcernRequest[];
     }>(`/units/${unitId}/my-requests`, { token });
-    return { data, status: 200 };
+    return {
+      data: {
+        ...data,
+        archivedMemberConcerns: data.archivedMemberConcerns || [],
+      },
+      status: 200,
+    };
   }
 
   // ==================== KALAMELA API FUNCTIONS ====================

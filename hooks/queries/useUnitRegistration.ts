@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import {
@@ -6,6 +7,10 @@ import {
   UnitOfficialPayload,
 } from '../../types';
 import { useToast } from '../../components/Toast';
+import {
+  mapRegistrationCouncilors,
+  mapRegistrationMemberToUnitMember,
+} from '../../utils/unitMembers';
 
 export const unitRegistrationKeys = {
   all: ['unitRegistration'] as const,
@@ -23,6 +28,37 @@ export const useApplicationForm = (enabled = true) => {
     enabled,
     staleTime: 0,
   });
+};
+
+export const useActiveUnitMembers = (enabled = true) => {
+  const query = useApplicationForm(enabled);
+
+  const members = useMemo(() => {
+    if (!query.data) return [];
+    return query.data.unit_members.map((member) =>
+      mapRegistrationMemberToUnitMember(
+        member,
+        query.data.user_data.id,
+        query.data.user_data.unit_name ?? '',
+      ),
+    );
+  }, [query.data]);
+
+  const councilors = useMemo(() => {
+    if (!query.data) return [];
+    return mapRegistrationCouncilors(
+      query.data.unit_councilors,
+      query.data.unit_members,
+      query.data.user_data.id,
+      query.data.user_data.unit_name ?? '',
+    );
+  }, [query.data]);
+
+  return {
+    ...query,
+    members,
+    councilors,
+  };
 };
 
 export const useFinishRegistration = (enabled = false) => {

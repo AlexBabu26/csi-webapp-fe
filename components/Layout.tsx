@@ -93,6 +93,7 @@ const NAV_GROUPS: NavGroup[] = [
           { label: 'Official Changes', path: '/admin/requests/officials', icon: <Shield size={18} /> },
           { label: 'Councilor Changes', path: '/admin/requests/councilors', icon: <UserCheck size={18} /> },
           { label: 'Member Add Requests', path: '/admin/requests/member-add', icon: <UserPlus size={18} /> },
+          { label: 'Archive Concerns', path: '/admin/requests/archived-member-concerns', icon: <Archive size={18} /> },
         ],
       },
       {
@@ -157,8 +158,10 @@ const NAV_GROUPS: NavGroup[] = [
     roles: ['unit'],
     items: [
       { label: 'Registration', path: '/register/wizard', icon: <FileText size={18} /> },
+      { label: 'Archived Members', path: '/unit/archived-members', icon: <Archive size={18} /> },
       { label: 'Member Locations', path: '/unit/update-locations', icon: <MapPin size={18} /> },
       { label: 'My Requests', path: '/unit/my-requests', icon: <ArrowRightLeft size={18} /> },
+      { label: 'New Change Request', path: '/unit/change-request', icon: <FileText size={18} /> },
     ],
   },
   {

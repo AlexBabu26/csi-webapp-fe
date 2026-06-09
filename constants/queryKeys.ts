@@ -38,7 +38,12 @@ export const queryKeys = {
     officials: () => [...queryKeys.requests.all, 'officials'] as const,
     councilors: () => [...queryKeys.requests.all, 'councilors'] as const,
     memberAdd: () => [...queryKeys.requests.all, 'memberAdd'] as const,
+    archivedMemberConcern: () => [...queryKeys.requests.all, 'archivedMemberConcern'] as const,
     myRequests: (unitId: number) => [...queryKeys.requests.all, 'my', unitId] as const,
+  },
+  unitArchived: {
+    all: ['unitArchived'] as const,
+    recent: () => [...queryKeys.unitArchived.all, 'recent'] as const,
   },
 
   // Conference

@@ -102,7 +102,7 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({
       <form id="officials-form" onSubmit={handleSubmit} className="space-y-6">
         {isRenewal && (
           <RenewalChangeRequestNotice
-            requestPath="/unit/submit-officials"
+            requestPath="/unit/change-request"
             requestLabel="Officials Change request"
           />
         )}

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, Button } from '../../../components/ui';
+import { Card, Button, Skeleton } from '../../../components/ui';
 import { UserPlus, Trash2, Pencil } from 'lucide-react';
+import { ArchivedMembersSection } from '../../../components/ArchivedMembersSection';
+import { useRecentArchivedMembers } from '../../../hooks/queries';
 import {
   UnitApplicationForm,
   UnitRegistrationMember,
@@ -57,6 +59,14 @@ export const MembersStep: React.FC<MembersStepProps> = ({
   const [continueError, setContinueError] = useState('');
   const [savingLocationId, setSavingLocationId] = useState<number | null>(null);
   const [savingBloodGroupId, setSavingBloodGroupId] = useState<number | null>(null);
+  const [savingPhoneId, setSavingPhoneId] = useState<number | null>(null);
+  const [savingQualificationId, setSavingQualificationId] = useState<number | null>(null);
+  const [inlineFieldError, setInlineFieldError] = useState<string | null>(null);
+
+  const {
+    data: recentArchived,
+    isLoading: archivedLoading,
+  } = useRecentArchivedMembers();
 
   const addMember = useAddUnitMember();
   const updateMember = useUpdateUnitMember();
@@ -66,7 +76,6 @@ export const MembersStep: React.FC<MembersStepProps> = ({
   const members = formData.unit_members;
   const missingLocationCount = members.filter((m) => !m.residence_location).length;
   const missingBloodGroupCount = members.filter((m) => !m.blood_group).length;
-  const hasInlineUpdatesNeeded = missingLocationCount > 0 || missingBloodGroupCount > 0;
 
   const resetForm = () => {
     setMemberForm(emptyMemberForm);
@@ -150,6 +159,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
   const handleInlineBloodGroupUpdate = async (memberId: number, value: string) => {
     setSavingBloodGroupId(memberId);
     setContinueError('');
+    setInlineFieldError(null);
     try {
       await updateMember.mutateAsync({
         memberId,
@@ -159,6 +169,58 @@ export const MembersStep: React.FC<MembersStepProps> = ({
       setSavingBloodGroupId(null);
     }
   };
+
+  const handleInlinePhoneSave = async (
+    memberId: number,
+    rawValue: string,
+    currentValue: string,
+  ) => {
+    const normalized = rawValue.replace(/\D/g, '').slice(0, 10);
+    if (normalized === currentValue) return;
+
+    if (!/^[6-9]\d{9}$/.test(normalized)) {
+      setInlineFieldError('Enter a valid 10-digit phone number starting with 6–9.');
+      return;
+    }
+
+    setSavingPhoneId(memberId);
+    setContinueError('');
+    setInlineFieldError(null);
+    try {
+      await updateMember.mutateAsync({
+        memberId,
+        payload: { number: normalized },
+      });
+    } finally {
+      setSavingPhoneId(null);
+    }
+  };
+
+  const handleInlineQualificationSave = async (
+    memberId: number,
+    rawValue: string,
+    currentValue: string,
+  ) => {
+    const normalized = rawValue.trim();
+    if (normalized === currentValue) return;
+
+    setSavingQualificationId(memberId);
+    setContinueError('');
+    setInlineFieldError(null);
+    try {
+      await updateMember.mutateAsync({
+        memberId,
+        payload: { qualification: normalized },
+      });
+    } finally {
+      setSavingQualificationId(null);
+    }
+  };
+
+  const inlineInputClass = (isSaving: boolean) =>
+    `w-full min-w-[108px] px-2 py-1.5 border border-borderColor rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${
+      isSaving ? 'text-textMuted' : ''
+    }`;
 
   const inlineSelectClass = (isSaving: boolean, isMissing: boolean) =>
     `w-full min-w-[88px] px-2 py-1.5 border rounded-md bg-white text-sm ${
@@ -173,8 +235,17 @@ export const MembersStep: React.FC<MembersStepProps> = ({
     <div className="space-y-4">
       {isRenewal && (
         <RenewalChangeRequestNotice
-          requestPath="/unit/submit-member-info"
-          requestLabel="Member Info Change request"
+          requestPath="/unit/change-request"
+          requestLabel="Change Request"
+        />
+      )}
+
+      {archivedLoading && <Skeleton className="h-40 w-full" />}
+      {recentArchived && recentArchived.members.length > 0 && (
+        <ArchivedMembersSection
+          data={recentArchived}
+          variant="preview"
+          showRaiseConcern={false}
         />
       )}
 
@@ -189,8 +260,8 @@ export const MembersStep: React.FC<MembersStepProps> = ({
             </div>
             <p className="text-sm text-textMuted mb-4">
               {isRenewal
-                ? 'Add new members for this season. To change existing member details, use a change request.'
-                : 'Add unit members for registration.'}
+                ? 'Add new members for this season using the form above.'
+                : 'Add unit members for registration using the form above.'}
             </p>
             <form onSubmit={handleAddOrUpdate} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
@@ -315,9 +386,16 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                 )}
               </div>
             </div>
-            {hasInlineUpdatesNeeded && (
+            {members.length > 0 && (
               <p className="text-sm text-textMuted mb-4">
-                Set living location and blood group directly in the table below. Changes save automatically.
+                You can update phone number and qualification on this page. Blood group can also be edited
+                here if it was not added previously. For other changes such as name or unit changes, please
+                use Request Change.
+              </p>
+            )}
+            {inlineFieldError && (
+              <p className="text-sm text-danger bg-danger/10 border border-danger/20 rounded-md px-3 py-2 mb-4">
+                {inlineFieldError}
               </p>
             )}
             {members.length === 0 ? (
@@ -326,13 +404,14 @@ export const MembersStep: React.FC<MembersStepProps> = ({
               </p>
             ) : (
               <div className="overflow-x-auto -mx-6 px-6">
-                <table className="w-full min-w-[760px] text-sm">
+                <table className="w-full min-w-[980px] text-sm">
                   <thead>
                     <tr className="border-b border-borderColor text-left text-textMuted">
                       <th className="py-2.5 pr-3 font-medium">Name</th>
                       <th className="py-2.5 pr-3 font-medium w-14">Gender</th>
-                      <th className="py-2.5 pr-3 font-medium w-28">Phone</th>
+                      <th className="py-2.5 pr-3 font-medium min-w-[120px]">Phone</th>
                       <th className="py-2.5 pr-3 font-medium w-28">DOB</th>
+                      <th className="py-2.5 pr-3 font-medium min-w-[140px]">Qualification / Job</th>
                       <th className="py-2.5 pr-3 font-medium w-24">Blood Group</th>
                       <th className="py-2.5 pr-3 font-medium min-w-[160px]">Location</th>
                       <th className="py-2.5 font-medium w-28 text-right">Actions</th>
@@ -345,8 +424,46 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                           {m.name}
                         </td>
                         <td className="py-2.5 pr-3">{m.gender}</td>
-                        <td className="py-2.5 pr-3 whitespace-nowrap">{m.number}</td>
+                        <td className="py-2.5 pr-3">
+                          <input
+                            type="tel"
+                            key={`phone-${m.id}-${m.number ?? ''}`}
+                            defaultValue={m.number || ''}
+                            disabled={savingPhoneId === m.id || updateMember.isPending}
+                            onBlur={(e) => handleInlinePhoneSave(m.id, e.target.value, m.number || '')}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.currentTarget.blur();
+                              }
+                            }}
+                            aria-label={`Phone for ${m.name}`}
+                            className={inlineInputClass(savingPhoneId === m.id)}
+                          />
+                        </td>
                         <td className="py-2.5 pr-3 whitespace-nowrap">{m.dob}</td>
+                        <td className="py-2.5 pr-3">
+                          <input
+                            type="text"
+                            key={`qualification-${m.id}-${m.qualification ?? ''}`}
+                            defaultValue={m.qualification || ''}
+                            disabled={savingQualificationId === m.id || updateMember.isPending}
+                            onBlur={(e) =>
+                              handleInlineQualificationSave(
+                                m.id,
+                                e.target.value,
+                                (m.qualification || '').trim(),
+                              )
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.currentTarget.blur();
+                              }
+                            }}
+                            placeholder="Not set"
+                            aria-label={`Qualification for ${m.name}`}
+                            className={inlineInputClass(savingQualificationId === m.id)}
+                          />
+                        </td>
                         <td className="py-2.5 pr-3">
                           {!m.blood_group ? (
                             <select
@@ -399,7 +516,20 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                           <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                             {isRenewal ? (
                               <Link
-                                to="/unit/submit-member-info"
+                                to="/unit/change-request"
+                                state={{
+                                  memberId: m.id,
+                                  memberSnapshot: {
+                                    id: m.id,
+                                    name: m.name,
+                                    gender: m.gender,
+                                    number: m.number,
+                                    dob: m.dob,
+                                    qualification: m.qualification,
+                                    blood_group: m.blood_group,
+                                    residence_location: m.residence_location,
+                                  },
+                                }}
                                 className="text-xs font-medium text-primary hover:underline"
                               >
                                 Request change

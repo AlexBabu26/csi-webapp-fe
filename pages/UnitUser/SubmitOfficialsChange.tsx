@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
 import { ArrowLeft, Send, Shield } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
-import { UnitOfficial } from '../../types';
+import { ChangeRequestNavigationState, UnitOfficial } from '../../types';
 import { useUnitOfficials } from '../../hooks/queries';
 
 export const SubmitOfficialsChange: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navState = (location.state as ChangeRequestNavigationState | null) ?? {};
+  const fromWizard = Boolean(navState.fromWizard);
+  const presetMemberId = navState.memberId;
   
   // Get current unit ID from authenticated user
   const currentUnitId = getCurrentUnitId();
@@ -132,7 +136,11 @@ export const SubmitOfficialsChange: React.FC = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={() => navigate('/unit/my-requests')}
+          onClick={() =>
+            fromWizard
+              ? navigate('/unit/change-request', { state: { memberId: presetMemberId } })
+              : navigate('/unit/my-requests')
+          }
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -324,7 +332,11 @@ export const SubmitOfficialsChange: React.FC = () => {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/unit/my-requests')}
+              onClick={() =>
+                fromWizard
+                  ? navigate('/unit/change-request', { state: { memberId: presetMemberId } })
+                  : navigate('/unit/my-requests')
+              }
               disabled={loading}
             >
               Cancel

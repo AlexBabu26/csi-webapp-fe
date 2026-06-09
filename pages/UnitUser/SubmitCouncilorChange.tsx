@@ -1,30 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
 import { ArrowLeft, Send } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
-import { UnitCouncilor, UnitMember } from '../../types';
-import { useUnitCouncilors, useMembers } from '../../hooks/queries';
+import { ChangeRequestNavigationState, UnitCouncilor } from '../../types';
+import { useActiveUnitMembers } from '../../hooks/queries';
 
 export const SubmitCouncilorChange: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navState = (location.state as ChangeRequestNavigationState | null) ?? {};
+  const fromWizard = Boolean(navState.fromWizard);
+  const presetCouncilorId = navState.councilorId ?? 0;
+  const presetMemberId = navState.memberId ?? 0;
   
   // Get current unit ID from authenticated user
   const currentUnitId = getCurrentUnitId();
   
   // Use TanStack Query
-  const { data: councilorsData } = useUnitCouncilors(currentUnitId || undefined);
-  const { data: membersData } = useMembers(currentUnitId || undefined);
-  
-  const councilors = councilorsData ?? [];
-  const members = membersData ?? [];
+  const { members, councilors } = useActiveUnitMembers(Boolean(currentUnitId));
   
   const [loading, setLoading] = useState(false);
-  const [selectedCouncilorId, setSelectedCouncilorId] = useState<number>(0);
+  const [selectedCouncilorId, setSelectedCouncilorId] = useState<number>(presetCouncilorId);
   const [newMemberId, setNewMemberId] = useState<number>(0);
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -35,6 +36,12 @@ export const SubmitCouncilorChange: React.FC = () => {
       navigate('/');
     }
   }, [currentUnitId, addToast, navigate]);
+
+  useEffect(() => {
+    if (presetCouncilorId) {
+      setSelectedCouncilorId(presetCouncilorId);
+    }
+  }, [presetCouncilorId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +90,11 @@ export const SubmitCouncilorChange: React.FC = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={() => navigate('/unit/my-requests')}
+          onClick={() =>
+            fromWizard
+              ? navigate('/unit/change-request', { state: { memberId: presetMemberId || selectedCouncilor?.memberId } })
+              : navigate('/unit/my-requests')
+          }
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -99,29 +110,43 @@ export const SubmitCouncilorChange: React.FC = () => {
         <div className="space-y-6">
           {/* Current Councilor */}
           <Card>
-            <h3 className="text-lg font-bold text-textDark mb-4">Select Current Councilor</h3>
-            <select
-              value={selectedCouncilorId}
-              onChange={(e) => setSelectedCouncilorId(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              required
-            >
-              <option value={0}>-- Select Current Councilor --</option>
-              {councilors.map(councilor => (
-                <option key={councilor.id} value={councilor.id}>
-                  {councilor.memberName} - +91 {councilor.memberPhone}
-                </option>
-              ))}
-            </select>
-
-            {selectedCouncilor && (
-              <div className="mt-4 p-3 bg-gray-50 rounded border border-borderColor">
+            <h3 className="text-lg font-bold text-textDark mb-4">
+              {fromWizard && selectedCouncilor ? 'Selected Councilor' : 'Select Current Councilor'}
+            </h3>
+            {fromWizard && selectedCouncilor ? (
+              <div className="p-3 bg-gray-50 rounded border border-borderColor">
                 <p className="text-sm text-textMuted">
                   <strong>Current Councilor:</strong> {selectedCouncilor.memberName}
                   <br />
                   <strong>Contact:</strong> +91 {selectedCouncilor.memberPhone}
                 </p>
               </div>
+            ) : (
+              <>
+                <select
+                  value={selectedCouncilorId}
+                  onChange={(e) => setSelectedCouncilorId(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  required
+                >
+                  <option value={0}>-- Select Current Councilor --</option>
+                  {councilors.map(councilor => (
+                    <option key={councilor.id} value={councilor.id}>
+                      {councilor.memberName} - +91 {councilor.memberPhone}
+                    </option>
+                  ))}
+                </select>
+
+                {selectedCouncilor && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded border border-borderColor">
+                    <p className="text-sm text-textMuted">
+                      <strong>Current Councilor:</strong> {selectedCouncilor.memberName}
+                      <br />
+                      <strong>Contact:</strong> +91 {selectedCouncilor.memberPhone}
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </Card>
 
@@ -182,7 +207,11 @@ export const SubmitCouncilorChange: React.FC = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/unit/my-requests')}
+                  onClick={() =>
+                    fromWizard
+                      ? navigate('/unit/change-request', { state: { memberId: presetMemberId || selectedCouncilor?.memberId } })
+                      : navigate('/unit/my-requests')
+                  }
                   disabled={loading}
                 >
                   Cancel

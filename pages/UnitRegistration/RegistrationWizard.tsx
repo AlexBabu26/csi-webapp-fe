@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Building, AlertCircle } from 'lucide-react';
 import { Skeleton, Button } from '../../components/ui';
 import { useApplicationForm } from '../../hooks/queries';
@@ -16,13 +16,29 @@ import {
   WizardStepId,
 } from './utils';
 import { membersMissingLocation, formatRegistrationSeason } from '../../services/authRouting';
+import { WizardReturnState } from '../../types';
 
 export const RegistrationWizard: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: formData, isLoading, isError, error, refetch } = useApplicationForm();
   const [activeStep, setActiveStep] = useState<WizardStepId>(2);
 
+  const returnWizardStep = (location.state as WizardReturnState | null)?.wizardStep;
+
   useEffect(() => {
+    if (
+      returnWizardStep &&
+      returnWizardStep >= 2 &&
+      returnWizardStep <= 6
+    ) {
+      setActiveStep(returnWizardStep as WizardStepId);
+    }
+  }, [returnWizardStep]);
+
+  useEffect(() => {
+    if (returnWizardStep) return;
+
     if (!formData) return;
     if (isRegistrationComplete(formData.registration_status)) {
       navigate('/register/complete', { replace: true });
@@ -34,7 +50,7 @@ export const RegistrationWizard: React.FC = () => {
       return;
     }
     setActiveStep(step);
-  }, [formData, navigate]);
+  }, [formData, navigate, returnWizardStep]);
 
   const maxStep = formData ? statusToStep(formData.registration_status) : 2;
 
@@ -151,12 +167,18 @@ export const RegistrationWizard: React.FC = () => {
           {activeStep === 6 && <DeclarationStep {...stepNavigation} />}
         </div>
 
-        <div className="pt-2 border-t border-borderColor/60 text-center">
+        <div className="pt-2 border-t border-borderColor/60 text-center flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+          <Link
+            to="/unit/change-request"
+            className="inline-flex items-center text-sm font-medium text-textMuted hover:text-primary transition-colors"
+          >
+            Submit Change Request
+          </Link>
           <Link
             to="/unit/my-requests"
             className="inline-flex items-center text-sm font-medium text-textMuted hover:text-primary transition-colors"
           >
-            Go to My Requests
+            View My Requests
           </Link>
         </div>
       </div>

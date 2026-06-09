@@ -1,7 +1,17 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { queryKeys } from '../../constants/queryKeys';
 import { useToast } from '../../components/Toast';
+import { ArchivedMemberConcernSubmission } from '../../types';
+
+// ============ UNIT ARCHIVED MEMBERS ============
+
+export const useRecentArchivedMembers = () => {
+  return useQuery({
+    queryKey: queryKeys.unitArchived.recent(),
+    queryFn: () => api.getRecentArchivedMembers(),
+  });
+};
 
 // ============ UNIT USER FORM SUBMISSION MUTATIONS ============
 
@@ -100,6 +110,26 @@ export const useSubmitTransferRequest = () => {
     },
     onError: (error: any) => {
       addToast(error.message || 'Failed to submit request', 'error');
+    },
+  });
+};
+
+// Submit archived member concern
+export const useSubmitArchivedMemberConcern = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async (payload: ArchivedMemberConcernSubmission) => {
+      return api.submitArchivedMemberConcern(payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.unitArchived.recent() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
+      addToast('Concern submitted successfully. Admin will review and respond.', 'success');
+    },
+    onError: (error: any) => {
+      addToast(error.message || 'Failed to submit concern', 'error');
     },
   });
 };

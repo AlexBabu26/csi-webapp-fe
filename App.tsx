@@ -48,6 +48,7 @@ const MemberInfoChangeRequests = lazy(() => import('./pages/UnitAdmin/MemberInfo
 const OfficialsChangeRequests = lazy(() => import('./pages/UnitAdmin/OfficialsChangeRequests').then(module => ({ default: module.OfficialsChangeRequests })));
 const CouncilorChangeRequests = lazy(() => import('./pages/UnitAdmin/CouncilorChangeRequests').then(module => ({ default: module.CouncilorChangeRequests })));
 const MemberAddRequests = lazy(() => import('./pages/UnitAdmin/MemberAddRequests').then(module => ({ default: module.MemberAddRequests })));
+const ArchivedMemberConcernRequests = lazy(() => import('./pages/UnitAdmin/ArchivedMemberConcernRequests').then(module => ({ default: module.ArchivedMemberConcernRequests })));
 const UnitRegistrationPayments = lazy(() => import('./pages/UnitAdmin/UnitRegistrationPayments').then(module => ({ default: module.UnitRegistrationPayments })));
 const PaymentSettings = lazy(() => import('./pages/UnitAdmin/PaymentSettings').then(module => ({ default: module.PaymentSettings })));
 const ExportData = lazy(() => import('./pages/UnitAdmin/ExportData').then(module => ({ default: module.ExportData })));
@@ -58,12 +59,14 @@ const BloodDonorSearch = lazy(() => import('./pages/UnitAdmin/BloodDonorSearch')
 
 // Unit User Pages (for unit officials)
 const ViewMyRequests = lazy(() => import('./pages/UnitUser/ViewMyRequests').then(module => ({ default: module.ViewMyRequests })));
+const UnitArchivedMembers = lazy(() => import('./pages/UnitUser/UnitArchivedMembers').then(module => ({ default: module.UnitArchivedMembers })));
 const SubmitTransferRequest = lazy(() => import('./pages/UnitUser/SubmitTransferRequest').then(module => ({ default: module.SubmitTransferRequest })));
 const SubmitMemberInfoChange = lazy(() => import('./pages/UnitUser/SubmitMemberInfoChange').then(module => ({ default: module.SubmitMemberInfoChange })));
 const SubmitOfficialsChange = lazy(() => import('./pages/UnitUser/SubmitOfficialsChange').then(module => ({ default: module.SubmitOfficialsChange })));
 const SubmitCouncilorChange = lazy(() => import('./pages/UnitUser/SubmitCouncilorChange').then(module => ({ default: module.SubmitCouncilorChange })));
 const SubmitMemberAdd = lazy(() => import('./pages/UnitUser/SubmitMemberAdd').then(module => ({ default: module.SubmitMemberAdd })));
 const UpdateMemberLocations = lazy(() => import('./pages/UnitUser/UpdateMemberLocations').then(module => ({ default: module.UpdateMemberLocations })));
+const ChangeRequestWizard = lazy(() => import('./pages/ChangeRequest/ChangeRequestWizard').then(module => ({ default: module.ChangeRequestWizard })));
 
 // Kalamela Pages
 const EventsManagement = lazy(() => import('./pages/Kalamela/EventsManagement').then(module => ({ default: module.EventsManagement })));
@@ -292,6 +295,12 @@ const App: React.FC = () => {
                 </AdminRoute>
               } />
 
+              <Route path="/admin/requests/archived-member-concerns" element={
+                <AdminRoute>
+                  <ArchivedMemberConcernRequests />
+                </AdminRoute>
+              } />
+
               <Route path="/admin/payments/settings" element={
                 <AdminRoute>
                   <PaymentSettings />
@@ -364,6 +373,18 @@ const App: React.FC = () => {
               <Route path="/unit/my-requests" element={
                 <AdminRoute>
                   <ViewMyRequests />
+                </AdminRoute>
+              } />
+
+              <Route path="/unit/change-request" element={
+                <AdminRoute>
+                  <ChangeRequestWizard />
+                </AdminRoute>
+              } />
+
+              <Route path="/unit/archived-members" element={
+                <AdminRoute>
+                  <UnitArchivedMembers />
                 </AdminRoute>
               } />
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, Badge, Button, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import {
@@ -9,6 +9,7 @@ import {
 import { useToast } from '../../components/Toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { api } from '../../services/api';
+import { downloadBlob } from '../../services/download';
 import { ArchivedMember, ArchivePreviewMember } from '../../types';
 import {
   useArchivedMembers,
@@ -111,6 +112,20 @@ export const ArchivedMembers: React.FC = () => {
   const [selectedMember, setSelectedMember] = useState<ArchivedMember | null>(null);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [yearFilter, setYearFilter] = useState<string>('all');
+  const [exportingFormat, setExportingFormat] = useState<'xlsx' | 'csv' | null>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [exportMenuOpen]);
 
   const archiveYears = useMemo(() => {
     const years = new Set(members.map((m) => m.archiveYear).filter(Boolean) as string[]);
@@ -130,12 +145,18 @@ export const ArchivedMembers: React.FC = () => {
     });
   };
 
-  const handleExport = async () => {
+  const handleExport = async (format: 'xlsx' | 'csv') => {
+    setExportMenuOpen(false);
+    setExportingFormat(format);
     try {
-      await api.exportData('archived-members');
-      addToast('Archived members data exported successfully', 'success');
+      const blob = await api.exportArchivedMembers({ format, archiveYear: yearFilter });
+      const yearSuffix = yearFilter === 'all' ? 'all' : yearFilter.replace(/[/\\]/g, '-');
+      downloadBlob(blob, `archived_members_${yearSuffix}.${format === 'xlsx' ? 'xlsx' : 'csv'}`);
+      addToast(`Archived members exported as ${format.toUpperCase()}`, 'success');
     } catch {
-      addToast('Failed to export data', 'error');
+      addToast('Failed to export archived members', 'error');
+    } finally {
+      setExportingFormat(null);
     }
   };
 
@@ -255,16 +276,10 @@ export const ArchivedMembers: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-textDark tracking-tight">Archive Members</h1>
           <p className="mt-1 text-sm text-textMuted">Manage DOB limits, review yearly candidates, and restore members</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => { refetch(); refetchPreview(); }}>
-            <RefreshCw className="w-4 h-4 mr-1.5" />
-            Refresh
-          </Button>
-          <Button variant="primary" size="sm" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-1.5" />
-            Export to Excel
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={() => { refetch(); refetchPreview(); }}>
+          <RefreshCw className="w-4 h-4 mr-1.5" />
+          Refresh
+        </Button>
       </div>
 
       {/* ── Stats strip ──────────────────────────────────────────────── */}
@@ -554,35 +569,69 @@ export const ArchivedMembers: React.FC = () => {
               </div>
             </div>
 
-            {/* Year filter chips */}
-            {archiveYears.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs text-textMuted mr-1">Filter:</span>
-                <button
-                  onClick={() => setYearFilter('all')}
-                  className={`px-3 py-1 rounded-full text-xs font-medium border transition ${
-                    yearFilter === 'all'
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-white text-textMuted border-borderColor hover:border-primary hover:text-primary'
-                  }`}
-                >
-                  All years
-                </button>
-                {archiveYears.map((y) => (
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Year filter chips */}
+              {archiveYears.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-textMuted mr-1">Filter:</span>
                   <button
-                    key={y}
-                    onClick={() => setYearFilter(y)}
+                    onClick={() => setYearFilter('all')}
                     className={`px-3 py-1 rounded-full text-xs font-medium border transition ${
-                      yearFilter === y
+                      yearFilter === 'all'
                         ? 'bg-primary text-white border-primary'
                         : 'bg-white text-textMuted border-borderColor hover:border-primary hover:text-primary'
                     }`}
                   >
-                    {y}
+                    All years
                   </button>
-                ))}
+                  {archiveYears.map((y) => (
+                    <button
+                      key={y}
+                      onClick={() => setYearFilter(y)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium border transition ${
+                        yearFilter === y
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-white text-textMuted border-borderColor hover:border-primary hover:text-primary'
+                      }`}
+                    >
+                      {y}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="relative sm:ml-auto" ref={exportMenuRef}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExportMenuOpen((open) => !open)}
+                  disabled={filteredMembers.length === 0 || exportingFormat !== null}
+                  isLoading={exportingFormat !== null}
+                >
+                  <Download className="w-4 h-4 mr-1.5" />
+                  Export
+                  <ChevronDown className={`w-4 h-4 ml-1.5 transition-transform ${exportMenuOpen ? 'rotate-180' : ''}`} />
+                </Button>
+                {exportMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg z-20 border border-borderColor py-1">
+                    <button
+                      type="button"
+                      onClick={() => handleExport('xlsx')}
+                      className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-50 transition"
+                    >
+                      Export as Excel (.xlsx)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleExport('csv')}
+                      className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-50 transition"
+                    >
+                      Export as CSV (.csv)
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
 

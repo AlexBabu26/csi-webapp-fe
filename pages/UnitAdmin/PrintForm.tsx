@@ -138,29 +138,17 @@ export const PrintForm: React.FC = () => {
                   <button onClick={() => navigate('/admin/requests/transfers')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
                     View Unit Transfer Requests
                   </button>
-                  <button onClick={() => navigate('/unit/submit-transfer')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    Create Unit Transfer Request
-                  </button>
-                  <button onClick={() => navigate('/unit/submit-member-info')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    Create Member Info Change Request
+                  <button onClick={() => navigate('/unit/change-request')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
+                    New Change Request
                   </button>
                   <button onClick={() => navigate('/admin/requests/member-info')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
                     View Member Info Change Requests
                   </button>
-                  <button onClick={() => navigate('/unit/submit-officials')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    Create Officials Change Request
-                  </button>
                   <button onClick={() => navigate('/admin/requests/officials')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
                     View Officials Change Requests
                   </button>
-                  <button onClick={() => navigate('/unit/submit-councilor')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    Create Councilor Change Request
-                  </button>
                   <button onClick={() => navigate('/admin/requests/councilors')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
                     View Councilor Change Requests
-                  </button>
-                  <button onClick={() => navigate('/unit/submit-member-add')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    Add New Unit Member
                   </button>
                 </div>
               </div>

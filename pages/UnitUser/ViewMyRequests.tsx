@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Badge } from '../../components/ui';
+import { Card, Badge, Button } from '../../components/ui';
 import { RequestStatusBadge } from '../../components/RequestStatusBadge';
-import { FileText, ArrowRightLeft, Users, Shield, UserCheck, UserPlus } from 'lucide-react';
+import { FileText, ArrowRightLeft, Users, Shield, UserCheck, UserPlus, Archive, Plus } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { getCurrentUnitId } from '../../services/auth';
 import { useMyRequests } from '../../hooks/queries';
@@ -32,6 +32,7 @@ export const ViewMyRequests: React.FC = () => {
     officialsChanges: [],
     councilorChanges: [],
     memberAdds: [],
+    archivedMemberConcerns: [],
   };
 
   const filterByStatus = (items: any[]) => {
@@ -45,7 +46,8 @@ export const ViewMyRequests: React.FC = () => {
       requestsData.memberInfoChanges.length +
       requestsData.officialsChanges.length +
       requestsData.councilorChanges.length +
-      requestsData.memberAdds.length
+      requestsData.memberAdds.length +
+      requestsData.archivedMemberConcerns.length
     );
   };
 
@@ -55,7 +57,8 @@ export const ViewMyRequests: React.FC = () => {
       requestsData.memberInfoChanges.filter(r => r.status === 'PENDING').length +
       requestsData.officialsChanges.filter(r => r.status === 'PENDING').length +
       requestsData.councilorChanges.filter(r => r.status === 'PENDING').length +
-      requestsData.memberAdds.filter(r => r.status === 'PENDING').length
+      requestsData.memberAdds.filter(r => r.status === 'PENDING').length +
+      requestsData.archivedMemberConcerns.filter(r => r.status === 'PENDING').length
     );
   };
 
@@ -65,7 +68,8 @@ export const ViewMyRequests: React.FC = () => {
       requestsData.memberInfoChanges.filter(r => r.status === 'APPROVED').length +
       requestsData.officialsChanges.filter(r => r.status === 'APPROVED').length +
       requestsData.councilorChanges.filter(r => r.status === 'APPROVED').length +
-      requestsData.memberAdds.filter(r => r.status === 'APPROVED').length
+      requestsData.memberAdds.filter(r => r.status === 'APPROVED').length +
+      requestsData.archivedMemberConcerns.filter(r => r.status === 'APPROVED').length
     );
   };
 
@@ -83,9 +87,15 @@ export const ViewMyRequests: React.FC = () => {
   return (
     <div className="space-y-6 animate-slide-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-textDark tracking-tight">My Requests</h1>
-        <p className="mt-1 text-sm text-textMuted">View and track all your submitted requests</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-textDark tracking-tight">My Requests</h1>
+          <p className="mt-1 text-sm text-textMuted">View and track all your submitted requests</p>
+        </div>
+        <Button onClick={() => navigate('/unit/change-request')}>
+          <Plus className="w-4 h-4 mr-2" />
+          New Change Request
+        </Button>
       </div>
 
       {/* Summary Cards */}
@@ -253,6 +263,39 @@ export const ViewMyRequests: React.FC = () => {
                     <p className="text-sm text-textMuted mt-1">{request.unitName}</p>
                     <p className="text-xs text-textMuted mt-1">
                       Submitted: {new Date(request.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <RequestStatusBadge status={request.status} timestamp={request.createdAt} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Archived Member Concerns */}
+      {filterByStatus(requestsData.archivedMemberConcerns).length > 0 && (
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
+            <Archive className="w-5 h-5 text-primary" />
+            <h3 className="text-lg font-bold text-textDark">Archive Concerns</h3>
+            <Badge variant="light">{filterByStatus(requestsData.archivedMemberConcerns).length}</Badge>
+          </div>
+          <div className="space-y-3">
+            {filterByStatus(requestsData.archivedMemberConcerns).map((request) => (
+              <div key={request.id} className="p-4 border border-borderColor rounded-lg hover:bg-bgLight transition-colors">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-textDark">{request.archivedMemberName}</p>
+                    <p className="text-sm text-textMuted mt-1 line-clamp-2">{request.concernText}</p>
+                    {request.adminResponse && (
+                      <p className="text-sm text-textDark mt-2">
+                        <span className="font-medium">Admin response:</span> {request.adminResponse}
+                      </p>
+                    )}
+                    <p className="text-xs text-textMuted mt-1">
+                      Submitted: {new Date(request.createdAt).toLocaleDateString()}
+                      {request.archiveYear ? ` • Season ${request.archiveYear}` : ''}
                     </p>
                   </div>
                   <RequestStatusBadge status={request.status} timestamp={request.createdAt} />

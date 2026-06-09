@@ -1,28 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button, Badge } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
 import { ArrowLeft, Send } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
-import { UnitMember } from '../../types';
-import { useMembers, useSubmitMemberInfoChange } from '../../hooks/queries';
+import { ChangeRequestNavigationState, UnitMember } from '../../types';
+import { useActiveUnitMembers, useSubmitMemberInfoChange } from '../../hooks/queries';
 
 export const SubmitMemberInfoChange: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navState = (location.state as ChangeRequestNavigationState | null) ?? {};
+  const fromWizard = Boolean(navState.fromWizard);
+  const presetMemberId = navState.memberId ?? 0;
   
   // Get current unit ID from authenticated user
   const currentUnitId = getCurrentUnitId();
   
   // Use TanStack Query
-  const { data: membersData } = useMembers(currentUnitId || undefined);
+  const { members } = useActiveUnitMembers(Boolean(currentUnitId));
   const submitMutation = useSubmitMemberInfoChange();
   
-  const members = membersData ?? [];
-  
-  const [selectedMemberId, setSelectedMemberId] = useState<number>(0);
+  const [selectedMemberId, setSelectedMemberId] = useState<number>(presetMemberId);
   const [formData, setFormData] = useState({
     name: '',
     gender: '',
@@ -39,6 +41,12 @@ export const SubmitMemberInfoChange: React.FC = () => {
       navigate('/');
     }
   }, [currentUnitId, addToast, navigate]);
+
+  useEffect(() => {
+    if (presetMemberId) {
+      setSelectedMemberId(presetMemberId);
+    }
+  }, [presetMemberId]);
 
   useEffect(() => {
     // Auto-fill form with selected member's current data
@@ -104,7 +112,11 @@ export const SubmitMemberInfoChange: React.FC = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={() => navigate('/unit/my-requests')}
+          onClick={() =>
+            fromWizard
+              ? navigate('/unit/change-request', { state: { memberId: selectedMemberId } })
+              : navigate('/unit/my-requests')
+          }
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -120,20 +132,29 @@ export const SubmitMemberInfoChange: React.FC = () => {
         <div className="space-y-6">
           {/* Select Member */}
           <Card>
-            <h3 className="text-lg font-bold text-textDark mb-4">Select Member</h3>
-            <select
-              value={selectedMemberId}
-              onChange={(e) => setSelectedMemberId(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              required
-            >
-              <option value={0}>-- Select a Member --</option>
-              {members.map(member => (
-                <option key={member.id} value={member.id}>
-                  {member.name} - +91 {member.number}
-                </option>
-              ))}
-            </select>
+            <h3 className="text-lg font-bold text-textDark mb-4">
+              {fromWizard && selectedMember ? 'Selected Member' : 'Select Member'}
+            </h3>
+            {fromWizard && selectedMember ? (
+              <div className="p-3 bg-gray-50 rounded border border-borderColor">
+                <p className="font-medium text-textDark">{selectedMember.name}</p>
+                <p className="text-sm text-textMuted mt-1">+91 {selectedMember.number}</p>
+              </div>
+            ) : (
+              <select
+                value={selectedMemberId}
+                onChange={(e) => setSelectedMemberId(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                required
+              >
+                <option value={0}>-- Select a Member --</option>
+                {members.map(member => (
+                  <option key={member.id} value={member.id}>
+                    {member.name} - +91 {member.number}
+                  </option>
+                ))}
+              </select>
+            )}
           </Card>
 
           {/* Edit Member Information */}
@@ -261,7 +282,11 @@ export const SubmitMemberInfoChange: React.FC = () => {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/unit/my-requests')}
+                  onClick={() =>
+                    fromWizard
+                      ? navigate('/unit/change-request', { state: { memberId: selectedMemberId } })
+                      : navigate('/unit/my-requests')
+                  }
                   disabled={loading}
                 >
                   Cancel
