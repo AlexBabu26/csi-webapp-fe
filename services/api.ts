@@ -1,4 +1,5 @@
 
+import { downloadBlob } from './download';
 import {
   Metric,
   Participant,
@@ -1761,6 +1762,8 @@ class ApiService {
     let endpoint = `/admin/units/export/${type}`;
     if (id) endpoint += `?id=${id}`;
     const blob = await httpGet<Blob>(endpoint, { token, asBlob: true });
+    const filename = id ? `${type}_${id}.xlsx` : `${type}.xlsx`;
+    downloadBlob(blob, filename);
     return { data: blob, message: 'Data exported successfully', status: 200 };
   }
 

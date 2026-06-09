@@ -476,11 +476,18 @@ export const RESIDENCE_LOCATION_OPTIONS: { value: ResidenceLocation; label: stri
 export const getResidenceLocationLabel = (
   value?: ResidenceLocation | string | null,
   country?: string | null,
+  state?: string | null,
   city?: string | null,
 ): string => {
   if (!value) return 'Not set';
-  if (value === 'WITHIN_KERALA') return 'Lives in Kerala';
-  if (country && city) return `${city}, ${country}`;
+  if (value === 'WITHIN_KERALA') {
+    if (state && country) return `${state}, ${country}`;
+    return 'Lives in Kerala';
+  }
+  if (state && country) {
+    if (city) return `${city}, ${state}, ${country}`;
+    return `${state}, ${country}`;
+  }
   const option = RESIDENCE_LOCATION_OPTIONS.find((item) => item.value === value);
   return option?.label ?? 'Not set';
 };
@@ -887,6 +894,11 @@ export interface ChangeRequestMemberSnapshot {
   qualification?: string;
   blood_group?: string;
   residence_location?: ResidenceLocation;
+  residence_state_id?: number | null;
+  residence_city_id?: number | null;
+  residence_state_name?: string | null;
+  residence_city_name?: string | null;
+  residence_country_name?: string | null;
 }
 
 export interface ChangeRequestNavigationState {

@@ -6,6 +6,7 @@ import { useToast } from '../../components/Toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { api } from '../../services/api';
 import { Unit, UnitOfficial, UnitCouncilor, UnitMember } from '../../types';
+import { getMemberResidenceLabel } from '../../utils/memberResidence';
 import { useUnitDetailFull, useArchiveMember } from '../../hooks/queries';
 
 export const ViewIndividualUnit: React.FC = () => {
@@ -237,6 +238,7 @@ export const ViewIndividualUnit: React.FC = () => {
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase">Contact No.</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase">Qualification</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase">Blood Group</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase">Living Location</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase">Actions</th>
               </tr>
             </thead>
@@ -256,6 +258,16 @@ export const ViewIndividualUnit: React.FC = () => {
                   <td className="px-4 py-3 text-sm text-textMuted font-mono">+91 {member.number}</td>
                   <td className="px-4 py-3 text-sm text-textMuted">{member.qualification || '-'}</td>
                   <td className="px-4 py-3 text-sm text-textMuted">{member.bloodGroup || '-'}</td>
+                  <td className="px-4 py-3 text-sm text-textMuted">
+                    {getMemberResidenceLabel({
+                      residence_location: member.residenceLocation,
+                      residence_state_id: member.residenceStateId,
+                      residence_city_id: member.residenceCityId,
+                      residence_state_name: member.residenceStateName,
+                      residence_city_name: member.residenceCityName,
+                      residence_country_name: member.residenceCountryName,
+                    })}
+                  </td>
                   <td className="px-4 py-3 text-sm">
                     <Button
                       variant="outline"
@@ -270,7 +282,7 @@ export const ViewIndividualUnit: React.FC = () => {
               ))}
               {members.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-textMuted">
+                  <td colSpan={9} className="px-4 py-8 text-center text-textMuted">
                     No members found
                   </td>
                 </tr>
