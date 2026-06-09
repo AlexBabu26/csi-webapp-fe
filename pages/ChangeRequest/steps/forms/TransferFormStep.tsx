@@ -3,9 +3,8 @@ import { Card } from '../../../../components/ui';
 import { FileUpload } from '../../../../components/FileUpload';
 import { useToast } from '../../../../components/Toast';
 import { api } from '../../../../services/api';
-import { getCurrentUnitId } from '../../../../services/auth';
 import { UnitMember } from '../../../../types';
-import { useUnits } from '../../../../hooks/queries';
+import { useTransferDestinations } from '../../../../hooks/queries';
 import { WizardFormActions } from '../../components/WizardFormActions';
 
 interface TransferFormStepProps {
@@ -20,9 +19,7 @@ export const TransferFormStep: React.FC<TransferFormStepProps> = ({
   onSuccess,
 }) => {
   const { addToast } = useToast();
-  const currentUnitId = getCurrentUnitId();
-  const { data: unitsData } = useUnits();
-  const units = (unitsData ?? []).filter((unit) => unit.id !== currentUnitId);
+  const { data: units = [], isLoading: unitsLoading } = useTransferDestinations();
   const [loading, setLoading] = useState(false);
   const [destinationUnitId, setDestinationUnitId] = useState(0);
   const [reason, setReason] = useState('');
@@ -98,10 +95,12 @@ export const TransferFormStep: React.FC<TransferFormStepProps> = ({
               className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               required
             >
-              <option value={0}>-- Select Destination Unit --</option>
+              <option value={0}>
+                {unitsLoading ? 'Loading units...' : '-- Select Destination Unit --'}
+              </option>
               {units.map((unit) => (
                 <option key={unit.id} value={unit.id}>
-                  {unit.name} - {unit.clergyDistrict}
+                  {unit.name} - {unit.clergyDistrict} ({unit.unitNumber})
                 </option>
               ))}
             </select>

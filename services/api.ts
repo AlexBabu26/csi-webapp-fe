@@ -36,6 +36,7 @@ import {
   RequestStatus,
   ArchivedMember,
   TransferRequestSubmission,
+  TransferDestinationUnit,
   MemberInfoChangeSubmission,
   OfficialsChangeSubmission,
   CouncilorChangeSubmission,
@@ -2100,6 +2101,29 @@ class ApiService {
     const formData = new FormData();
     formData.append('file', file);
     return httpPost('/admin/units/payment-qr', formData, { token });
+  }
+
+  // GET /units/transfer-destinations - Registered units available for member transfer
+  async getTransferDestinations(): Promise<ApiResponse<TransferDestinationUnit[]>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+
+    interface ApiTransferDestination {
+      id: number;
+      name: string;
+      clergy_district: string;
+      unit_number: string;
+    }
+
+    const raw = await httpGet<ApiTransferDestination[]>('/units/transfer-destinations', { token });
+    const data: TransferDestinationUnit[] = raw.map((unit) => ({
+      id: unit.id,
+      name: unit.name,
+      clergyDistrict: unit.clergy_district,
+      unitNumber: unit.unit_number,
+    }));
+
+    return { data, status: 200 };
   }
 
   // User Request Submissions

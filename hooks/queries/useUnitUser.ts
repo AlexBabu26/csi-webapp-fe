@@ -13,6 +13,19 @@ export const useRecentArchivedMembers = () => {
   });
 };
 
+// Registered units available as transfer destinations
+export const useTransferDestinations = (enabled = true) => {
+  return useQuery({
+    queryKey: queryKeys.requests.transferDestinations(),
+    queryFn: async () => {
+      const response = await api.getTransferDestinations();
+      return response.data;
+    },
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
 // ============ UNIT USER FORM SUBMISSION MUTATIONS ============
 
 // Submit member info change request

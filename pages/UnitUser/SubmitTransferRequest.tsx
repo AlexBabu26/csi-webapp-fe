@@ -7,7 +7,7 @@ import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
 import { ChangeRequestNavigationState, UnitMember } from '../../types';
-import { useActiveUnitMembers, useUnits } from '../../hooks/queries';
+import { useActiveUnitMembers, useTransferDestinations } from '../../hooks/queries';
 
 export const SubmitTransferRequest: React.FC = () => {
   const { addToast } = useToast();
@@ -22,8 +22,7 @@ export const SubmitTransferRequest: React.FC = () => {
   
   // Use TanStack Query
   const { members } = useActiveUnitMembers(Boolean(currentUnitId));
-  const { data: unitsData } = useUnits();
-  const units = (unitsData ?? []).filter(u => u.id !== currentUnitId);
+  const { data: units = [], isLoading: unitsLoading } = useTransferDestinations(Boolean(currentUnitId));
   
   const [loading, setLoading] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<number>(presetMemberId);
@@ -161,10 +160,12 @@ export const SubmitTransferRequest: React.FC = () => {
                 className="w-full px-3 py-2 border border-borderColor rounded-md bg-white text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 required
               >
-                <option value={0}>-- Select Destination Unit --</option>
+                <option value={0}>
+                  {unitsLoading ? 'Loading units...' : '-- Select Destination Unit --'}
+                </option>
                 {units.map(unit => (
                   <option key={unit.id} value={unit.id}>
-                    {unit.name} - {unit.clergyDistrict}
+                    {unit.name} - {unit.clergyDistrict} ({unit.unitNumber})
                   </option>
                 ))}
               </select>

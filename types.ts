@@ -668,6 +668,13 @@ export interface AdminRegistrationPayment {
   reviewed_at: string | null;
 }
 
+export interface TransferDestinationUnit {
+  id: number;
+  name: string;
+  clergyDistrict: string;
+  unitNumber: string;
+}
+
 export interface TransferRequest {
   id: number;
   createdAt: string;
