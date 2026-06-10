@@ -41,10 +41,15 @@ export const RegistrationComplete: React.FC = () => {
 
   const overallStatus = paymentData?.overall_status ?? 'not_submitted';
   const isPaid = overallStatus === 'approved';
+  const isPartial = overallStatus === 'partial';
   const isRejected = overallStatus === 'rejected';
   const isPending = overallStatus === 'pending';
 
   const totalAmount = formData?.total_amount ?? 0;
+  const balanceAmount = paymentData?.balance_amount ?? null;
+  const amountDue = isPartial && balanceAmount != null ? balanceAmount : totalAmount;
+  const hasPendingSubmission =
+    paymentData?.submissions.some((submission) => submission.status === 'PENDING') ?? false;
   const qrUrl = paymentData?.qr_url ?? null;
 
   return (
@@ -95,14 +100,27 @@ export const RegistrationComplete: React.FC = () => {
           </div>
         )}
 
-        {isPending && (
+        {isPartial && balanceAmount != null && (
+          <div className="mt-4 flex items-center gap-3 rounded-lg bg-warning/10 border border-warning/30 px-4 py-3 text-left">
+            <Clock className="w-5 h-5 text-warning flex-shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-textDark">Partial payment approved</p>
+              <p className="text-textMuted mt-0.5">
+                A balance of <strong>₹{balanceAmount}</strong> remains. Pay the remaining amount and
+                upload another proof to complete registration.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {(isPending || (isPartial && hasPendingSubmission)) && (
           <div className="mt-4 flex items-center gap-3 rounded-lg bg-warning/10 border border-warning/30 px-4 py-3 text-left">
             <Clock className="w-5 h-5 text-warning flex-shrink-0" />
             <div className="text-sm">
               <p className="font-medium text-textDark">Payment proof submitted</p>
               <p className="text-textMuted mt-0.5">
-                Awaiting admin review. The form download will be available once approved. You can
-                submit additional proofs if needed.
+                Awaiting admin review. The form download will be available once the full fee is
+                approved. You can submit additional proofs if needed.
               </p>
             </div>
           </div>
@@ -154,17 +172,26 @@ export const RegistrationComplete: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <Badge
-                    variant={
-                      sub.status === 'APPROVED'
-                        ? 'success'
-                        : sub.status === 'REJECTED'
-                        ? 'danger'
-                        : 'warning'
-                    }
-                  >
-                    {sub.status}
-                  </Badge>
+                  <div className="text-right space-y-1">
+                    <Badge
+                      variant={
+                        sub.status === 'APPROVED'
+                          ? 'success'
+                          : sub.status === 'REJECTED'
+                          ? 'danger'
+                          : 'warning'
+                      }
+                    >
+                      {sub.status}
+                    </Badge>
+                    {sub.status === 'APPROVED' &&
+                      sub.balance_amount != null &&
+                      sub.balance_amount > 0 && (
+                        <p className="text-xs text-warning font-medium">
+                          Balance: ₹{sub.balance_amount}
+                        </p>
+                      )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -181,6 +208,12 @@ export const RegistrationComplete: React.FC = () => {
             <p>
               Download your registration form and submit the hard copy to the Youth Office before
               the deadline, by post or in person.
+            </p>
+          ) : isPartial && balanceAmount != null ? (
+            <p>
+              Pay the remaining balance of <strong>₹{balanceAmount}</strong> using the QR code, then
+              upload the payment proof. The registration form will be available once the full fee
+              is approved.
             </p>
           ) : (
             <p>
@@ -200,7 +233,13 @@ export const RegistrationComplete: React.FC = () => {
               onClick={() => setShowPaymentModal(true)}
             >
               <CreditCard className="w-4 h-4 mr-2" />
-              {isRejected ? 'Re-pay & Upload Proof' : isPending ? 'Add Another Proof' : 'Pay Now'}
+              {isRejected
+                ? 'Re-pay & Upload Proof'
+                : isPartial
+                  ? 'Pay Remaining Balance'
+                  : isPending
+                    ? 'Add Another Proof'
+                    : 'Pay Now'}
             </Button>
           )}
 
@@ -228,8 +267,9 @@ export const RegistrationComplete: React.FC = () => {
       {/* Payment modal */}
       {showPaymentModal && (
         <PaymentModal
-          totalAmount={totalAmount}
+          totalAmount={amountDue}
           qrUrl={qrUrl}
+          isPartialPayment={isPartial}
           onClose={() => setShowPaymentModal(false)}
           onProofSubmitted={() => {
             setShowPaymentModal(false);

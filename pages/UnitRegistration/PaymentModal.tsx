@@ -26,6 +26,7 @@ function formatTime(seconds: number): string {
 interface PaymentModalProps {
   totalAmount: number;
   qrUrl: string | null;
+  isPartialPayment?: boolean;
   onClose: () => void;
   onProofSubmitted: () => void;
 }
@@ -35,6 +36,7 @@ type Step = 'qr' | 'upload' | 'done';
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   totalAmount,
   qrUrl,
+  isPartialPayment = false,
   onClose,
   onProofSubmitted,
 }) => {
@@ -129,7 +131,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <>
               {/* Amount */}
               <div className="text-center">
-                <p className="text-sm text-textMuted">Amount to pay</p>
+                <p className="text-sm text-textMuted">
+                  {isPartialPayment ? 'Remaining balance to pay' : 'Amount to pay'}
+                </p>
                 <p className="text-3xl font-bold text-primary mt-1">₹{totalAmount}</p>
               </div>
 
@@ -176,7 +180,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
               <p className="text-xs text-center text-textMuted">
                 Scan the QR code with any UPI app (GPay, PhonePe, Paytm, etc.) and complete the
-                payment of <strong>₹{totalAmount}</strong>.
+                {isPartialPayment ? ' remaining balance ' : ' payment '}
+                of <strong>₹{totalAmount}</strong>.
               </p>
 
               <Button
