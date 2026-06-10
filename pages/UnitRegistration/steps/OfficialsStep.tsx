@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, Button } from '../../../components/ui';
 import { Shield } from 'lucide-react';
-import { UnitApplicationForm, UnitOfficialPayload } from '../../../types';
+import { SearchableSelect } from '../../../components/SearchableSelect';
+import { UnitApplicationForm, UnitOfficialPayload, UnitRegistrationMember } from '../../../types';
 import { useSaveUnitOfficials, useConfirmUnitOfficials } from '../../../hooks/queries';
 import { RenewalChangeRequestNotice } from '../components/RenewalChangeRequestNotice';
 import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
@@ -21,6 +22,24 @@ const POSITIONS = [
 
 const DESIGNATIONS = ['Vicar', 'Catechist', 'Reader'];
 
+const MEMBER_SELECT_POSITIONS = ['vicePresident', 'secretary', 'jointSecretary', 'treasurer'] as const;
+type MemberSelectPosition = (typeof MEMBER_SELECT_POSITIONS)[number];
+
+const findMemberIdByNameAndPhone = (
+  members: UnitRegistrationMember[],
+  name: string,
+  phone?: string,
+): string => {
+  const trimmedName = name.trim();
+  if (!trimmedName) return '';
+  const match = members.find(
+    (member) =>
+      member.name.trim().toLowerCase() === trimmedName.toLowerCase() &&
+      (!phone || member.number === phone),
+  );
+  return match ? String(match.id) : '';
+};
+
 export const OfficialsStep: React.FC<OfficialsStepProps> = ({
   formData,
   onComplete,
@@ -29,8 +48,16 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({
 }) => {
   const isRenewal = formData.is_renewal;
   const officials = formData.unit_officials;
+  const members = formData.unit_members;
   const saveOfficials = useSaveUnitOfficials();
   const confirmOfficials = useConfirmUnitOfficials();
+
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Record<MemberSelectPosition, string>>({
+    vicePresident: '',
+    secretary: '',
+    jointSecretary: '',
+    treasurer: '',
+  });
 
   const [form, setForm] = useState({
     presidentDesignation: '',
@@ -61,8 +88,80 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({
         treasurerName: officials.treasurer_name || '',
         treasurerPhone: officials.treasurer_phone || '',
       });
+      setSelectedMemberIds({
+        vicePresident: findMemberIdByNameAndPhone(
+          members,
+          officials.vice_president_name || '',
+          officials.vice_president_phone || '',
+        ),
+        secretary: findMemberIdByNameAndPhone(
+          members,
+          officials.secretary_name || '',
+          officials.secretary_phone || '',
+        ),
+        jointSecretary: findMemberIdByNameAndPhone(
+          members,
+          officials.joint_secretary_name || '',
+          officials.joint_secretary_phone || '',
+        ),
+        treasurer: findMemberIdByNameAndPhone(
+          members,
+          officials.treasurer_name || '',
+          officials.treasurer_phone || '',
+        ),
+      });
     }
-  }, [officials]);
+  }, [officials, members]);
+
+  const getExcludedMemberIds = useCallback(
+    (positionKey: MemberSelectPosition) => {
+      const excluded = new Set<string>();
+      for (const key of MEMBER_SELECT_POSITIONS) {
+        if (key !== positionKey && selectedMemberIds[key]) {
+          excluded.add(selectedMemberIds[key]);
+        }
+      }
+      return excluded;
+    },
+    [selectedMemberIds],
+  );
+
+  const memberOptionsByPosition = useMemo(() => {
+    const options: Record<MemberSelectPosition, { value: string; label: string }[]> = {
+      vicePresident: [],
+      secretary: [],
+      jointSecretary: [],
+      treasurer: [],
+    };
+
+    for (const positionKey of MEMBER_SELECT_POSITIONS) {
+      const excluded = getExcludedMemberIds(positionKey);
+      const currentId = selectedMemberIds[positionKey];
+      options[positionKey] = members
+        .filter((member) => !excluded.has(String(member.id)) || String(member.id) === currentId)
+        .map((member) => ({ value: String(member.id), label: member.name }));
+    }
+
+    return options;
+  }, [members, selectedMemberIds, getExcludedMemberIds]);
+
+  const handleMemberSelect = (
+    positionKey: MemberSelectPosition,
+    nameKey: keyof typeof form,
+    phoneKey: keyof typeof form,
+    memberId: string,
+  ) => {
+    const member = members.find((item) => String(item.id) === memberId);
+    setSelectedMemberIds((prev) => ({ ...prev, [positionKey]: memberId }));
+    setForm((prev) => ({
+      ...prev,
+      [nameKey]: member?.name || '',
+      [phoneKey]: member?.number || '',
+    }));
+  };
+
+  const isMemberSelectPosition = (key: string): key is MemberSelectPosition =>
+    (MEMBER_SELECT_POSITIONS as readonly string[]).includes(key);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,15 +233,37 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-textDark mb-2">Name *</label>
-                <input
-                  type="text"
-                  value={form[nameKey]}
-                  onChange={(e) => setForm({ ...form, [nameKey]: e.target.value })}
-                  className={`w-full px-3 py-2 border border-borderColor rounded-md ${readOnlyClass}`}
-                  required
-                  readOnly={isRenewal}
-                />
+                {isMemberSelectPosition(pos.key) && !isRenewal ? (
+                  <SearchableSelect
+                    label="Name"
+                    required
+                    value={selectedMemberIds[pos.key]}
+                    onChange={(memberId) =>
+                      handleMemberSelect(pos.key as MemberSelectPosition, nameKey, phoneKey, memberId)
+                    }
+                    options={memberOptionsByPosition[pos.key]}
+                    placeholder="Select a unit member"
+                    searchPlaceholder="Search members..."
+                    emptyMessage={
+                      members.length === 0
+                        ? 'No unit members found. Add members in the previous step.'
+                        : 'No available members. All members are already assigned to other positions.'
+                    }
+                    initiallyCollapsed
+                  />
+                ) : (
+                  <>
+                    <label className="block text-sm font-medium text-textDark mb-2">Name *</label>
+                    <input
+                      type="text"
+                      value={form[nameKey]}
+                      onChange={(e) => setForm({ ...form, [nameKey]: e.target.value })}
+                      className={`w-full px-3 py-2 border border-borderColor rounded-md ${readOnlyClass}`}
+                      required
+                      readOnly={isRenewal}
+                    />
+                  </>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-textDark mb-2">Phone *</label>
@@ -153,7 +274,7 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({
                   pattern="[6-9]\d{9}"
                   className={`w-full px-3 py-2 border border-borderColor rounded-md ${readOnlyClass}`}
                   required
-                  readOnly={isRenewal}
+                  readOnly={isRenewal || isMemberSelectPosition(pos.key)}
                 />
               </div>
             </div>
