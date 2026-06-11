@@ -13,8 +13,49 @@ import {
   UnitRegistrationMember,
   UnitRegistrationOfficial,
 } from '../../../types';
+import { getMemberResidenceLabel, ResidenceMemberLike } from '../../../utils/memberResidence';
 
 const defaultRegistrationYear = () => new Date().getFullYear();
+
+const calcAgeAsOf = (dob: string | undefined, referenceDate: Date): number | undefined => {
+  if (!dob) return undefined;
+  const birth = new Date(dob);
+  if (Number.isNaN(birth.getTime())) return undefined;
+
+  let age = referenceDate.getFullYear() - birth.getFullYear();
+  const monthDiff = referenceDate.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && referenceDate.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age;
+};
+
+const getRegistrationAgeReferenceDate = (registrationYear: number): Date =>
+  new Date(registrationYear, 5, 30);
+
+const toResidenceMemberLike = (
+  member: UnitRegistrationMember | UnitMember,
+): ResidenceMemberLike => {
+  if ('residence_location' in member) {
+    return {
+      residence_location: member.residence_location,
+      residence_state_id: member.residence_state_id,
+      residence_city_id: member.residence_city_id,
+      residence_state_name: member.residence_state_name,
+      residence_city_name: member.residence_city_name,
+      residence_country_name: member.residence_country_name,
+    };
+  }
+
+  return {
+    residence_location: member.residenceLocation,
+    residence_state_id: member.residenceStateId,
+    residence_city_id: member.residenceCityId,
+    residence_state_name: member.residenceStateName,
+    residence_city_name: member.residenceCityName,
+    residence_country_name: member.residenceCountryName,
+  };
+};
 
 export const mapRegistrationOfficials = (
   officials: UnitRegistrationOfficial | UnitOfficial | null,
@@ -54,15 +95,23 @@ export const mapRegistrationOfficials = (
 
 export const mapRegistrationMembers = (
   members: UnitRegistrationMember[] | UnitMember[],
-): RegistrationFormMember[] =>
-  members.map((member) => ({
+  registrationYear?: number,
+): RegistrationFormMember[] => {
+  const ageReferenceDate = getRegistrationAgeReferenceDate(
+    registrationYear ?? defaultRegistrationYear(),
+  );
+
+  return members.map((member) => ({
     name: member.name,
     gender: member.gender,
     dob: member.dob,
+    age: calcAgeAsOf(member.dob, ageReferenceDate),
     number: 'number' in member ? member.number : undefined,
     qualification: 'qualification' in member ? member.qualification : undefined,
     bloodGroup: 'blood_group' in member ? member.blood_group : member.bloodGroup,
+    locationInfo: getMemberResidenceLabel(toResidenceMemberLike(member)),
   }));
+};
 
 export const mapApplicationFormCouncilors = (
   formData: UnitApplicationForm,
@@ -91,7 +140,10 @@ export const mapApplicationFormToDocument = (
   membersCount: formData.member_count,
   officials: mapRegistrationOfficials(formData.unit_officials),
   councilors: mapApplicationFormCouncilors(formData),
-  members: mapRegistrationMembers(formData.unit_members),
+  members: mapRegistrationMembers(
+    formData.unit_members,
+    formData.registration_year ?? formData.unit_details?.registration_year ?? defaultRegistrationYear(),
+  ),
   unitRegistrationFee: formData.unit_registration_fee,
   unitMemberFee: formData.unit_member_fee,
   totalAmount: formData.total_amount,
@@ -111,7 +163,7 @@ export const mapAdminUnitToDocument = (
   membersCount: unit.membersCount,
   officials: mapRegistrationOfficials(officials),
   councilors: mapAdminCouncilors(councilors),
-  members: mapRegistrationMembers(members),
+  members: mapRegistrationMembers(members, unit.registrationYear),
   unitRegistrationFee: fees.unitRegistrationFee,
   unitMemberFee: fees.unitMemberFee,
   totalAmount: fees.totalAmount,

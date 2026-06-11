@@ -9,11 +9,23 @@ interface MemberResidenceFieldsProps {
   disabled?: boolean;
 }
 
+interface KeralaMasterIds {
+  countryId: number;
+  stateId: number;
+}
+
 const toOption = (id: number, label: string, extra?: Partial<SearchableSelectOption>): SearchableSelectOption => ({
   value: String(id),
   label,
   ...extra,
 });
+
+const LockedLocationField: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div>
+    <label className="block text-sm font-medium text-textDark mb-1.5">{label}</label>
+    <div className="p-3 border border-borderColor rounded-lg bg-gray-50 text-sm text-textDark">{value}</div>
+  </div>
+);
 
 export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
   value,
@@ -23,6 +35,7 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
   const [countries, setCountries] = useState<SearchableSelectOption[]>([]);
   const [states, setStates] = useState<SearchableSelectOption[]>([]);
   const [cities, setCities] = useState<SearchableSelectOption[]>([]);
+  const [keralaIds, setKeralaIds] = useState<KeralaMasterIds | null>(null);
   const [countrySearch, setCountrySearch] = useState('');
   const [stateSearch, setStateSearch] = useState('');
   const [citySearch, setCitySearch] = useState('');
@@ -48,6 +61,62 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
     const timer = window.setTimeout(() => setDebouncedCitySearch(citySearch), 300);
     return () => window.clearTimeout(timer);
   }, [citySearch]);
+
+  useEffect(() => {
+    let active = true;
+
+    api
+      .getMasterCountries('India')
+      .then(async (rows) => {
+        if (!active) return;
+        const india =
+          rows.find((country) => (country.iso_code || '').toUpperCase() === 'IN') ??
+          rows.find((country) => country.name.toLowerCase() === 'india');
+        if (!india) return;
+
+        const stateRows = await api.getMasterStates(india.id, 'Kerala');
+        if (!active) return;
+        const kerala = stateRows.find((state) => state.name === 'Kerala');
+        if (!kerala) return;
+
+        setKeralaIds({ countryId: india.id, stateId: kerala.id });
+      })
+      .catch(() => {
+        if (active) setLoadError('Unable to load Kerala location data.');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (value.livesInKerala !== true || !keralaIds) return;
+
+    const needsSync =
+      value.countryId !== keralaIds.countryId ||
+      value.stateId !== keralaIds.stateId ||
+      value.countryIsoCode !== 'IN';
+
+    if (needsSync) {
+      onChange({
+        ...value,
+        livesInKerala: true,
+        countryId: keralaIds.countryId,
+        stateId: keralaIds.stateId,
+        countryIsoCode: 'IN',
+      });
+    }
+  }, [
+    value.livesInKerala,
+    value.countryId,
+    value.stateId,
+    value.countryIsoCode,
+    value.cityId,
+    keralaIds,
+    onChange,
+    value,
+  ]);
 
   useEffect(() => {
     if (value.livesInKerala !== false) return;
@@ -91,7 +160,11 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
       .getMasterStates(value.countryId, debouncedStateSearch || undefined)
       .then((rows) => {
         if (!active) return;
-        setStates(rows.map((state) => toOption(state.id, state.name)));
+        setStates(
+          rows
+            .filter((state) => state.name !== 'Kerala')
+            .map((state) => toOption(state.id, state.name)),
+        );
       })
       .catch(() => {
         if (active) setLoadError('Unable to load states. Please try again.');
@@ -105,8 +178,10 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
     };
   }, [value.livesInKerala, value.countryId, debouncedStateSearch]);
 
+  const activeStateId = value.stateId;
+
   useEffect(() => {
-    if (value.livesInKerala !== false || !value.stateId) {
+    if (!activeStateId) {
       setCities([]);
       return;
     }
@@ -115,7 +190,7 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
     setLoadingCities(true);
 
     api
-      .getMasterCities(value.stateId, debouncedCitySearch || undefined)
+      .getMasterCities(activeStateId, debouncedCitySearch || undefined)
       .then((rows) => {
         if (!active) return;
         setCities(rows.map((city) => toOption(city.id, city.name)));
@@ -130,7 +205,7 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
     return () => {
       active = false;
     };
-  }, [value.livesInKerala, value.stateId, debouncedCitySearch]);
+  }, [activeStateId, debouncedCitySearch]);
 
   const selectedCountry = useMemo(
     () => countries.find((country) => country.value === String(value.countryId ?? '')),
@@ -155,11 +230,11 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
   }, [countries, selectedCountry, value.countryId]);
 
   const stateOptions = useMemo(() => {
-    if (value.stateId && !selectedState) {
+    if (value.stateId && !selectedState && value.livesInKerala === false) {
       return [toOption(value.stateId, `State #${value.stateId}`), ...states];
     }
     return states;
-  }, [states, selectedState, value.stateId]);
+  }, [states, selectedState, value.stateId, value.livesInKerala]);
 
   const cityOptions = useMemo(() => {
     if (value.cityId && !selectedCity) {
@@ -167,6 +242,63 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
     }
     return cities;
   }, [cities, selectedCity, value.cityId]);
+
+  const handleYesSelect = () => {
+    onChange({
+      livesInKerala: true,
+      countryId: keralaIds?.countryId ?? null,
+      stateId: keralaIds?.stateId ?? null,
+      cityId: value.livesInKerala === true ? value.cityId : null,
+      countryIsoCode: 'IN',
+    });
+    if (value.livesInKerala !== true) setCitySearch('');
+  };
+
+  const handleNoSelect = () => {
+    onChange({
+      livesInKerala: false,
+      countryId: null,
+      stateId: null,
+      cityId: null,
+      countryIsoCode: undefined,
+    });
+    setCountrySearch('');
+    setStateSearch('');
+    setCitySearch('');
+  };
+
+  const citySelect = (
+    <SearchableSelect
+      key={`city-${activeStateId ?? 'none'}`}
+      label="City (optional)"
+      initiallyCollapsed
+      value={value.cityId ? String(value.cityId) : ''}
+      onChange={(cityValue) =>
+        onChange({
+          ...value,
+          cityId: cityValue ? Number(cityValue) : null,
+        })
+      }
+      options={cityOptions}
+      placeholder={
+        !activeStateId
+          ? 'Select a state first'
+          : cities.length === 0 && !loadingCities
+            ? 'No cities listed — state is enough'
+            : 'Optional — click search to pick a city'
+      }
+      searchPlaceholder="Search cities (optional)..."
+      disabled={disabled || !activeStateId || loadingCities}
+      onSearchChange={setCitySearch}
+      emptyMessage={
+        !activeStateId
+          ? 'Select a state to load cities.'
+          : loadingCities
+            ? 'Loading cities...'
+            : 'No cities match your search. You can save without selecting a city.'
+      }
+    />
+  );
 
   return (
     <div className="space-y-4">
@@ -181,14 +313,7 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
               name="lives-in-kerala"
               checked={value.livesInKerala === true}
               disabled={disabled}
-              onChange={() =>
-                onChange({
-                  livesInKerala: true,
-                  countryId: null,
-                  stateId: null,
-                  cityId: null,
-                })
-              }
+              onChange={handleYesSelect}
               className="text-primary focus:ring-primary/20"
             />
             Yes
@@ -199,21 +324,25 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
               name="lives-in-kerala"
               checked={value.livesInKerala === false}
               disabled={disabled}
-              onChange={() =>
-                onChange({
-                  livesInKerala: false,
-                  countryId: value.countryId,
-                  stateId: value.stateId,
-                  cityId: value.cityId,
-                  countryIsoCode: value.countryIsoCode,
-                })
-              }
+              onChange={handleNoSelect}
               className="text-primary focus:ring-primary/20"
             />
             No
           </label>
         </div>
       </fieldset>
+
+      {value.livesInKerala === true && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {loadError && <p className="text-sm text-danger md:col-span-3">{loadError}</p>}
+          <LockedLocationField label="Country" value="India" />
+          <LockedLocationField label="State" value="Kerala" />
+          {citySelect}
+          <p className="text-xs text-textMuted md:col-span-3">
+            Members living in Kerala are recorded under India and Kerala. City is optional.
+          </p>
+        </div>
+      )}
 
       {value.livesInKerala === false && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -268,37 +397,7 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
                   : 'No states match your search.'
             }
           />
-          <SearchableSelect
-            key={value.stateId ?? 'no-state'}
-            label="City (optional)"
-            initiallyCollapsed
-            value={value.cityId ? String(value.cityId) : ''}
-            onChange={(cityValue) =>
-              onChange({
-                ...value,
-                livesInKerala: false,
-                cityId: cityValue ? Number(cityValue) : null,
-              })
-            }
-            options={cityOptions}
-            placeholder={
-              !value.stateId
-                ? 'Select a state first'
-                : cities.length === 0 && !loadingCities
-                  ? 'No cities listed — state is enough'
-                  : 'Optional — click search to pick a city'
-            }
-            searchPlaceholder="Search cities (optional)..."
-            disabled={disabled || !value.stateId || loadingCities}
-            onSearchChange={setCitySearch}
-            emptyMessage={
-              !value.stateId
-                ? 'Select a state to load cities.'
-                : loadingCities
-                  ? 'Loading cities...'
-                  : 'No cities match your search. You can save with country and state only.'
-            }
-          />
+          {citySelect}
           <p className="text-xs text-textMuted md:col-span-3">
             Country and state are required. City is optional — for example, selecting Dubai (UAE) is enough without a city.
           </p>

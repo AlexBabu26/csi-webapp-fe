@@ -10,9 +10,11 @@ export interface RegistrationFormMember {
   name: string;
   gender?: string;
   dob?: string;
+  age?: number;
   number?: string;
   qualification?: string;
   bloodGroup?: string;
+  locationInfo?: string;
 }
 
 export interface RegistrationFormOfficials {
@@ -51,6 +53,12 @@ export const formatRegistrationYearLabel = (registrationYear: number): string =>
 
 export const formatSubmissionDeadline = (registrationYear: number): string =>
   `30th of June ${registrationYear - 1}`;
+
+export const formatRegistrationAgeReferenceLabel = (registrationYear: number): string => {
+  const day = String(30).padStart(2, '0');
+  const month = String(6).padStart(2, '0');
+  return `${day}-${month}-${registrationYear}`;
+};
 
 const formatDob = (dob?: string): string => {
   if (!dob) return '';
@@ -93,6 +101,7 @@ export const UnitRegistrationFormDocument: React.FC<UnitRegistrationFormDocument
 }) => {
   const registrationYearLabel = formatRegistrationYearLabel(registrationYear);
   const submissionDeadline = formatSubmissionDeadline(registrationYear);
+  const ageReferenceLabel = formatRegistrationAgeReferenceLabel(registrationYear);
   const logosLoadedRef = useRef(0);
 
   const handleLogoLoad = useCallback(() => {
@@ -246,16 +255,18 @@ export const UnitRegistrationFormDocument: React.FC<UnitRegistrationFormDocument
 
       <div className="mb-6">
         <h3 className="text-left text-lg font-bold text-textDark mb-4">UNIT MEMBERS</h3>
-        <table className="w-full border-collapse border border-borderColor text-sm">
+        <table className="w-full border-collapse border border-borderColor text-xs">
           <thead>
             <tr className="bg-gray-100">
-              <th className="border border-borderColor px-2 py-2 text-left w-10">No.</th>
+              <th className="border border-borderColor px-2 py-2 text-left w-8">No.</th>
               <th className="border border-borderColor px-2 py-2 text-left">Name</th>
-              <th className="border border-borderColor px-2 py-2 text-left w-16">Gender</th>
-              <th className="border border-borderColor px-2 py-2 text-left w-28">DOB</th>
+              <th className="border border-borderColor px-2 py-2 text-left w-12">Gender</th>
+              <th className="border border-borderColor px-2 py-2 text-left w-24">DOB</th>
+              <th className="border border-borderColor px-2 py-2 text-left w-10">Age</th>
               <th className="border border-borderColor px-2 py-2 text-left">Contact No.</th>
               <th className="border border-borderColor px-2 py-2 text-left">Qualification</th>
-              <th className="border border-borderColor px-2 py-2 text-left w-20">Blood<br />Group</th>
+              <th className="border border-borderColor px-2 py-2 text-left w-14">Blood<br />Group</th>
+              <th className="border border-borderColor px-2 py-2 text-left">Location Info</th>
             </tr>
           </thead>
           <tbody>
@@ -265,13 +276,20 @@ export const UnitRegistrationFormDocument: React.FC<UnitRegistrationFormDocument
                 <td className="border border-borderColor px-2 py-2">{member.name}</td>
                 <td className="border border-borderColor px-2 py-2">{formatGender(member.gender)}</td>
                 <td className="border border-borderColor px-2 py-2">{formatDob(member.dob)}</td>
+                <td className="border border-borderColor px-2 py-2 text-center">
+                  {member.age !== undefined && member.age !== null ? member.age : ''}
+                </td>
                 <td className="border border-borderColor px-2 py-2">{formatPhone(member.number)}</td>
                 <td className="border border-borderColor px-2 py-2">{member.qualification || ''}</td>
                 <td className="border border-borderColor px-2 py-2 text-center">{member.bloodGroup || ''}</td>
+                <td className="border border-borderColor px-2 py-2">{member.locationInfo || ''}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        <p className="text-xs text-textMuted mt-2 italic">
+          Note: Age shown is calculated as on {ageReferenceLabel}.
+        </p>
       </div>
       <br />
 

@@ -26,9 +26,6 @@ export interface ResidenceMemberLike {
 
 export const isResidenceComplete = (member: ResidenceMemberLike): boolean => {
   if (!member.residence_location) return false;
-  if (member.residence_location === 'WITHIN_KERALA') {
-    return Boolean(member.residence_state_id);
-  }
   return Boolean(member.residence_state_id);
 };
 
@@ -41,7 +38,8 @@ export const parseResidenceFormValue = (member: ResidenceMemberLike): ResidenceF
       livesInKerala: true,
       countryId: member.residence_country_id ?? null,
       stateId: member.residence_state_id ?? null,
-      cityId: null,
+      cityId: member.residence_city_id ?? null,
+      countryIsoCode: 'IN',
     };
   }
   return {
@@ -49,6 +47,7 @@ export const parseResidenceFormValue = (member: ResidenceMemberLike): ResidenceF
     countryId: member.residence_country_id ?? null,
     stateId: member.residence_state_id ?? null,
     cityId: member.residence_city_id ?? null,
+    countryIsoCode: member.residence_country_name === 'India' ? 'IN' : undefined,
   };
 };
 
@@ -57,7 +56,7 @@ export const buildResidencePayload = (value: ResidenceFormValue): ResidencePaylo
     return {
       residence_location: 'WITHIN_KERALA',
       residence_state_id: null,
-      residence_city_id: null,
+      residence_city_id: value.cityId ?? null,
     };
   }
 
@@ -66,8 +65,11 @@ export const buildResidencePayload = (value: ResidenceFormValue): ResidencePaylo
       throw new Error('Country and state are required when the member does not live in Kerala');
     }
 
+    const residenceLocation: ResidenceLocation =
+      value.countryIsoCode === 'IN' ? 'OUTSIDE_KERALA' : 'OUTSIDE_INDIA';
+
     return {
-      residence_location: 'OUTSIDE_INDIA',
+      residence_location: residenceLocation,
       residence_state_id: value.stateId,
       residence_city_id: value.cityId ?? null,
     };
@@ -87,18 +89,13 @@ export const validateResidenceFormValue = (value: ResidenceFormValue): string | 
 
 export const getMemberResidenceLabel = (member: ResidenceMemberLike): string => {
   if (!member.residence_location) return 'Not set';
-  if (member.residence_location === 'WITHIN_KERALA') {
-    if (member.residence_state_name && member.residence_country_name) {
-      return `${member.residence_state_name}, ${member.residence_country_name}`;
-    }
-    return 'Lives in Kerala';
-  }
   if (member.residence_state_name && member.residence_country_name) {
     if (member.residence_city_name) {
       return `${member.residence_city_name}, ${member.residence_state_name}, ${member.residence_country_name}`;
     }
     return `${member.residence_state_name}, ${member.residence_country_name}`;
   }
+  if (member.residence_location === 'WITHIN_KERALA') return 'Lives in Kerala';
   if (member.residence_location === 'OUTSIDE_KERALA') return 'Outside Kerala (India)';
   if (member.residence_location === 'OUTSIDE_INDIA') return 'Outside India';
   return 'Not set';
