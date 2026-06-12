@@ -268,12 +268,12 @@ export const MembersStep: React.FC<MembersStepProps> = ({
   };
 
   const inlineInputClass = (isSaving: boolean) =>
-    `w-full min-w-[108px] px-2 py-1.5 border border-borderColor rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${
+    `w-full px-2 py-1.5 border border-borderColor rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary ${
       isSaving ? 'text-textMuted' : ''
     }`;
 
   const inlineSelectClass = (isSaving: boolean, isMissing: boolean) =>
-    `w-full min-w-[88px] px-2 py-1.5 border rounded-md bg-white text-sm ${
+    `w-full px-2 py-1.5 border rounded-md bg-white text-sm ${
       isSaving
         ? 'border-borderColor text-textMuted'
         : isMissing
@@ -443,211 +443,203 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                 No members added yet. Add at least one member to continue.
               </p>
             ) : (
-              <div className="overflow-x-auto -mx-6 px-6">
-                <table className="w-full min-w-[980px] text-sm">
-                  <thead>
-                    <tr className="border-b border-borderColor text-left text-textMuted">
-                      <th className="py-2.5 pr-3 font-medium">Name</th>
-                      <th className="py-2.5 pr-3 font-medium w-14">Gender</th>
-                      <th className="py-2.5 pr-3 font-medium min-w-[120px]">Phone</th>
-                      <th className="py-2.5 pr-3 font-medium w-28">DOB</th>
-                      <th className="py-2.5 pr-3 font-medium min-w-[140px]">Qualification / Job</th>
-                      <th className="py-2.5 pr-3 font-medium w-24">Blood Group</th>
-                      <th className="py-2.5 pr-3 font-medium min-w-[160px]">Location</th>
-                      <th className="py-2.5 font-medium min-w-[120px] text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map((m) => (
-                      <React.Fragment key={m.id}>
-                        <tr className="border-b border-borderColor/50 last:border-0">
-                          <td className="py-2.5 pr-3 font-medium max-w-[180px] truncate" title={m.name}>
-                            <span className="block truncate">{m.name}</span>
-                            {isRenewal && isNewThisCycle(m) && (
-                              <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
-                                New this season
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-2.5 pr-3">{m.gender}</td>
-                          <td className="py-2.5 pr-3">
-                            <input
-                              type="tel"
-                              key={`phone-${m.id}-${m.number ?? ''}`}
-                              defaultValue={m.number || ''}
-                              disabled={savingPhoneId === m.id || updateMember.isPending}
-                              onBlur={(e) => handleInlinePhoneSave(m.id, e.target.value, m.number || '')}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.currentTarget.blur();
-                                }
-                              }}
-                              aria-label={`Phone for ${m.name}`}
-                              className={inlineInputClass(savingPhoneId === m.id)}
-                            />
-                          </td>
-                          <td className="py-2.5 pr-3 whitespace-nowrap">{m.dob}</td>
-                          <td className="py-2.5 pr-3">
-                            <input
-                              type="text"
-                              key={`qualification-${m.id}-${m.qualification ?? ''}`}
-                              defaultValue={m.qualification || ''}
-                              disabled={savingQualificationId === m.id || updateMember.isPending}
-                              onBlur={(e) =>
-                                handleInlineQualificationSave(
-                                  m.id,
-                                  e.target.value,
-                                  (m.qualification || '').trim(),
-                                )
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.currentTarget.blur();
-                                }
-                              }}
-                              placeholder="Not set"
-                              aria-label={`Qualification for ${m.name}`}
-                              className={inlineInputClass(savingQualificationId === m.id)}
-                            />
-                          </td>
-                          <td className="py-2.5 pr-3">
-                            {!m.blood_group ? (
-                              <select
-                                value=""
-                                disabled={savingBloodGroupId === m.id || updateMember.isPending}
-                                onChange={(e) => handleInlineBloodGroupUpdate(m.id, e.target.value)}
-                                aria-label={`Blood group for ${m.name}`}
-                                className={inlineSelectClass(savingBloodGroupId === m.id, true)}
-                              >
-                                <option value="">Not set</option>
-                                {BLOOD_GROUPS.map((bg) => (
-                                  <option key={bg} value={bg}>
-                                    {bg}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span className="whitespace-nowrap font-medium">{m.blood_group}</span>
-                            )}
-                          </td>
-                          <td className="py-2.5 pr-3">
-                            <div className="space-y-1">
-                              <span
-                                className={`block whitespace-nowrap ${
-                                  !isResidenceComplete(m) ? 'text-danger' : 'text-textDark'
-                                }`}
-                              >
-                                {isResidenceComplete(m) ? getMemberResidenceLabel(m) : 'Not set'}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  editingLocationId === m.id
-                                    ? closeLocationEditor(m.id)
-                                    : openLocationEditor(m)
-                                }
-                                className={`text-xs font-medium hover:underline whitespace-nowrap ${
-                                  !isResidenceComplete(m) ? 'text-danger' : 'text-primary'
-                                }`}
-                              >
-                                {editingLocationId === m.id
-                                  ? 'Close'
-                                  : isResidenceComplete(m)
-                                    ? 'Change location'
-                                    : 'Set location'}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="py-2.5">
-                            <div className="flex items-center justify-end gap-2 whitespace-nowrap min-w-[100px]">
-                              {canEditMemberProfile(m) ? (
-                                <button
-                                  type="button"
-                                  onClick={() => startEdit(m)}
-                                  className="p-1.5 text-primary hover:bg-primary/10 rounded"
-                                  aria-label={`Edit ${m.name}`}
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </button>
-                              ) : (
-                                <Link
-                                  to="/unit/change-request"
-                                  state={{
-                                    memberId: m.id,
-                                    memberSnapshot: {
-                                      id: m.id,
-                                      name: m.name,
-                                      gender: m.gender,
-                                      number: m.number,
-                                      dob: m.dob,
-                                      qualification: m.qualification,
-                                      blood_group: m.blood_group,
-                                      residence_location: m.residence_location,
-                                    },
-                                  }}
-                                  className="text-xs font-medium text-primary hover:underline"
-                                >
-                                  Request change
-                                </Link>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => deleteMember.mutate(m.id)}
-                                disabled={deleteMember.isPending}
-                                title={`Remove ${m.name}`}
-                                className="p-1.5 text-danger hover:bg-danger/10 rounded disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                                aria-label={`Remove ${m.name}`}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                        {editingLocationId === m.id && (
-                          <tr className="border-b border-borderColor/50 bg-bgLight/60">
-                            <td colSpan={8} className="py-4 px-3">
-                              <div className="max-w-3xl space-y-4">
-                                <p className="text-sm font-medium text-textDark">
-                                  Living location for {m.name}
-                                </p>
-                                <Suspense fallback={<p className="text-sm text-textMuted">Loading location fields...</p>}>
-                                  <MemberResidenceFields
-                                    value={getLocationDraft(m)}
-                                    onChange={(residence) =>
-                                      setLocationDrafts((prev) => ({
-                                        ...prev,
-                                        [m.id]: residence,
-                                      }))
-                                    }
-                                    disabled={savingLocationId === m.id || updateMember.isPending}
-                                  />
-                                </Suspense>
-                                <div className="flex flex-wrap gap-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleInlineLocationSave(m)}
-                                    isLoading={savingLocationId === m.id}
-                                  >
-                                    Save location
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => closeLocationEditor(m.id)}
-                                    disabled={savingLocationId === m.id}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
+              <ul className="divide-y divide-borderColor/50">
+                {members.map((m) => (
+                  <li key={m.id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <span className="font-medium text-textDark">{m.name}</span>
+                          <span className="text-xs text-textMuted">{m.gender}</span>
+                          <span className="text-xs text-textMuted">{m.dob}</span>
+                          {isRenewal && isNewThisCycle(m) && (
+                            <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                              New this season
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {canEditMemberProfile(m) ? (
+                          <button
+                            type="button"
+                            onClick={() => startEdit(m)}
+                            className="p-1.5 text-primary hover:bg-primary/10 rounded"
+                            aria-label={`Edit ${m.name}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <Link
+                            to="/unit/change-request"
+                            state={{
+                              memberId: m.id,
+                              memberSnapshot: {
+                                id: m.id,
+                                name: m.name,
+                                gender: m.gender,
+                                number: m.number,
+                                dob: m.dob,
+                                qualification: m.qualification,
+                                blood_group: m.blood_group,
+                                residence_location: m.residence_location,
+                              },
+                            }}
+                            className="px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10 rounded whitespace-nowrap"
+                          >
+                            Request change
+                          </Link>
                         )}
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        <button
+                          type="button"
+                          onClick={() => deleteMember.mutate(m.id)}
+                          disabled={deleteMember.isPending}
+                          title={`Remove ${m.name}`}
+                          className="p-1.5 text-danger hover:bg-danger/10 rounded disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                          aria-label={`Remove ${m.name}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2">
+                      <div>
+                        <label className="block text-xs font-medium text-textMuted mb-1">Phone</label>
+                        <input
+                          type="tel"
+                          key={`phone-${m.id}-${m.number ?? ''}`}
+                          defaultValue={m.number || ''}
+                          disabled={savingPhoneId === m.id || updateMember.isPending}
+                          onBlur={(e) => handleInlinePhoneSave(m.id, e.target.value, m.number || '')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          aria-label={`Phone for ${m.name}`}
+                          className={inlineInputClass(savingPhoneId === m.id)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-textMuted mb-1">
+                          Qualification / Job
+                        </label>
+                        <input
+                          type="text"
+                          key={`qualification-${m.id}-${m.qualification ?? ''}`}
+                          defaultValue={m.qualification || ''}
+                          disabled={savingQualificationId === m.id || updateMember.isPending}
+                          onBlur={(e) =>
+                            handleInlineQualificationSave(
+                              m.id,
+                              e.target.value,
+                              (m.qualification || '').trim(),
+                            )
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur();
+                            }
+                          }}
+                          placeholder="Not set"
+                          aria-label={`Qualification for ${m.name}`}
+                          className={inlineInputClass(savingQualificationId === m.id)}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-textMuted mb-1">Blood Group</label>
+                        {!m.blood_group ? (
+                          <select
+                            value=""
+                            disabled={savingBloodGroupId === m.id || updateMember.isPending}
+                            onChange={(e) => handleInlineBloodGroupUpdate(m.id, e.target.value)}
+                            aria-label={`Blood group for ${m.name}`}
+                            className={inlineSelectClass(savingBloodGroupId === m.id, true)}
+                          >
+                            <option value="">Not set</option>
+                            {BLOOD_GROUPS.map((bg) => (
+                              <option key={bg} value={bg}>
+                                {bg}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <p className="px-2 py-1.5 text-sm font-medium">{m.blood_group}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-textMuted mb-1">Location</label>
+                        <div className="space-y-1">
+                          <span
+                            className={`block text-sm ${
+                              !isResidenceComplete(m) ? 'text-danger' : 'text-textDark'
+                            }`}
+                          >
+                            {isResidenceComplete(m) ? getMemberResidenceLabel(m) : 'Not set'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              editingLocationId === m.id
+                                ? closeLocationEditor(m.id)
+                                : openLocationEditor(m)
+                            }
+                            className={`text-xs font-medium hover:underline ${
+                              !isResidenceComplete(m) ? 'text-danger' : 'text-primary'
+                            }`}
+                          >
+                            {editingLocationId === m.id
+                              ? 'Close'
+                              : isResidenceComplete(m)
+                                ? 'Change location'
+                                : 'Set location'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {editingLocationId === m.id && (
+                      <div className="mt-3 p-3 bg-bgLight/60 rounded-md border border-borderColor/50">
+                        <div className="max-w-3xl space-y-4">
+                          <p className="text-sm font-medium text-textDark">
+                            Living location for {m.name}
+                          </p>
+                          <Suspense fallback={<p className="text-sm text-textMuted">Loading location fields...</p>}>
+                            <MemberResidenceFields
+                              value={getLocationDraft(m)}
+                              onChange={(residence) =>
+                                setLocationDrafts((prev) => ({
+                                  ...prev,
+                                  [m.id]: residence,
+                                }))
+                              }
+                              disabled={savingLocationId === m.id || updateMember.isPending}
+                            />
+                          </Suspense>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleInlineLocationSave(m)}
+                              isLoading={savingLocationId === m.id}
+                            >
+                              Save location
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => closeLocationEditor(m.id)}
+                              disabled={savingLocationId === m.id}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
             )}
           </Card>
         </div>
