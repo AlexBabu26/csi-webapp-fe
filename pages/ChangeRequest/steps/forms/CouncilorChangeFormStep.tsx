@@ -47,6 +47,10 @@ export const CouncilorChangeFormStep: React.FC<CouncilorChangeFormStepProps> = (
       addToast('Please provide a reason', 'warning');
       return;
     }
+    if (!proofFile) {
+      addToast('Please upload proof document', 'warning');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -54,7 +58,7 @@ export const CouncilorChangeFormStep: React.FC<CouncilorChangeFormStepProps> = (
         councilorId: selectedCouncilor.id,
         newMemberId,
         reason,
-        proof: proofFile || undefined,
+        proof: proofFile,
       });
       addToast('Councilor change request submitted successfully', 'success');
       onSuccess();

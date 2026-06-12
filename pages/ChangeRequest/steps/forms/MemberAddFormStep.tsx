@@ -64,7 +64,6 @@ export const MemberAddFormStep: React.FC<MemberAddFormStepProps> = ({
     try {
       setLoading(true);
       await api.submitMemberAdd({
-        unitId: currentUnitId,
         ...formData,
         reason,
         proof: proofFile || undefined,

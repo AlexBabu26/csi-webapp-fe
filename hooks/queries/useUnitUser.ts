@@ -64,14 +64,17 @@ export const useSubmitOfficialsChange = () => {
 
   return useMutation({
     mutationFn: async (data: {
-      unitId: number;
-      newPresidentId: number;
-      newSecretaryId: number;
-      newTreasurerId: number;
+      unitOfficialId: number;
+      changes: Record<string, string>;
       reason: string;
       proof?: File;
     }) => {
-      return api.submitOfficialsChange(data);
+      return api.submitOfficialsChange({
+        unitOfficialId: data.unitOfficialId,
+        changes: data.changes,
+        reason: data.reason,
+        proof: data.proof,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests() });
@@ -90,12 +93,17 @@ export const useSubmitCouncilorChange = () => {
 
   return useMutation({
     mutationFn: async (data: {
-      unitId: number;
-      councilorIds: number[];
+      councilorId: number;
+      newMemberId: number;
       reason: string;
       proof?: File;
     }) => {
-      return api.submitCouncilorChange(data);
+      return api.submitCouncilorChange({
+        councilorId: data.councilorId,
+        newMemberId: data.newMemberId,
+        reason: data.reason,
+        proof: data.proof,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests() });
@@ -158,7 +166,6 @@ export const useSubmitMemberAdd = () => {
 
   return useMutation({
     mutationFn: async (data: {
-      unitId: number;
       name: string;
       gender: string;
       dob: string;

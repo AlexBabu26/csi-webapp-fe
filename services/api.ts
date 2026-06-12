@@ -2215,21 +2215,79 @@ class ApiService {
   async submitOfficialsChange(payload: OfficialsChangeSubmission): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    await httpPost<any>('/units/officials-change', payload, { token });
+
+    if (!payload.proof) {
+      throw new Error('Proof document is required');
+    }
+
+    const formData = new FormData();
+    formData.append('unit_official_id', String(payload.unitOfficialId));
+    formData.append('reason', payload.reason);
+
+    const officialsFieldMap: Record<string, string> = {
+      presidentDesignation: 'president_designation',
+      presidentName: 'president_name',
+      presidentPhone: 'president_phone',
+      vicePresidentName: 'vice_president_name',
+      vicePresidentPhone: 'vice_president_phone',
+      secretaryName: 'secretary_name',
+      secretaryPhone: 'secretary_phone',
+      jointSecretaryName: 'joint_secretary_name',
+      jointSecretaryPhone: 'joint_secretary_phone',
+      treasurerName: 'treasurer_name',
+      treasurerPhone: 'treasurer_phone',
+    };
+
+    for (const [camelKey, snakeKey] of Object.entries(officialsFieldMap)) {
+      const value = payload.changes[camelKey as keyof typeof payload.changes];
+      if (value) {
+        formData.append(snakeKey, value);
+      }
+    }
+
+    formData.append('proof', payload.proof, payload.proof.name);
+
+    await httpPost<any>('/units/officials-change-request', formData, { token });
     return { data: true, message: 'Officials change request submitted successfully', status: 200 };
   }
 
   async submitCouncilorChange(payload: CouncilorChangeSubmission): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    await httpPost<any>('/units/councilor-change', payload, { token });
+
+    if (!payload.proof) {
+      throw new Error('Proof document is required');
+    }
+
+    const formData = new FormData();
+    formData.append('unit_councilor_id', String(payload.councilorId));
+    formData.append('unit_member_id', String(payload.newMemberId));
+    formData.append('reason', payload.reason);
+    formData.append('proof', payload.proof, payload.proof.name);
+
+    await httpPost<any>('/units/councilor-change-request', formData, { token });
     return { data: true, message: 'Councilor change request submitted successfully', status: 200 };
   }
 
   async submitMemberAdd(payload: MemberAddSubmission): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    await httpPost<any>('/units/member-add', payload, { token });
+
+    const formData = new FormData();
+    formData.append('name', payload.name);
+    formData.append('gender', payload.gender);
+    formData.append('dob', payload.dob);
+    formData.append('number', payload.number);
+    formData.append('blood_group', payload.bloodGroup || '');
+    formData.append('reason', payload.reason);
+    if (payload.qualification) {
+      formData.append('qualification', payload.qualification);
+    }
+    if (payload.proof) {
+      formData.append('proof', payload.proof, payload.proof.name);
+    }
+
+    await httpPost<any>('/units/member-add-request', formData, { token });
     return { data: true, message: 'Member add request submitted successfully', status: 200 };
   }
 

@@ -75,7 +75,6 @@ export const SubmitMemberAdd: React.FC = () => {
     try {
       setLoading(true);
       await api.submitMemberAdd({
-        unitId: currentUnitId,
         ...formData,
         reason,
         proof: proofFile || undefined,

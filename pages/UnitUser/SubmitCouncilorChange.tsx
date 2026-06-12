@@ -61,13 +61,18 @@ export const SubmitCouncilorChange: React.FC = () => {
       return;
     }
 
+    if (!proofFile) {
+      addToast("Please upload proof document", "warning");
+      return;
+    }
+
     try {
       setLoading(true);
       await api.submitCouncilorChange({
         councilorId: selectedCouncilorId,
         newMemberId,
         reason,
-        proof: proofFile || undefined,
+        proof: proofFile,
       });
       addToast("Councilor change request submitted successfully", "success");
       navigate('/unit/my-requests');

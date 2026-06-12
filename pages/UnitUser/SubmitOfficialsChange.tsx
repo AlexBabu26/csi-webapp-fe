@@ -106,18 +106,23 @@ export const SubmitOfficialsChange: React.FC = () => {
         return;
       }
 
+      if (!proofFile) {
+        addToast("Please upload proof document", "warning");
+        return;
+      }
+
+      if (!currentOfficial?.id) {
+        addToast("Officials data not available", "error");
+        return;
+      }
+
       try {
-        if (!currentUnitId) {
-          addToast("Please login to submit request", "error");
-          return;
-        }
-        
         setLoading(true);
         await api.submitOfficialsChange({
-          unitId: currentUnitId,
+          unitOfficialId: currentOfficial.id,
           changes,
           reason,
-          proof: proofFile || undefined,
+          proof: proofFile,
         });
         addToast("Officials change request submitted successfully", "success");
         navigate('/unit/my-requests');

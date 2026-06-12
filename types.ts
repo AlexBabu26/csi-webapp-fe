@@ -1005,7 +1005,7 @@ export interface MemberInfoChangeSubmission {
 }
 
 export interface OfficialsChangeSubmission {
-  unitId: number;
+  unitOfficialId: number;
   changes: {
     presidentDesignation?: string;
     presidentName?: string;
@@ -1031,7 +1031,6 @@ export interface CouncilorChangeSubmission {
 }
 
 export interface MemberAddSubmission {
-  unitId: number;
   name: string;
   gender: 'M' | 'F';
   number: string;

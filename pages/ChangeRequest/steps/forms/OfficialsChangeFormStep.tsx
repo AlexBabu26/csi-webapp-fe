@@ -4,7 +4,6 @@ import { FileUpload } from '../../../../components/FileUpload';
 import { Shield } from 'lucide-react';
 import { useToast } from '../../../../components/Toast';
 import { api } from '../../../../services/api';
-import { getCurrentUnitId } from '../../../../services/auth';
 import { UnitRegistrationOfficial } from '../../../../types';
 import { WizardFormActions } from '../../components/WizardFormActions';
 
@@ -20,7 +19,6 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
   onSuccess,
 }) => {
   const { addToast } = useToast();
-  const currentUnitId = getCurrentUnitId();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     presidentDesignation: '',
@@ -62,7 +60,11 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
       addToast('Please provide a reason', 'warning');
       return;
     }
-    if (!unitOfficials || !currentUnitId) {
+    if (!proofFile) {
+      addToast('Please upload proof document', 'warning');
+      return;
+    }
+    if (!unitOfficials?.id) {
       addToast('Officials data not available', 'error');
       return;
     }
@@ -110,10 +112,10 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
     try {
       setLoading(true);
       await api.submitOfficialsChange({
-        unitId: currentUnitId,
+        unitOfficialId: unitOfficials.id,
         changes,
         reason,
-        proof: proofFile || undefined,
+        proof: proofFile,
       });
       addToast('Officials change request submitted successfully', 'success');
       onSuccess();
