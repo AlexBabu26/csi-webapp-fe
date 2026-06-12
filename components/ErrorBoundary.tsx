@@ -2,6 +2,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from './ui';
+import { isChunkLoadError, reloadOnChunkError } from '../utils/chunkLoadError';
 
 interface Props {
   children: ReactNode;
@@ -24,6 +25,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error:', error, errorInfo);
+    if (reloadOnChunkError(error)) {
+      return;
+    }
   }
 
   private handleReload = () => {
@@ -40,7 +44,9 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h2>
             <p className="text-gray-500 mb-6">
-              We encountered an unexpected error. Our engineering team has been notified.
+              {isChunkLoadError(this.state.error)
+                ? 'A new version of the app was deployed. Please reload to continue.'
+                : 'We encountered an unexpected error. Our engineering team has been notified.'}
             </p>
             <div className="bg-gray-100 p-4 rounded text-left mb-6 overflow-auto max-h-32 text-xs text-red-800 font-mono">
                 {this.state.error?.message}

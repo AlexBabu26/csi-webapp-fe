@@ -1,11 +1,12 @@
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, useState } from 'react';
+import { lazyImport } from '../../../utils/chunkLoadError';
 import { Link } from 'react-router-dom';
 import { Card, Button, Skeleton } from '../../../components/ui';
 import { UserPlus, Trash2, Pencil } from 'lucide-react';
 import { ArchivedMembersSection } from '../../../components/ArchivedMembersSection';
 import { useRecentArchivedMembers } from '../../../hooks/queries';
 import { UnitApplicationForm, UnitRegistrationMember } from '../../../types';
-const MemberResidenceFields = lazy(() =>
+const MemberResidenceFields = lazyImport(() =>
   import('../../../components/MemberResidenceFields').then((module) => ({
     default: module.MemberResidenceFields,
   })),

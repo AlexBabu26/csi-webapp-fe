@@ -1,5 +1,6 @@
 
-import React, { Suspense, lazy, useState } from 'react';
+import React, { Suspense, useState } from 'react';
+import { lazyImport } from './utils/chunkLoadError';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout, AuthLayout } from './components/Layout';
 import { ToastProvider } from './components/Toast';
@@ -10,116 +11,116 @@ import { QueryProvider } from './providers/QueryProvider';
 import { isBloodBankUser } from './services/auth';
 
 // Lazy Load Pages
-const PublicHome = lazy(() => import('./pages/PublicHome').then(module => ({ default: module.PublicHome })));
-const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })));
-const Register = lazy(() => import('./pages/Register').then(module => ({ default: module.Register })));
-const RegistrationWizard = lazy(() => import('./pages/UnitRegistration/RegistrationWizard').then(module => ({ default: module.RegistrationWizard })));
-const RegistrationComplete = lazy(() => import('./pages/UnitRegistration/RegistrationComplete').then(module => ({ default: module.RegistrationComplete })));
-const RegistrationFormPrint = lazy(() => import('./pages/UnitRegistration/RegistrationFormPrint').then(module => ({ default: module.RegistrationFormPrint })));
-const UnitRegistrationGuard = lazy(() => import('./pages/UnitRegistration/UnitRegistrationGuard').then(module => ({ default: module.UnitRegistrationGuard })));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
-const KalamelaPublic = lazy(() => import('./pages/KalamelaPublic').then(module => ({ default: module.KalamelaPublic })));
-const Conference = lazy(() => import('./pages/Conference').then(module => ({ default: module.Conference })));
+const PublicHome = lazyImport(() => import('./pages/PublicHome').then(module => ({ default: module.PublicHome })));
+const Login = lazyImport(() => import('./pages/Login').then(module => ({ default: module.Login })));
+const Register = lazyImport(() => import('./pages/Register').then(module => ({ default: module.Register })));
+const RegistrationWizard = lazyImport(() => import('./pages/UnitRegistration/RegistrationWizard').then(module => ({ default: module.RegistrationWizard })));
+const RegistrationComplete = lazyImport(() => import('./pages/UnitRegistration/RegistrationComplete').then(module => ({ default: module.RegistrationComplete })));
+const RegistrationFormPrint = lazyImport(() => import('./pages/UnitRegistration/RegistrationFormPrint').then(module => ({ default: module.RegistrationFormPrint })));
+const UnitRegistrationGuard = lazyImport(() => import('./pages/UnitRegistration/UnitRegistrationGuard').then(module => ({ default: module.UnitRegistrationGuard })));
+const AdminDashboard = lazyImport(() => import('./pages/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
+const KalamelaPublic = lazyImport(() => import('./pages/KalamelaPublic').then(module => ({ default: module.KalamelaPublic })));
+const Conference = lazyImport(() => import('./pages/Conference').then(module => ({ default: module.Conference })));
 
 // Conference Official Pages
-const ConferenceOfficialLayout = lazy(() => import('./pages/Conference/ConferenceOfficialLayout').then(module => ({ default: module.ConferenceOfficialLayout })));
-const ConferenceOfficialHome = lazy(() => import('./pages/Conference/ConferenceOfficialHome').then(module => ({ default: module.ConferenceOfficialHome })));
-const ConferenceDelegates = lazy(() => import('./pages/Conference/ConferenceDelegates').then(module => ({ default: module.ConferenceDelegates })));
-const ConferencePayment = lazy(() => import('./pages/Conference/ConferencePayment').then(module => ({ default: module.ConferencePayment })));
-const ConferenceExport = lazy(() => import('./pages/Conference/ConferenceExport').then(module => ({ default: module.ConferenceExport })));
+const ConferenceOfficialLayout = lazyImport(() => import('./pages/Conference/ConferenceOfficialLayout').then(module => ({ default: module.ConferenceOfficialLayout })));
+const ConferenceOfficialHome = lazyImport(() => import('./pages/Conference/ConferenceOfficialHome').then(module => ({ default: module.ConferenceOfficialHome })));
+const ConferenceDelegates = lazyImport(() => import('./pages/Conference/ConferenceDelegates').then(module => ({ default: module.ConferenceDelegates })));
+const ConferencePayment = lazyImport(() => import('./pages/Conference/ConferencePayment').then(module => ({ default: module.ConferencePayment })));
+const ConferenceExport = lazyImport(() => import('./pages/Conference/ConferenceExport').then(module => ({ default: module.ConferenceExport })));
 
 // Conference Admin Pages
-const ConferenceAdminHome = lazy(() => import('./pages/Conference/ConferenceAdminHome').then(module => ({ default: module.ConferenceAdminHome })));
-const ConferenceAdminOfficials = lazy(() => import('./pages/Conference/ConferenceAdminOfficials').then(module => ({ default: module.ConferenceAdminOfficials })));
-const ConferenceAdminInfo = lazy(() => import('./pages/Conference/ConferenceAdminInfo').then(module => ({ default: module.ConferenceAdminInfo })));
-const ConferenceAdminPayments = lazy(() => import('./pages/Conference/ConferenceAdminPayments').then(module => ({ default: module.ConferenceAdminPayments })));
-const ScoreEntry = lazy(() => import('./pages/ScoreEntry').then(module => ({ default: module.ScoreEntry })));
+const ConferenceAdminHome = lazyImport(() => import('./pages/Conference/ConferenceAdminHome').then(module => ({ default: module.ConferenceAdminHome })));
+const ConferenceAdminOfficials = lazyImport(() => import('./pages/Conference/ConferenceAdminOfficials').then(module => ({ default: module.ConferenceAdminOfficials })));
+const ConferenceAdminInfo = lazyImport(() => import('./pages/Conference/ConferenceAdminInfo').then(module => ({ default: module.ConferenceAdminInfo })));
+const ConferenceAdminPayments = lazyImport(() => import('./pages/Conference/ConferenceAdminPayments').then(module => ({ default: module.ConferenceAdminPayments })));
+const ScoreEntry = lazyImport(() => import('./pages/ScoreEntry').then(module => ({ default: module.ScoreEntry })));
 
 // Unit Admin Pages
-const ViewAllUnits = lazy(() => import('./pages/UnitAdmin/ViewAllUnits').then(module => ({ default: module.ViewAllUnits })));
-const NotOnboardedUnits = lazy(() => import('./pages/UnitAdmin/NotOnboardedUnits').then(module => ({ default: module.NotOnboardedUnits })));
-const ViewAllOfficials = lazy(() => import('./pages/UnitAdmin/ViewAllOfficials').then(module => ({ default: module.ViewAllOfficials })));
-const ViewAllCouncilors = lazy(() => import('./pages/UnitAdmin/ViewAllCouncilors').then(module => ({ default: module.ViewAllCouncilors })));
-const ViewAllMembers = lazy(() => import('./pages/UnitAdmin/ViewAllMembers').then(module => ({ default: module.ViewAllMembers })));
-const ViewIndividualUnit = lazy(() => import('./pages/UnitAdmin/ViewIndividualUnit').then(module => ({ default: module.ViewIndividualUnit })));
-const ArchivedMembers = lazy(() => import('./pages/UnitAdmin/ArchivedMembers').then(module => ({ default: module.ArchivedMembers })));
-const UnitTransferRequests = lazy(() => import('./pages/UnitAdmin/UnitTransferRequests').then(module => ({ default: module.UnitTransferRequests })));
-const MemberInfoChangeRequests = lazy(() => import('./pages/UnitAdmin/MemberInfoChangeRequests').then(module => ({ default: module.MemberInfoChangeRequests })));
-const OfficialsChangeRequests = lazy(() => import('./pages/UnitAdmin/OfficialsChangeRequests').then(module => ({ default: module.OfficialsChangeRequests })));
-const CouncilorChangeRequests = lazy(() => import('./pages/UnitAdmin/CouncilorChangeRequests').then(module => ({ default: module.CouncilorChangeRequests })));
-const MemberAddRequests = lazy(() => import('./pages/UnitAdmin/MemberAddRequests').then(module => ({ default: module.MemberAddRequests })));
-const ArchivedMemberConcernRequests = lazy(() => import('./pages/UnitAdmin/ArchivedMemberConcernRequests').then(module => ({ default: module.ArchivedMemberConcernRequests })));
-const UnitRegistrationPayments = lazy(() => import('./pages/UnitAdmin/UnitRegistrationPayments').then(module => ({ default: module.UnitRegistrationPayments })));
-const PaymentSettings = lazy(() => import('./pages/UnitAdmin/PaymentSettings').then(module => ({ default: module.PaymentSettings })));
-const ExportData = lazy(() => import('./pages/UnitAdmin/ExportData').then(module => ({ default: module.ExportData })));
-const PrintForm = lazy(() => import('./pages/UnitAdmin/PrintForm').then(module => ({ default: module.PrintForm })));
-const SiteSettings = lazy(() => import('./pages/UnitAdmin/SiteSettings').then(module => ({ default: module.SiteSettings })));
-const UserManagement = lazy(() => import('./pages/UnitAdmin/UserManagement').then(module => ({ default: module.UserManagement })));
-const BloodDonorSearch = lazy(() => import('./pages/UnitAdmin/BloodDonorSearch').then(module => ({ default: module.BloodDonorSearch })));
+const ViewAllUnits = lazyImport(() => import('./pages/UnitAdmin/ViewAllUnits').then(module => ({ default: module.ViewAllUnits })));
+const NotOnboardedUnits = lazyImport(() => import('./pages/UnitAdmin/NotOnboardedUnits').then(module => ({ default: module.NotOnboardedUnits })));
+const ViewAllOfficials = lazyImport(() => import('./pages/UnitAdmin/ViewAllOfficials').then(module => ({ default: module.ViewAllOfficials })));
+const ViewAllCouncilors = lazyImport(() => import('./pages/UnitAdmin/ViewAllCouncilors').then(module => ({ default: module.ViewAllCouncilors })));
+const ViewAllMembers = lazyImport(() => import('./pages/UnitAdmin/ViewAllMembers').then(module => ({ default: module.ViewAllMembers })));
+const ViewIndividualUnit = lazyImport(() => import('./pages/UnitAdmin/ViewIndividualUnit').then(module => ({ default: module.ViewIndividualUnit })));
+const ArchivedMembers = lazyImport(() => import('./pages/UnitAdmin/ArchivedMembers').then(module => ({ default: module.ArchivedMembers })));
+const UnitTransferRequests = lazyImport(() => import('./pages/UnitAdmin/UnitTransferRequests').then(module => ({ default: module.UnitTransferRequests })));
+const MemberInfoChangeRequests = lazyImport(() => import('./pages/UnitAdmin/MemberInfoChangeRequests').then(module => ({ default: module.MemberInfoChangeRequests })));
+const OfficialsChangeRequests = lazyImport(() => import('./pages/UnitAdmin/OfficialsChangeRequests').then(module => ({ default: module.OfficialsChangeRequests })));
+const CouncilorChangeRequests = lazyImport(() => import('./pages/UnitAdmin/CouncilorChangeRequests').then(module => ({ default: module.CouncilorChangeRequests })));
+const MemberAddRequests = lazyImport(() => import('./pages/UnitAdmin/MemberAddRequests').then(module => ({ default: module.MemberAddRequests })));
+const ArchivedMemberConcernRequests = lazyImport(() => import('./pages/UnitAdmin/ArchivedMemberConcernRequests').then(module => ({ default: module.ArchivedMemberConcernRequests })));
+const UnitRegistrationPayments = lazyImport(() => import('./pages/UnitAdmin/UnitRegistrationPayments').then(module => ({ default: module.UnitRegistrationPayments })));
+const PaymentSettings = lazyImport(() => import('./pages/UnitAdmin/PaymentSettings').then(module => ({ default: module.PaymentSettings })));
+const ExportData = lazyImport(() => import('./pages/UnitAdmin/ExportData').then(module => ({ default: module.ExportData })));
+const PrintForm = lazyImport(() => import('./pages/UnitAdmin/PrintForm').then(module => ({ default: module.PrintForm })));
+const SiteSettings = lazyImport(() => import('./pages/UnitAdmin/SiteSettings').then(module => ({ default: module.SiteSettings })));
+const UserManagement = lazyImport(() => import('./pages/UnitAdmin/UserManagement').then(module => ({ default: module.UserManagement })));
+const BloodDonorSearch = lazyImport(() => import('./pages/UnitAdmin/BloodDonorSearch').then(module => ({ default: module.BloodDonorSearch })));
 
 // Unit User Pages (for unit officials)
-const ViewMyRequests = lazy(() => import('./pages/UnitUser/ViewMyRequests').then(module => ({ default: module.ViewMyRequests })));
-const UnitArchivedMembers = lazy(() => import('./pages/UnitUser/UnitArchivedMembers').then(module => ({ default: module.UnitArchivedMembers })));
-const SubmitTransferRequest = lazy(() => import('./pages/UnitUser/SubmitTransferRequest').then(module => ({ default: module.SubmitTransferRequest })));
-const SubmitMemberInfoChange = lazy(() => import('./pages/UnitUser/SubmitMemberInfoChange').then(module => ({ default: module.SubmitMemberInfoChange })));
-const SubmitOfficialsChange = lazy(() => import('./pages/UnitUser/SubmitOfficialsChange').then(module => ({ default: module.SubmitOfficialsChange })));
-const SubmitCouncilorChange = lazy(() => import('./pages/UnitUser/SubmitCouncilorChange').then(module => ({ default: module.SubmitCouncilorChange })));
-const SubmitMemberAdd = lazy(() => import('./pages/UnitUser/SubmitMemberAdd').then(module => ({ default: module.SubmitMemberAdd })));
-const UpdateMemberLocations = lazy(() => import('./pages/UnitUser/UpdateMemberLocations').then(module => ({ default: module.UpdateMemberLocations })));
-const ChangeRequestWizard = lazy(() => import('./pages/ChangeRequest/ChangeRequestWizard').then(module => ({ default: module.ChangeRequestWizard })));
+const ViewMyRequests = lazyImport(() => import('./pages/UnitUser/ViewMyRequests').then(module => ({ default: module.ViewMyRequests })));
+const UnitArchivedMembers = lazyImport(() => import('./pages/UnitUser/UnitArchivedMembers').then(module => ({ default: module.UnitArchivedMembers })));
+const SubmitTransferRequest = lazyImport(() => import('./pages/UnitUser/SubmitTransferRequest').then(module => ({ default: module.SubmitTransferRequest })));
+const SubmitMemberInfoChange = lazyImport(() => import('./pages/UnitUser/SubmitMemberInfoChange').then(module => ({ default: module.SubmitMemberInfoChange })));
+const SubmitOfficialsChange = lazyImport(() => import('./pages/UnitUser/SubmitOfficialsChange').then(module => ({ default: module.SubmitOfficialsChange })));
+const SubmitCouncilorChange = lazyImport(() => import('./pages/UnitUser/SubmitCouncilorChange').then(module => ({ default: module.SubmitCouncilorChange })));
+const SubmitMemberAdd = lazyImport(() => import('./pages/UnitUser/SubmitMemberAdd').then(module => ({ default: module.SubmitMemberAdd })));
+const UpdateMemberLocations = lazyImport(() => import('./pages/UnitUser/UpdateMemberLocations').then(module => ({ default: module.UpdateMemberLocations })));
+const ChangeRequestWizard = lazyImport(() => import('./pages/ChangeRequest/ChangeRequestWizard').then(module => ({ default: module.ChangeRequestWizard })));
 
 // Kalamela Pages
-const EventsManagement = lazy(() => import('./pages/Kalamela/EventsManagement').then(module => ({ default: module.EventsManagement })));
-const KalamelaOfficialHome = lazy(() => import('./pages/Kalamela/OfficialHome').then(module => ({ default: module.KalamelaOfficialHome })));
-const SelectIndividualParticipants = lazy(() => import('./pages/Kalamela/SelectIndividualParticipants').then(module => ({ default: module.SelectIndividualParticipants })));
-const SelectGroupParticipants = lazy(() => import('./pages/Kalamela/SelectGroupParticipants').then(module => ({ default: module.SelectGroupParticipants })));
-const ViewParticipants = lazy(() => import('./pages/Kalamela/ViewParticipants').then(module => ({ default: module.ViewParticipants })));
-const PaymentPreview = lazy(() => import('./pages/Kalamela/PaymentPreview').then(module => ({ default: module.PaymentPreview })));
-const PrintView = lazy(() => import('./pages/Kalamela/PrintView').then(module => ({ default: module.PrintView })));
-const PublicResults = lazy(() => import('./pages/Kalamela/PublicResults').then(module => ({ default: module.PublicResults })));
-const TopPerformers = lazy(() => import('./pages/Kalamela/TopPerformers').then(module => ({ default: module.TopPerformers })));
-const SubmitAppeal = lazy(() => import('./pages/Kalamela/SubmitAppeal').then(module => ({ default: module.SubmitAppeal })));
-const EventResults = lazy(() => import('./pages/Kalamela/Admin/EventResults').then(module => ({ default: module.EventResults })));
+const EventsManagement = lazyImport(() => import('./pages/Kalamela/EventsManagement').then(module => ({ default: module.EventsManagement })));
+const KalamelaOfficialHome = lazyImport(() => import('./pages/Kalamela/OfficialHome').then(module => ({ default: module.KalamelaOfficialHome })));
+const SelectIndividualParticipants = lazyImport(() => import('./pages/Kalamela/SelectIndividualParticipants').then(module => ({ default: module.SelectIndividualParticipants })));
+const SelectGroupParticipants = lazyImport(() => import('./pages/Kalamela/SelectGroupParticipants').then(module => ({ default: module.SelectGroupParticipants })));
+const ViewParticipants = lazyImport(() => import('./pages/Kalamela/ViewParticipants').then(module => ({ default: module.ViewParticipants })));
+const PaymentPreview = lazyImport(() => import('./pages/Kalamela/PaymentPreview').then(module => ({ default: module.PaymentPreview })));
+const PrintView = lazyImport(() => import('./pages/Kalamela/PrintView').then(module => ({ default: module.PrintView })));
+const PublicResults = lazyImport(() => import('./pages/Kalamela/PublicResults').then(module => ({ default: module.PublicResults })));
+const TopPerformers = lazyImport(() => import('./pages/Kalamela/TopPerformers').then(module => ({ default: module.TopPerformers })));
+const SubmitAppeal = lazyImport(() => import('./pages/Kalamela/SubmitAppeal').then(module => ({ default: module.SubmitAppeal })));
+const EventResults = lazyImport(() => import('./pages/Kalamela/Admin/EventResults').then(module => ({ default: module.EventResults })));
 
 // Kalamela Admin Pages
-const ViewScores = lazy(() => import('./pages/Kalamela/Admin/ViewScores').then(module => ({ default: module.ViewScores })));
-const ScoreIndividualEvent = lazy(() => import('./pages/Kalamela/Admin/ScoreIndividualEvent').then(module => ({ default: module.ScoreIndividualEvent })));
-const ScoreGroupEvent = lazy(() => import('./pages/Kalamela/Admin/ScoreGroupEvent').then(module => ({ default: module.ScoreGroupEvent })));
-const AdminResults = lazy(() => import('./pages/Kalamela/Admin/AdminResults').then(module => ({ default: module.AdminResults })));
-const ManagePayments = lazy(() => import('./pages/Kalamela/Admin/ManagePayments').then(module => ({ default: module.ManagePayments })));
-const ManageAppeals = lazy(() => import('./pages/Kalamela/Admin/ManageAppeals').then(module => ({ default: module.ManageAppeals })));
-const CategoryManagement = lazy(() => import('./pages/Kalamela/Admin/CategoryManagement').then(module => ({ default: module.CategoryManagement })));
-const MasterData = lazy(() => import('./pages/Kalamela/Admin/MasterData').then(module => ({ default: module.MasterData })));
-const ScheduleManagement = lazy(() => import('./pages/Kalamela/Admin/ScheduleManagement').then(module => ({ default: module.ScheduleManagement })));
+const ViewScores = lazyImport(() => import('./pages/Kalamela/Admin/ViewScores').then(module => ({ default: module.ViewScores })));
+const ScoreIndividualEvent = lazyImport(() => import('./pages/Kalamela/Admin/ScoreIndividualEvent').then(module => ({ default: module.ScoreIndividualEvent })));
+const ScoreGroupEvent = lazyImport(() => import('./pages/Kalamela/Admin/ScoreGroupEvent').then(module => ({ default: module.ScoreGroupEvent })));
+const AdminResults = lazyImport(() => import('./pages/Kalamela/Admin/AdminResults').then(module => ({ default: module.AdminResults })));
+const ManagePayments = lazyImport(() => import('./pages/Kalamela/Admin/ManagePayments').then(module => ({ default: module.ManagePayments })));
+const ManageAppeals = lazyImport(() => import('./pages/Kalamela/Admin/ManageAppeals').then(module => ({ default: module.ManageAppeals })));
+const CategoryManagement = lazyImport(() => import('./pages/Kalamela/Admin/CategoryManagement').then(module => ({ default: module.CategoryManagement })));
+const MasterData = lazyImport(() => import('./pages/Kalamela/Admin/MasterData').then(module => ({ default: module.MasterData })));
+const ScheduleManagement = lazyImport(() => import('./pages/Kalamela/Admin/ScheduleManagement').then(module => ({ default: module.ScheduleManagement })));
 
 // Yuvalokham Pages
-const YuvalokhamPublic = lazy(() => import('./pages/Yuvalokham/YuvalokhamPublic').then(module => ({ default: module.YuvalokhamPublic })));
-const YuvalokhamLogin = lazy(() => import('./pages/Yuvalokham/YuvalokhamLogin').then(module => ({ default: module.YuvalokhamLogin })));
-const YuvalokhamRegister = lazy(() => import('./pages/Yuvalokham/YuvalokhamRegister').then(module => ({ default: module.YuvalokhamRegister })));
-const YMAuthGuard = lazy(() => import('./pages/Yuvalokham/YMAuthGuard').then(module => ({ default: module.YMAuthGuard })));
+const YuvalokhamPublic = lazyImport(() => import('./pages/Yuvalokham/YuvalokhamPublic').then(module => ({ default: module.YuvalokhamPublic })));
+const YuvalokhamLogin = lazyImport(() => import('./pages/Yuvalokham/YuvalokhamLogin').then(module => ({ default: module.YuvalokhamLogin })));
+const YuvalokhamRegister = lazyImport(() => import('./pages/Yuvalokham/YuvalokhamRegister').then(module => ({ default: module.YuvalokhamRegister })));
+const YMAuthGuard = lazyImport(() => import('./pages/Yuvalokham/YMAuthGuard').then(module => ({ default: module.YMAuthGuard })));
 
 // Yuvalokham User Pages
-const YMUserLayout = lazy(() => import('./pages/Yuvalokham/YMUserLayout').then(module => ({ default: module.YMUserLayout })));
-const YMDashboard = lazy(() => import('./pages/Yuvalokham/User/YMDashboard').then(module => ({ default: module.YMDashboard })));
-const YMProfile = lazy(() => import('./pages/Yuvalokham/User/YMProfile').then(module => ({ default: module.YMProfile })));
-const YMPlans = lazy(() => import('./pages/Yuvalokham/User/YMPlans').then(module => ({ default: module.YMPlans })));
-const YMPaymentNew = lazy(() => import('./pages/Yuvalokham/User/YMPaymentNew').then(module => ({ default: module.YMPaymentNew })));
-const YMSubscriptions = lazy(() => import('./pages/Yuvalokham/User/YMSubscriptions').then(module => ({ default: module.YMSubscriptions })));
-const YMMagazinesUser = lazy(() => import('./pages/Yuvalokham/User/YMMagazines').then(module => ({ default: module.YMMagazines })));
-const YMPayments = lazy(() => import('./pages/Yuvalokham/User/YMPayments').then(module => ({ default: module.YMPayments })));
-const YMComplaints = lazy(() => import('./pages/Yuvalokham/User/YMComplaints').then(module => ({ default: module.YMComplaints })));
+const YMUserLayout = lazyImport(() => import('./pages/Yuvalokham/YMUserLayout').then(module => ({ default: module.YMUserLayout })));
+const YMDashboard = lazyImport(() => import('./pages/Yuvalokham/User/YMDashboard').then(module => ({ default: module.YMDashboard })));
+const YMProfile = lazyImport(() => import('./pages/Yuvalokham/User/YMProfile').then(module => ({ default: module.YMProfile })));
+const YMPlans = lazyImport(() => import('./pages/Yuvalokham/User/YMPlans').then(module => ({ default: module.YMPlans })));
+const YMPaymentNew = lazyImport(() => import('./pages/Yuvalokham/User/YMPaymentNew').then(module => ({ default: module.YMPaymentNew })));
+const YMSubscriptions = lazyImport(() => import('./pages/Yuvalokham/User/YMSubscriptions').then(module => ({ default: module.YMSubscriptions })));
+const YMMagazinesUser = lazyImport(() => import('./pages/Yuvalokham/User/YMMagazines').then(module => ({ default: module.YMMagazines })));
+const YMPayments = lazyImport(() => import('./pages/Yuvalokham/User/YMPayments').then(module => ({ default: module.YMPayments })));
+const YMComplaints = lazyImport(() => import('./pages/Yuvalokham/User/YMComplaints').then(module => ({ default: module.YMComplaints })));
 
 // Yuvalokham Admin Pages
-const YMAdminLayout = lazy(() => import('./pages/Yuvalokham/Admin/YMAdminLayout').then(module => ({ default: module.YMAdminLayout })));
-const YMAdminDashboard = lazy(() => import('./pages/Yuvalokham/Admin/YMAdminDashboard').then(module => ({ default: module.YMAdminDashboard })));
-const YMUserManagement = lazy(() => import('./pages/Yuvalokham/Admin/YMUserManagement').then(module => ({ default: module.YMUserManagement })));
-const YMPlanManagement = lazy(() => import('./pages/Yuvalokham/Admin/YMPlanManagement').then(module => ({ default: module.YMPlanManagement })));
-const YMPaymentReview = lazy(() => import('./pages/Yuvalokham/Admin/YMPaymentReview').then(module => ({ default: module.YMPaymentReview })));
-const YMMagazineManagement = lazy(() => import('./pages/Yuvalokham/Admin/YMMagazineManagement').then(module => ({ default: module.YMMagazineManagement })));
-const YMComplaintManagement = lazy(() => import('./pages/Yuvalokham/Admin/YMComplaintManagement').then(module => ({ default: module.YMComplaintManagement })));
-const YMQRSettings = lazy(() => import('./pages/Yuvalokham/Admin/YMQRSettings').then(module => ({ default: module.YMQRSettings })));
-const YMSubscriptionManagement = lazy(() => import('./pages/Yuvalokham/Admin/YMSubscriptionManagement').then(module => ({ default: module.YMSubscriptionManagement })));
-const YMAdminCreate = lazy(() => import('./pages/Yuvalokham/Admin/YMAdminCreate').then(module => ({ default: module.YMAdminCreate })));
+const YMAdminLayout = lazyImport(() => import('./pages/Yuvalokham/Admin/YMAdminLayout').then(module => ({ default: module.YMAdminLayout })));
+const YMAdminDashboard = lazyImport(() => import('./pages/Yuvalokham/Admin/YMAdminDashboard').then(module => ({ default: module.YMAdminDashboard })));
+const YMUserManagement = lazyImport(() => import('./pages/Yuvalokham/Admin/YMUserManagement').then(module => ({ default: module.YMUserManagement })));
+const YMPlanManagement = lazyImport(() => import('./pages/Yuvalokham/Admin/YMPlanManagement').then(module => ({ default: module.YMPlanManagement })));
+const YMPaymentReview = lazyImport(() => import('./pages/Yuvalokham/Admin/YMPaymentReview').then(module => ({ default: module.YMPaymentReview })));
+const YMMagazineManagement = lazyImport(() => import('./pages/Yuvalokham/Admin/YMMagazineManagement').then(module => ({ default: module.YMMagazineManagement })));
+const YMComplaintManagement = lazyImport(() => import('./pages/Yuvalokham/Admin/YMComplaintManagement').then(module => ({ default: module.YMComplaintManagement })));
+const YMQRSettings = lazyImport(() => import('./pages/Yuvalokham/Admin/YMQRSettings').then(module => ({ default: module.YMQRSettings })));
+const YMSubscriptionManagement = lazyImport(() => import('./pages/Yuvalokham/Admin/YMSubscriptionManagement').then(module => ({ default: module.YMSubscriptionManagement })));
+const YMAdminCreate = lazyImport(() => import('./pages/Yuvalokham/Admin/YMAdminCreate').then(module => ({ default: module.YMAdminCreate })));
 
 // Loading Fallback
 const PageLoader = () => (

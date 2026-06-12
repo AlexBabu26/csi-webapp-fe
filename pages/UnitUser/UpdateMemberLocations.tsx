@@ -1,8 +1,9 @@
-import React, { Suspense, lazy, useMemo, useState } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
+import { lazyImport } from '../../utils/chunkLoadError';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, AlertCircle } from 'lucide-react';
 import { Card, Button } from '../../components/ui';
-const MemberResidenceFields = lazy(() =>
+const MemberResidenceFields = lazyImport(() =>
   import('../../components/MemberResidenceFields').then((module) => ({
     default: module.MemberResidenceFields,
   })),

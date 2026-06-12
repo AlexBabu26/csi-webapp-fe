@@ -1,6 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { clearChunkReloadFlag, reloadOnChunkError } from './utils/chunkLoadError';
+
+window.addEventListener('unhandledrejection', (event) => {
+  if (reloadOnChunkError(event.reason)) {
+    event.preventDefault();
+  }
+});
+
+window.addEventListener('load', clearChunkReloadFlag);
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
