@@ -31,7 +31,7 @@ const calcAgeAsOf = (dob: string | undefined, referenceDate: Date): number | und
 };
 
 const getRegistrationAgeReferenceDate = (registrationYear: number): Date =>
-  new Date(registrationYear, 5, 30);
+  new Date(registrationYear - 1, 5, 30);
 
 const toResidenceMemberLike = (
   member: UnitRegistrationMember | UnitMember,

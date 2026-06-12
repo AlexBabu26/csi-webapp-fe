@@ -57,7 +57,7 @@ export const formatSubmissionDeadline = (registrationYear: number): string =>
 export const formatRegistrationAgeReferenceLabel = (registrationYear: number): string => {
   const day = String(30).padStart(2, '0');
   const month = String(6).padStart(2, '0');
-  return `${day}-${month}-${registrationYear}`;
+  return `${day}-${month}-${registrationYear - 1}`;
 };
 
 const formatDob = (dob?: string): string => {

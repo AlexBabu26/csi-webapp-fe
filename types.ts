@@ -562,6 +562,7 @@ export interface UnitRegistrationMember {
   number?: string;
   qualification?: string;
   blood_group?: string;
+  added_registration_cycle_id?: number | null;
   residence_location?: ResidenceLocation;
   residence_state_id?: number | null;
   residence_city_id?: number | null;

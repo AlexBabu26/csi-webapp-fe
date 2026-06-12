@@ -83,6 +83,11 @@ export const MembersStep: React.FC<MembersStepProps> = ({
   const submitMembers = useSubmitUnitMembers();
 
   const members = formData.unit_members;
+  const cycleId = formData.cycle_id;
+  const isNewThisCycle = (member: UnitRegistrationMember) =>
+    cycleId != null && member.added_registration_cycle_id === cycleId;
+  const canFullyEditMember = (member: UnitRegistrationMember) =>
+    !isRenewal || isNewThisCycle(member);
   const missingLocationCount = members.filter((m) => !isResidenceComplete(m)).length;
   const missingBloodGroupCount = members.filter((m) => !m.blood_group).length;
 
@@ -295,12 +300,12 @@ export const MembersStep: React.FC<MembersStepProps> = ({
             <div className="flex items-center gap-2 mb-1">
               <UserPlus className="w-5 h-5 text-primary shrink-0" />
               <h3 className="text-lg font-bold text-textDark">
-                {isRenewal ? 'Add Member' : editingId ? 'Edit Member' : 'Add Member'}
+                {editingId ? 'Edit Member' : 'Add Member'}
               </h3>
             </div>
             <p className="text-sm text-textMuted mb-4">
               {isRenewal
-                ? 'Add new members for this season using the form above.'
+                ? 'Add new members for this season using the form above. Members added this season can be fully edited; existing members require a change request.'
                 : 'Add unit members for registration using the form above.'}
             </p>
             <form onSubmit={handleAddOrUpdate} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -418,9 +423,9 @@ export const MembersStep: React.FC<MembersStepProps> = ({
             </div>
             {members.length > 0 && (
               <p className="text-sm text-textMuted mb-4">
-                You can update phone number, qualification, and living location directly in the table below.
-                Blood group can also be edited here if it was not added previously. For other changes such as
-                name, date of birth, or unit transfer, please use Request Change.
+                {isRenewal
+                  ? 'For existing members, you can update phone number, qualification, and living location directly in the table below. Blood group can also be edited here if it was not added previously. For other changes such as name, date of birth, or unit transfer, please use Request Change. Members added this season can be fully edited or removed.'
+                  : 'You can update phone number, qualification, and living location directly in the table below. Blood group can also be edited here if it was not added previously. For other changes such as name, date of birth, or unit transfer, please use Request Change.'}
               </p>
             )}
             {inlineFieldError && (
@@ -452,7 +457,12 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                       <React.Fragment key={m.id}>
                         <tr className="border-b border-borderColor/50 last:border-0">
                           <td className="py-2.5 pr-3 font-medium max-w-[180px] truncate" title={m.name}>
-                            {m.name}
+                            <span className="block truncate">{m.name}</span>
+                            {isRenewal && isNewThisCycle(m) && (
+                              <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                New this season
+                              </span>
+                            )}
                           </td>
                           <td className="py-2.5 pr-3">{m.gender}</td>
                           <td className="py-2.5 pr-3">
@@ -545,7 +555,16 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                           </td>
                           <td className="py-2.5">
                             <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                              {isRenewal ? (
+                              {canFullyEditMember(m) ? (
+                                <button
+                                  type="button"
+                                  onClick={() => startEdit(m)}
+                                  className="p-1.5 text-primary hover:bg-primary/10 rounded"
+                                  aria-label={`Edit ${m.name}`}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                              ) : (
                                 <Link
                                   to="/unit/change-request"
                                   state={{
@@ -565,24 +584,17 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                                 >
                                   Request change
                                 </Link>
-                              ) : (
+                              )}
+                              {canFullyEditMember(m) && (
                                 <button
                                   type="button"
-                                  onClick={() => startEdit(m)}
-                                  className="p-1.5 text-primary hover:bg-primary/10 rounded"
-                                  aria-label={`Edit ${m.name}`}
+                                  onClick={() => deleteMember.mutate(m.id)}
+                                  className="p-1.5 text-danger hover:bg-danger/10 rounded"
+                                  aria-label={`Remove ${m.name}`}
                                 >
-                                  <Pencil className="w-4 h-4" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               )}
-                              <button
-                                type="button"
-                                onClick={() => deleteMember.mutate(m.id)}
-                                className="p-1.5 text-danger hover:bg-danger/10 rounded"
-                                aria-label={`Remove ${m.name}`}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
                             </div>
                           </td>
                         </tr>
