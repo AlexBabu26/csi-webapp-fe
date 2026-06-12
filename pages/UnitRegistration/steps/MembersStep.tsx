@@ -6,11 +6,6 @@ import { UserPlus, Trash2, Pencil } from 'lucide-react';
 import { ArchivedMembersSection } from '../../../components/ArchivedMembersSection';
 import { useRecentArchivedMembers } from '../../../hooks/queries';
 import { UnitApplicationForm, UnitRegistrationMember } from '../../../types';
-const MemberResidenceFields = lazyImport(() =>
-  import('../../../components/MemberResidenceFields').then((module) => ({
-    default: module.MemberResidenceFields,
-  })),
-);
 import {
   ResidenceFormValue,
   buildResidencePayload,
@@ -29,6 +24,12 @@ import { useSiteSettings } from '../../../hooks/queries';
 import { FeeSummary } from '../components/FeeSummary';
 import { RenewalChangeRequestNotice } from '../components/RenewalChangeRequestNotice';
 import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
+
+const MemberResidenceFields = lazyImport(() =>
+  import('../../../components/MemberResidenceFields').then((module) => ({
+    default: module.MemberResidenceFields,
+  })),
+);
 
 interface MembersStepProps extends WizardStepNavigationProps {
   formData: UnitApplicationForm;
@@ -56,6 +57,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
   onPrevious,
   showPrevious,
 }) => {
+  const isRenewalRegistration = formData.path_type === 'renewal' || formData.is_renewal;
   const isRenewal = isRenewalRegistration;
   const { data: siteSettings } = useSiteSettings();
   const minDob = siteSettings?.member_min_dob ?? '1990-01-01';
@@ -85,7 +87,6 @@ export const MembersStep: React.FC<MembersStepProps> = ({
 
   const members = formData.unit_members;
   const cycleId = formData.cycle_id;
-  const isRenewalRegistration = formData.path_type === 'renewal' || formData.is_renewal;
   const isNewThisCycle = (member: UnitRegistrationMember) =>
     cycleId != null &&
     member.added_registration_cycle_id != null &&
