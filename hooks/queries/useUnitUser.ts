@@ -40,7 +40,12 @@ export const useSubmitMemberInfoChange = () => {
       reason: string;
       proof?: File;
     }) => {
-      return api.submitMemberInfoChange(data.memberId, data.changes, data.reason, data.proof);
+      return api.submitMemberInfoChange({
+        memberId: data.memberId,
+        changes: data.changes,
+        reason: data.reason,
+        proof: data.proof,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.myRequests() });

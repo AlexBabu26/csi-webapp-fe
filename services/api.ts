@@ -2193,7 +2193,22 @@ class ApiService {
   async submitMemberInfoChange(payload: MemberInfoChangeSubmission): Promise<ApiResponse<boolean>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    await httpPost<any>('/units/member-info-change', payload, { token });
+
+    if (!payload.proof) {
+      throw new Error('Proof document is required');
+    }
+
+    const formData = new FormData();
+    formData.append('unit_member_id', String(payload.memberId));
+    formData.append('reason', payload.reason);
+    if (payload.changes.name) formData.append('name', payload.changes.name);
+    if (payload.changes.gender) formData.append('gender', payload.changes.gender);
+    if (payload.changes.dob) formData.append('dob', payload.changes.dob);
+    if (payload.changes.bloodGroup) formData.append('blood_group', payload.changes.bloodGroup);
+    if (payload.changes.qualification) formData.append('qualification', payload.changes.qualification);
+    formData.append('proof', payload.proof, payload.proof.name);
+
+    await httpPost<any>('/units/member-change-request', formData, { token });
     return { data: true, message: 'Member info change request submitted successfully', status: 200 };
   }
 
