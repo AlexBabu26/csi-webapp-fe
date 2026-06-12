@@ -55,7 +55,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
   onPrevious,
   showPrevious,
 }) => {
-  const isRenewal = formData.is_renewal;
+  const isRenewal = isRenewalRegistration;
   const { data: siteSettings } = useSiteSettings();
   const minDob = siteSettings?.member_min_dob ?? '1990-01-01';
   const maxDob = siteSettings?.member_max_dob ?? '2011-12-31';
@@ -84,10 +84,13 @@ export const MembersStep: React.FC<MembersStepProps> = ({
 
   const members = formData.unit_members;
   const cycleId = formData.cycle_id;
+  const isRenewalRegistration = formData.path_type === 'renewal' || formData.is_renewal;
   const isNewThisCycle = (member: UnitRegistrationMember) =>
-    cycleId != null && member.added_registration_cycle_id === cycleId;
-  const canFullyEditMember = (member: UnitRegistrationMember) =>
-    !isRenewal || isNewThisCycle(member);
+    cycleId != null &&
+    member.added_registration_cycle_id != null &&
+    Number(member.added_registration_cycle_id) === Number(cycleId);
+  const canEditMemberProfile = (member: UnitRegistrationMember) =>
+    !isRenewalRegistration || isNewThisCycle(member);
   const missingLocationCount = members.filter((m) => !isResidenceComplete(m)).length;
   const missingBloodGroupCount = members.filter((m) => !m.blood_group).length;
 
@@ -449,7 +452,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                       <th className="py-2.5 pr-3 font-medium min-w-[140px]">Qualification / Job</th>
                       <th className="py-2.5 pr-3 font-medium w-24">Blood Group</th>
                       <th className="py-2.5 pr-3 font-medium min-w-[160px]">Location</th>
-                      <th className="py-2.5 font-medium w-28 text-right">Actions</th>
+                      <th className="py-2.5 font-medium min-w-[120px] text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -554,8 +557,8 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                             </div>
                           </td>
                           <td className="py-2.5">
-                            <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                              {canFullyEditMember(m) ? (
+                            <div className="flex items-center justify-end gap-2 whitespace-nowrap min-w-[100px]">
+                              {canEditMemberProfile(m) ? (
                                 <button
                                   type="button"
                                   onClick={() => startEdit(m)}
@@ -585,16 +588,16 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                                   Request change
                                 </Link>
                               )}
-                              {canFullyEditMember(m) && (
-                                <button
-                                  type="button"
-                                  onClick={() => deleteMember.mutate(m.id)}
-                                  className="p-1.5 text-danger hover:bg-danger/10 rounded"
-                                  aria-label={`Remove ${m.name}`}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => deleteMember.mutate(m.id)}
+                                disabled={deleteMember.isPending}
+                                title={`Remove ${m.name}`}
+                                className="p-1.5 text-danger hover:bg-danger/10 rounded disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                                aria-label={`Remove ${m.name}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
                             </div>
                           </td>
                         </tr>
