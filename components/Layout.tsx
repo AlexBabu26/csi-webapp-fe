@@ -35,6 +35,8 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { APP_NAME } from '../constants';
 import { getAuthUser, clearAuthToken, clearAuthUser } from '../services/auth';
 import { AuthUser } from '../types';
+import { useApplicationForm } from '../hooks/queries';
+import { canAccessUnitChangeRequests } from '../pages/UnitRegistration/utils';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -416,9 +418,28 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   // Get current user role and filter navigation groups
   const userRole = getUserRole();
+  const { data: applicationForm } = useApplicationForm(userRole === 'unit');
+  const showChangeRequests = applicationForm
+    ? canAccessUnitChangeRequests(applicationForm)
+    : false;
+
   const filteredNavGroups = NAV_GROUPS.filter(group => 
     !group.roles || group.roles.includes(userRole)
-  );
+  ).map((group) => {
+    if (group.label !== 'Unit Registration' || !group.items) {
+      return group;
+    }
+
+    return {
+      ...group,
+      items: group.items.filter((item) => {
+        if (item.path !== '/unit/my-requests' && item.path !== '/unit/change-request') {
+          return true;
+        }
+        return showChangeRequests;
+      }),
+    };
+  });
 
   // Close sidebar on route change on mobile
   useEffect(() => {

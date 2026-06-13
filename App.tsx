@@ -67,6 +67,7 @@ const SubmitOfficialsChange = lazyImport(() => import('./pages/UnitUser/SubmitOf
 const SubmitCouncilorChange = lazyImport(() => import('./pages/UnitUser/SubmitCouncilorChange').then(module => ({ default: module.SubmitCouncilorChange })));
 const SubmitMemberAdd = lazyImport(() => import('./pages/UnitUser/SubmitMemberAdd').then(module => ({ default: module.SubmitMemberAdd })));
 const UpdateMemberLocations = lazyImport(() => import('./pages/UnitUser/UpdateMemberLocations').then(module => ({ default: module.UpdateMemberLocations })));
+const ChangeRequestGuard = lazyImport(() => import('./pages/UnitUser/ChangeRequestGuard').then(module => ({ default: module.ChangeRequestGuard })));
 const ChangeRequestWizard = lazyImport(() => import('./pages/ChangeRequest/ChangeRequestWizard').then(module => ({ default: module.ChangeRequestWizard })));
 
 // Kalamela Pages
@@ -373,13 +374,17 @@ const App: React.FC = () => {
               {/* Unit User Routes (for unit officials) */}
               <Route path="/unit/my-requests" element={
                 <AdminRoute>
-                  <ViewMyRequests />
+                  <ChangeRequestGuard>
+                    <ViewMyRequests />
+                  </ChangeRequestGuard>
                 </AdminRoute>
               } />
 
               <Route path="/unit/change-request" element={
                 <AdminRoute>
-                  <ChangeRequestWizard />
+                  <ChangeRequestGuard>
+                    <ChangeRequestWizard />
+                  </ChangeRequestGuard>
                 </AdminRoute>
               } />
 
@@ -391,31 +396,41 @@ const App: React.FC = () => {
 
               <Route path="/unit/submit-transfer" element={
                 <AdminRoute>
-                  <SubmitTransferRequest />
+                  <ChangeRequestGuard>
+                    <SubmitTransferRequest />
+                  </ChangeRequestGuard>
                 </AdminRoute>
               } />
 
               <Route path="/unit/submit-member-info" element={
                 <AdminRoute>
-                  <SubmitMemberInfoChange />
+                  <ChangeRequestGuard>
+                    <SubmitMemberInfoChange />
+                  </ChangeRequestGuard>
                 </AdminRoute>
               } />
 
               <Route path="/unit/submit-officials" element={
                 <AdminRoute>
-                  <SubmitOfficialsChange />
+                  <ChangeRequestGuard>
+                    <SubmitOfficialsChange />
+                  </ChangeRequestGuard>
                 </AdminRoute>
               } />
 
               <Route path="/unit/submit-councilor" element={
                 <AdminRoute>
-                  <SubmitCouncilorChange />
+                  <ChangeRequestGuard>
+                    <SubmitCouncilorChange />
+                  </ChangeRequestGuard>
                 </AdminRoute>
               } />
 
               <Route path="/unit/submit-member-add" element={
                 <AdminRoute>
-                  <SubmitMemberAdd />
+                  <ChangeRequestGuard>
+                    <SubmitMemberAdd />
+                  </ChangeRequestGuard>
                 </AdminRoute>
               } />
 

@@ -13,6 +13,7 @@ import {
   statusToStep,
   isRegistrationComplete,
   canNavigateToStep,
+  canAccessUnitChangeRequests,
   WizardStepId,
 } from './utils';
 import { membersMissingLocation, formatRegistrationSeason } from '../../services/authRouting';
@@ -167,20 +168,22 @@ export const RegistrationWizard: React.FC = () => {
           {activeStep === 6 && <DeclarationStep {...stepNavigation} />}
         </div>
 
-        <div className="pt-2 border-t border-borderColor/60 text-center flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
-          <Link
-            to="/unit/change-request"
-            className="inline-flex items-center text-sm font-medium text-textMuted hover:text-primary transition-colors"
-          >
-            Submit Change Request
-          </Link>
-          <Link
-            to="/unit/my-requests"
-            className="inline-flex items-center text-sm font-medium text-textMuted hover:text-primary transition-colors"
-          >
-            View My Requests
-          </Link>
-        </div>
+        {canAccessUnitChangeRequests(formData) && (
+          <div className="pt-2 border-t border-borderColor/60 text-center flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+            <Link
+              to="/unit/change-request"
+              className="inline-flex items-center text-sm font-medium text-textMuted hover:text-primary transition-colors"
+            >
+              Submit Change Request
+            </Link>
+            <Link
+              to="/unit/my-requests"
+              className="inline-flex items-center text-sm font-medium text-textMuted hover:text-primary transition-colors"
+            >
+              View My Requests
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

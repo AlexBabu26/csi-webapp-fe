@@ -1,4 +1,4 @@
-import { UnitRegistrationStatus } from '../types';
+import { UnitApplicationForm, UnitRegistrationStatus } from '../types';
 
 export const WIZARD_STEPS = [
   { id: 1, label: 'Account', shortLabel: 'Account' },
@@ -26,6 +26,14 @@ export const statusToStep = (status: UnitRegistrationStatus): WizardStepId =>
 
 export const isRegistrationComplete = (status: UnitRegistrationStatus): boolean =>
   status === 'Registration Completed';
+
+export const canAccessUnitChangeRequests = (form: UnitApplicationForm): boolean => {
+  const isRenewal = form.path_type === 'renewal' || form.is_renewal;
+  if (isRenewal) {
+    return true;
+  }
+  return isRegistrationComplete(form.registration_status);
+};
 
 export const canNavigateToStep = (
   targetStep: WizardStepId,
