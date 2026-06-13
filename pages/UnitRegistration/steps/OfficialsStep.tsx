@@ -3,8 +3,7 @@ import { Card, Button } from '../../../components/ui';
 import { Shield } from 'lucide-react';
 import { SearchableSelect } from '../../../components/SearchableSelect';
 import { UnitApplicationForm, UnitOfficialPayload, UnitRegistrationMember } from '../../../types';
-import { useSaveUnitOfficials, useConfirmUnitOfficials } from '../../../hooks/queries';
-import { RenewalChangeRequestNotice } from '../components/RenewalChangeRequestNotice';
+import { useSaveUnitOfficials } from '../../../hooks/queries';
 import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
 
 interface OfficialsStepProps extends WizardStepNavigationProps {
@@ -50,7 +49,6 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({
   const officials = formData.unit_officials;
   const members = formData.unit_members;
   const saveOfficials = useSaveUnitOfficials();
-  const confirmOfficials = useConfirmUnitOfficials();
 
   const [selectedMemberIds, setSelectedMemberIds] = useState<Record<MemberSelectPosition, string>>({
     vicePresident: '',
@@ -166,12 +164,6 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isRenewal) {
-      await confirmOfficials.mutateAsync();
-      onComplete();
-      return;
-    }
-
     const payloads: UnitOfficialPayload[] = [
       {
         position: 'President',
@@ -194,98 +186,105 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({
     onComplete();
   };
 
-  const readOnlyClass = isRenewal ? 'bg-gray-50 text-textMuted cursor-not-allowed' : '';
+  const inputClass =
+    'w-full px-3 py-2 border border-borderColor rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary';
+  const readOnlyInputClass = `${inputClass} bg-gray-50 text-textMuted cursor-not-allowed`;
 
   return (
     <div className="space-y-6">
       <form id="officials-form" onSubmit={handleSubmit} className="space-y-6">
         {isRenewal && (
-          <RenewalChangeRequestNotice
-            requestPath="/unit/change-request"
-            requestLabel="Officials Change request"
-          />
+          <p className="text-sm text-textMuted rounded-lg border border-borderColor bg-bgLight px-4 py-3">
+            Select unit members for Vice President, Secretary, Joint Secretary, and Treasurer.
+            President details can be edited directly.
+          </p>
         )}
         {POSITIONS.map((pos) => {
-        const isPresident = pos.key === 'president';
-        const nameKey = `${pos.key}Name` as keyof typeof form;
-        const phoneKey = `${pos.key}Phone` as keyof typeof form;
+          const isPresident = pos.key === 'president';
+          const usesMemberSelect = isMemberSelectPosition(pos.key);
+          const nameKey = `${pos.key}Name` as keyof typeof form;
+          const phoneKey = `${pos.key}Phone` as keyof typeof form;
 
-        return (
-          <Card key={pos.key}>
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-bold text-textDark">{pos.label}</h3>
-            </div>
-            <div className={`grid grid-cols-1 ${isPresident ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
-              {isPresident && (
-                <div>
-                  <label className="block text-sm font-medium text-textDark mb-2">Designation *</label>
-                  <select
-                    value={form.presidentDesignation}
-                    onChange={(e) => setForm({ ...form, presidentDesignation: e.target.value })}
-                    className={`w-full px-3 py-2 border border-borderColor rounded-md bg-white ${readOnlyClass}`}
-                    required
-                    disabled={isRenewal}
-                  >
-                    <option value="">Select</option>
-                    {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-              )}
-              <div>
-                {isMemberSelectPosition(pos.key) && !isRenewal ? (
-                  <SearchableSelect
-                    label="Name"
-                    required
-                    value={selectedMemberIds[pos.key]}
-                    onChange={(memberId) =>
-                      handleMemberSelect(pos.key as MemberSelectPosition, nameKey, phoneKey, memberId)
-                    }
-                    options={memberOptionsByPosition[pos.key]}
-                    placeholder="Select a unit member"
-                    searchPlaceholder="Search members..."
-                    emptyMessage={
-                      members.length === 0
-                        ? 'No unit members found. Add members in the previous step.'
-                        : 'No available members. All members are already assigned to other positions.'
-                    }
-                    initiallyCollapsed
-                  />
-                ) : (
-                  <>
-                    <label className="block text-sm font-medium text-textDark mb-2">Name *</label>
-                    <input
-                      type="text"
-                      value={form[nameKey]}
-                      onChange={(e) => setForm({ ...form, [nameKey]: e.target.value })}
-                      className={`w-full px-3 py-2 border border-borderColor rounded-md ${readOnlyClass}`}
+          return (
+            <Card key={pos.key}>
+              <div className="flex items-center gap-2 mb-4">
+                <Shield className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-bold text-textDark">{pos.label}</h3>
+              </div>
+              <div className={`grid grid-cols-1 ${isPresident ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
+                {isPresident && (
+                  <div>
+                    <label className="block text-sm font-medium text-textDark mb-2">Designation *</label>
+                    <select
+                      value={form.presidentDesignation}
+                      onChange={(e) => setForm({ ...form, presidentDesignation: e.target.value })}
+                      className="w-full px-3 py-2 border border-borderColor rounded-md bg-white"
                       required
-                      readOnly={isRenewal}
-                    />
-                  </>
+                    >
+                      <option value="">Select</option>
+                      {DESIGNATIONS.map((d) => (
+                        <option key={d} value={d}>
+                          {d}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 )}
+                <div>
+                  {usesMemberSelect ? (
+                    <SearchableSelect
+                      label="Name"
+                      required
+                      value={selectedMemberIds[pos.key]}
+                      onChange={(memberId) =>
+                        handleMemberSelect(pos.key as MemberSelectPosition, nameKey, phoneKey, memberId)
+                      }
+                      options={memberOptionsByPosition[pos.key]}
+                      placeholder="Select a unit member"
+                      searchPlaceholder="Search members..."
+                      emptyMessage={
+                        members.length === 0
+                          ? 'No unit members found. Add members in the previous step.'
+                          : 'No available members. All members are already assigned to other positions.'
+                      }
+                      initiallyCollapsed
+                    />
+                  ) : (
+                    <>
+                      <label className="block text-sm font-medium text-textDark mb-2">Name *</label>
+                      <input
+                        type="text"
+                        value={form[nameKey]}
+                        onChange={(e) => setForm({ ...form, [nameKey]: e.target.value })}
+                        className={inputClass}
+                        required
+                      />
+                    </>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-textDark mb-2">Phone *</label>
+                  <input
+                    type="tel"
+                    value={form[phoneKey]}
+                    onChange={(e) =>
+                      setForm({ ...form, [phoneKey]: e.target.value.replace(/\D/g, '').slice(0, 10) })
+                    }
+                    pattern="[6-9]\d{9}"
+                    className={usesMemberSelect ? readOnlyInputClass : inputClass}
+                    required
+                    readOnly={usesMemberSelect}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-textDark mb-2">Phone *</label>
-                <input
-                  type="tel"
-                  value={form[phoneKey]}
-                  onChange={(e) => setForm({ ...form, [phoneKey]: e.target.value.replace(/\D/g, '').slice(0, 10) })}
-                  pattern="[6-9]\d{9}"
-                  className={`w-full px-3 py-2 border border-borderColor rounded-md ${readOnlyClass}`}
-                  required
-                  readOnly={isRenewal || isMemberSelectPosition(pos.key)}
-                />
-              </div>
-            </div>
-          </Card>
-        );
-      })}
+            </Card>
+          );
+        })}
       </form>
 
       <WizardStepActions standalone onPrevious={onPrevious} showPrevious={showPrevious}>
-        <Button type="submit" form="officials-form" isLoading={saveOfficials.isPending || confirmOfficials.isPending}>
-          {isRenewal ? 'Confirm & Continue to Councilors' : 'Save & Continue to Councilors'}
+        <Button type="submit" form="officials-form" isLoading={saveOfficials.isPending}>
+          Save & Continue to Councilors
         </Button>
       </WizardStepActions>
     </div>
