@@ -42,6 +42,7 @@ interface DataTableProps<TData> {
   showRowSelection?: boolean;
   pageSize?: number;
   onRowSelectionChange?: (selectedRows: TData[]) => void;
+  onRowClick?: (row: TData) => void;
   isLoading?: boolean;
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
@@ -57,6 +58,7 @@ export function DataTable<TData>({
   showRowSelection = false,
   pageSize = 10,
   onRowSelectionChange,
+  onRowClick,
   isLoading = false,
   emptyMessage = 'No data available',
   emptyIcon,
@@ -297,7 +299,8 @@ export function DataTable<TData>({
                     key={row.id}
                     className={`hover:bg-bgLight transition-colors ${
                       row.getIsSelected() ? 'bg-primary/5' : ''
-                    }`}
+                    } ${onRowClick ? 'cursor-pointer' : ''}`}
+                    onClick={() => onRowClick?.(row.original)}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id} className="px-4 py-4 text-sm text-textDark">

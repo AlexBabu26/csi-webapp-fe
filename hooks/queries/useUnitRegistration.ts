@@ -284,13 +284,24 @@ export const useApproveRegistrationPayment = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: ({ paymentId, balanceAmount }: { paymentId: number; balanceAmount: number }) =>
-      api.approveRegistrationPayment(paymentId, balanceAmount),
+    mutationFn: ({
+      paymentId,
+      paidAmount,
+      totalAmount,
+    }: {
+      paymentId: number;
+      paidAmount: number;
+      totalAmount: number | null;
+    }) => api.approveRegistrationPayment(paymentId, paidAmount),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.adminPayments() });
+      const remaining =
+        variables.totalAmount != null
+          ? Math.max(0, variables.totalAmount - variables.paidAmount)
+          : 0;
       const message =
-        variables.balanceAmount > 0
-          ? `Payment approved. Balance remaining: ₹${variables.balanceAmount}`
+        remaining > 0
+          ? `Payment approved. Paid ₹${variables.paidAmount}; remaining: ₹${remaining}`
           : 'Payment approved. Registration fee fully paid.';
       addToast(message, 'success');
     },

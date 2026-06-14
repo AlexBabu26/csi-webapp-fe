@@ -47,6 +47,8 @@ export const RegistrationComplete: React.FC = () => {
 
   const totalAmount = formData?.total_amount ?? 0;
   const balanceAmount = paymentData?.balance_amount ?? null;
+  const paidAmount =
+    isPartial && balanceAmount != null ? Math.max(0, totalAmount - balanceAmount) : null;
   const amountDue = isPartial && balanceAmount != null ? balanceAmount : totalAmount;
   const hasPendingSubmission =
     paymentData?.submissions.some((submission) => submission.status === 'PENDING') ?? false;
@@ -105,8 +107,13 @@ export const RegistrationComplete: React.FC = () => {
             <Clock className="w-5 h-5 text-warning flex-shrink-0" />
             <div className="text-sm">
               <p className="font-medium text-textDark">Partial payment approved</p>
+              {paidAmount != null && (
+                <p className="text-textMuted mt-0.5">
+                  Paid so far: <strong>₹{paidAmount}</strong> of <strong>₹{totalAmount}</strong>
+                </p>
+              )}
               <p className="text-textMuted mt-0.5">
-                A balance of <strong>₹{balanceAmount}</strong> remains. Pay the remaining amount and
+                Remaining to pay: <strong>₹{balanceAmount}</strong>. Pay the remaining amount and
                 upload another proof to complete registration.
               </p>
             </div>
@@ -185,11 +192,17 @@ export const RegistrationComplete: React.FC = () => {
                       {sub.status}
                     </Badge>
                     {sub.status === 'APPROVED' &&
+                      sub.total_amount != null &&
                       sub.balance_amount != null &&
                       sub.balance_amount > 0 && (
-                        <p className="text-xs text-warning font-medium">
-                          Balance: ₹{sub.balance_amount}
+                        <p className="text-xs text-textMuted">
+                          Paid: ₹{sub.total_amount - sub.balance_amount} · Remaining: ₹
+                          {sub.balance_amount}
                         </p>
+                      )}
+                    {sub.status === 'APPROVED' &&
+                      (sub.balance_amount == null || sub.balance_amount === 0) && (
+                        <p className="text-xs text-success font-medium">Fully paid</p>
                       )}
                   </div>
                 </div>

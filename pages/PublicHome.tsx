@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { APP_NAME, APP_SUBTITLE } from '../constants';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { User, Lock, Eye, EyeOff, Award, Users, BookOpen, Droplets } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Award, Users, BookOpen, Droplets, AlertCircle } from 'lucide-react';
 import { UserRole, SiteSettings, Notice } from '../types';
 import { Footer } from '../components/Footer';
 import { api } from '../services/api';
@@ -24,6 +24,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
   const [showFullAbout, setShowFullAbout] = useState(false);
 
   // Helper: open login modal with an optional post-login redirect
@@ -31,6 +32,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
     setRedirectAfterLogin(redirectTo ?? null);
     setUsername('');
     setPassword('');
+    setFormError('');
     setShowLoginModal(true);
   };
 
@@ -69,7 +71,8 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+    setFormError('');
+
     try {
       console.log('[PublicHome] Attempting login for user:', username);
       
@@ -114,7 +117,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
       navigate(path);
     } catch (error: any) {
       console.error('[PublicHome] Login failed:', error);
-      alert(`Login failed: ${error.message || 'Please check your credentials and try again.'}`);
+      setFormError(error?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
       }
@@ -333,7 +336,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
                 )}
               </div>
               <button 
-                onClick={() => { setShowLoginModal(false); setRedirectAfterLogin(null); }} 
+                onClick={() => { setShowLoginModal(false); setRedirectAfterLogin(null); setFormError(''); }} 
                 className="text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary rounded"
                 aria-label="Close modal"
               >
@@ -354,7 +357,10 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
                       className="block w-full pl-10 pr-3 py-2.5 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow"
                       placeholder="Enter Unit ID"
                       value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        if (formError) setFormError('');
+                      }}
                     />
                   </div>
                 </div>
@@ -370,7 +376,10 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
                       className="block w-full pl-10 pr-10 py-2.5 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow"
                       placeholder="Enter Password"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (formError) setFormError('');
+                      }}
                     />
                     <div 
                       className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
@@ -386,6 +395,12 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
                 <Button type="submit" variant="primary" size="block" isLoading={loading}>
                   Login to Dashboard
                 </Button>
+                {formError && (
+                  <div className="bg-danger/10 border border-danger/30 text-danger text-sm rounded-md p-3 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>{formError}</span>
+                  </div>
+                )}
               </form>
             </div>
           </div>

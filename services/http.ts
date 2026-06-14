@@ -1,4 +1,5 @@
 import { getAuthToken, getRefreshToken, setAuthTokens, clearAuth, isTokenExpiringSoon } from './auth';
+import { parseApiErrorBody, toUserFriendlyError } from './errorMessages';
 
 export const API_BASE_URL =
   (typeof process !== 'undefined' && (process as any).env?.API_BASE_URL) ||
@@ -140,36 +141,20 @@ const handleResponse = async (res: Response, asBlob?: boolean) => {
   if (!res.ok) {
     const text = await res.text();
     let errorMsg = `Request failed with status ${res.status}`;
-    
-    // Try to parse JSON error response
+
     try {
       const errorData = JSON.parse(text);
-      // Handle FastAPI-style error responses
-      if (errorData.detail) {
-        // detail can be a string or an array of validation errors
-        if (typeof errorData.detail === 'string') {
-          errorMsg = errorData.detail;
-        } else if (Array.isArray(errorData.detail)) {
-          // Validation errors from Pydantic
-          errorMsg = errorData.detail.map((err: any) => err.msg || err.message || JSON.stringify(err)).join(', ');
-        } else {
-          errorMsg = JSON.stringify(errorData.detail);
-        }
-      } else if (errorData.message) {
-        errorMsg = errorData.message;
-      } else if (errorData.error) {
-        errorMsg = errorData.error;
-      }
+      errorMsg = parseApiErrorBody(errorData, res.status);
     } catch {
-      // If not JSON, use the text directly if it's meaningful
       if (text && text.length < 200) {
         errorMsg = text;
       }
     }
-    
+
+    errorMsg = toUserFriendlyError(errorMsg, res.status);
+
     console.error(`[HTTP Error] ${res.status} ${res.statusText}:`, errorMsg);
-    
-    // Create an error with status code for easier handling
+
     const error = new Error(errorMsg) as Error & { status?: number };
     error.status = res.status;
     throw error;
@@ -262,7 +247,7 @@ export const http = async <T = any>(
             if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && window.location.pathname !== '/') {
               window.location.href = '/';
             }
-            throw new Error('Session expired. Please login again.');
+            throw new Error(toUserFriendlyError('Session expired. Please login again.', 401));
           }
           
           return handleResponse(retryResponse, asBlob) as Promise<T>;
@@ -273,7 +258,7 @@ export const http = async <T = any>(
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && window.location.pathname !== '/') {
             window.location.href = '/';
           }
-          throw new Error('Session expired. Please login again.');
+          throw new Error(toUserFriendlyError('Session expired. Please login again.', 401));
         }
       } else {
         // No refresh token, clear auth and redirect
@@ -281,7 +266,7 @@ export const http = async <T = any>(
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && window.location.pathname !== '/') {
           window.location.href = '/';
         }
-        throw new Error('Session expired. Please login again.');
+        throw new Error(toUserFriendlyError('Session expired. Please login again.', 401));
       }
     }
 
@@ -291,7 +276,7 @@ export const http = async <T = any>(
     
     // Handle timeout/abort errors
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-      const timeoutError = new Error(`Request timeout after ${timeout}ms`) as Error & { status?: number };
+      const timeoutError = new Error(toUserFriendlyError(`Request timeout after ${timeout}ms`, 408)) as Error & { status?: number };
       timeoutError.status = 408;
       console.error(`[HTTP] Request timeout for ${init.method || 'GET'} ${url}`);
       throw timeoutError;
@@ -299,7 +284,7 @@ export const http = async <T = any>(
     
     // Handle network errors
     if (error instanceof TypeError && error.message.includes('fetch')) {
-      const networkError = new Error('Network error: Unable to connect to server') as Error & { status?: number };
+      const networkError = new Error(toUserFriendlyError('Network error: Unable to connect to server', 0)) as Error & { status?: number };
       networkError.status = 0;
       console.error(`[HTTP] Network error for ${init.method || 'GET'} ${url}:`, error.message);
       throw networkError;

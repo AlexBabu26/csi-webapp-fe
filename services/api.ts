@@ -167,7 +167,7 @@ class ApiService {
   async login(payload: { username: string; password: string; portal?: 'kalamela' | 'conference' }) {
     try {
       console.log('[API] login: Attempting login for user:', payload.username, 'portal:', payload.portal);
-      const result = await httpPost<AuthTokens>('/auth/login', payload);
+      const result = await httpPost<AuthTokens>('/auth/login', payload, { skipAuthRefresh: true });
       console.log('[API] login: Success, token received');
       return result;
     } catch (err) {
@@ -182,7 +182,7 @@ class ApiService {
     clergy_district_id: number;
     password: string;
   }) {
-    return httpPost<AuthUser>('/auth/register-unit', payload);
+    return httpPost<AuthUser>('/auth/register-unit', payload, { skipAuthRefresh: true });
   }
 
   previewRegistrationUsername(clergyDistrictId: number) {
@@ -220,11 +220,11 @@ class ApiService {
   }
 
   forgotPasswordRequest(payload: { email: string }) {
-    return httpPost<{ message: string }>('/auth/forgot-password/request', payload);
+    return httpPost<{ message: string }>('/auth/forgot-password/request', payload, { skipAuthRefresh: true });
   }
 
   forgotPasswordConfirm(payload: { token: string; new_password: string }) {
-    return httpPost<{ message: string }>('/auth/forgot-password/confirm', payload);
+    return httpPost<{ message: string }>('/auth/forgot-password/confirm', payload, { skipAuthRefresh: true });
   }
 
   /**
@@ -241,7 +241,7 @@ class ApiService {
       console.log('[API] refreshToken: Attempting to refresh access token...');
       const result = await httpPost<AuthTokens>('/auth/refresh', {
         refresh_token: refreshToken
-      });
+      }, { skipAuthRefresh: true });
       console.log('[API] refreshToken: Success, new tokens received');
 
       // Store new tokens
@@ -2124,12 +2124,12 @@ class ApiService {
     });
   }
 
-  async approveRegistrationPayment(paymentId: number, balanceAmount: number): Promise<void> {
+  async approveRegistrationPayment(paymentId: number, paidAmount: number): Promise<void> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     await httpPost(
       `/admin/units/registration-payments/${paymentId}/approve`,
-      { balance_amount: balanceAmount },
+      { paid_amount: paidAmount },
       { token },
     );
   }

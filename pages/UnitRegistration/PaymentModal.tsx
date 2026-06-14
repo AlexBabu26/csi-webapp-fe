@@ -283,7 +283,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <p className="font-semibold text-textDark">Proof submitted!</p>
                 <p className="text-sm text-textMuted mt-1">
                   Your payment proof is under review. The registration form download will be
-                  enabled once the admin approves it.
+                  enabled once the full registration fee is approved.
                 </p>
               </div>
               <Button variant="outline" className="w-full" onClick={onClose}>

@@ -6,6 +6,7 @@ import {
   YMPlanForm, YMMagazineForm, YMAdminCreateForm,
 } from '../types';
 import { API_BASE_URL } from './http';
+import { parseApiErrorBody, toUserFriendlyError } from './errorMessages';
 import { getYMAccessToken, getYMRefreshToken, setYMTokens, clearYMAuth, isYMTokenExpiringSoon } from './yuvalokham-auth';
 
 const YM_BASE = '/yuvalokham';
@@ -78,15 +79,15 @@ async function ymFetch<T>(url: string, options: RequestInit & { skipAuth?: boole
           clearTimeout(retryTid);
           if (res.status === 401) {
             clearYMAuth();
-            throw Object.assign(new Error('Session expired'), { status: 401 });
+            throw Object.assign(new Error(toUserFriendlyError('Session expired', 401)), { status: 401 });
           }
         } catch {
           clearYMAuth();
-          throw Object.assign(new Error('Session expired'), { status: 401 });
+          throw Object.assign(new Error(toUserFriendlyError('Session expired', 401)), { status: 401 });
         }
       } else {
         clearYMAuth();
-        throw Object.assign(new Error('Session expired'), { status: 401 });
+        throw Object.assign(new Error(toUserFriendlyError('Session expired', 401)), { status: 401 });
       }
     }
 
@@ -95,10 +96,11 @@ async function ymFetch<T>(url: string, options: RequestInit & { skipAuth?: boole
       let msg = `Request failed (${res.status})`;
       try {
         const errData = JSON.parse(text);
-        if (typeof errData.detail === 'string') msg = errData.detail;
-        else if (Array.isArray(errData.detail)) msg = errData.detail.map((e: any) => e.msg).join(', ');
-      } catch { if (text.length < 200) msg = text; }
-      throw Object.assign(new Error(msg), { status: res.status });
+        msg = parseApiErrorBody(errData, res.status);
+      } catch {
+        if (text.length < 200) msg = text;
+      }
+      throw Object.assign(new Error(toUserFriendlyError(msg, res.status)), { status: res.status });
     }
 
     if (res.status === 204) return null as T;
@@ -106,7 +108,7 @@ async function ymFetch<T>(url: string, options: RequestInit & { skipAuth?: boole
     return text ? JSON.parse(text) : null;
   } catch (err: any) {
     clearTimeout(tid);
-    if (err.name === 'AbortError') throw Object.assign(new Error('Request timeout'), { status: 408 });
+    if (err.name === 'AbortError') throw Object.assign(new Error(toUserFriendlyError('Request timeout', 408)), { status: 408 });
     throw err;
   }
 }
