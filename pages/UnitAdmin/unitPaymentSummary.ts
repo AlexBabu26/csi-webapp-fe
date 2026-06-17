@@ -35,12 +35,6 @@ const statusLabels: Record<UnitPaymentDisplayStatus, string> = {
 export const getUnitPaymentStatusLabel = (status: UnitPaymentDisplayStatus): string =>
   statusLabels[status];
 
-export const getProofPaidAmount = (payment: AdminRegistrationPayment): number | null => {
-  if (payment.status !== 'APPROVED' || payment.total_amount == null) return null;
-  if (payment.balance_amount == null) return payment.total_amount;
-  return payment.total_amount - payment.balance_amount;
-};
-
 export function buildUnitPaymentSummary(
   submissions: AdminRegistrationPayment[],
 ): UnitPaymentSummary {

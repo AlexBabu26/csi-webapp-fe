@@ -726,6 +726,13 @@ export interface AdminRegistrationPayment {
   reviewed_at: string | null;
 }
 
+export interface ApproveRegistrationPaymentResponse {
+  message: string;
+  id: number;
+  paid_amount: number;
+  balance_amount: number;
+}
+
 export interface TransferDestinationUnit {
   id: number;
   name: string;

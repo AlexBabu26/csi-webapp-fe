@@ -13,11 +13,12 @@ import { AdminRegistrationPayment } from '../../types';
 import { getMediaUrl } from '../../services/http';
 import {
   UnitPaymentSummary,
+  buildUnitPaymentSummary,
   filterUnitSummaries,
-  getProofPaidAmount,
   getUnitPaymentStatusLabel,
   groupPaymentsByUnit,
 } from './unitPaymentSummary';
+import { getProofPaidAmount } from '../../utils/registrationPayment';
 
 const paymentStatusBadgeVariant = (
   status: UnitPaymentSummary['display_status'],
@@ -51,8 +52,10 @@ export const UnitRegistrationPayments: React.FC = () => {
   const [selectedUnit, setSelectedUnit] = useState<UnitPaymentSummary | null>(null);
   const [rejectDialogId, setRejectDialogId] = useState<number | null>(null);
   const [approveDialogPayment, setApproveDialogPayment] = useState<AdminRegistrationPayment | null>(null);
+  const [approveDialogBalanceDue, setApproveDialogBalanceDue] = useState<number | null>(null);
   const [paidAmount, setPaidAmount] = useState('');
   const [rejectionNote, setRejectionNote] = useState('');
+  const [reviewingPaymentId, setReviewingPaymentId] = useState<number | null>(null);
   const { addToast } = useToast();
 
   const { data: siteSettings } = useSiteSettings();
@@ -89,51 +92,90 @@ export const UnitRegistrationPayments: React.FC = () => {
   const rejectMutation = useRejectRegistrationPayment();
 
   const openApproveDialog = (payment: AdminRegistrationPayment) => {
+    const balanceDue =
+      selectedUnit != null && selectedUnit.remaining_amount > 0
+        ? selectedUnit.remaining_amount
+        : payment.total_amount;
     setApproveDialogPayment(payment);
-    setPaidAmount(payment.total_amount != null ? String(payment.total_amount) : '');
+    setApproveDialogBalanceDue(balanceDue ?? null);
+    setPaidAmount(balanceDue != null ? String(balanceDue) : '');
   };
 
   const handleApproveSubmit = () => {
-    if (!approveDialogPayment) return;
+    if (!approveDialogPayment || !selectedUnit) return;
     const parsedPaid = Number(paidAmount);
     if (!Number.isInteger(parsedPaid) || parsedPaid < 0) {
       addToast('Enter a valid paid amount (0 or more)', 'warning');
       return;
     }
-    if (
-      approveDialogPayment.total_amount != null &&
-      parsedPaid > approveDialogPayment.total_amount
-    ) {
-      addToast('Paid amount cannot exceed the registration total', 'warning');
+    if (approveDialogBalanceDue != null && parsedPaid > approveDialogBalanceDue) {
+      addToast('Paid amount cannot exceed the remaining balance', 'warning');
       return;
     }
+    const paymentId = approveDialogPayment.id;
+    setReviewingPaymentId(paymentId);
     approveMutation.mutate(
       {
-        paymentId: approveDialogPayment.id,
+        paymentId,
         paidAmount: parsedPaid,
-        totalAmount: approveDialogPayment.total_amount,
+        balanceDueBefore: approveDialogBalanceDue,
       },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
+          const reviewedAt = new Date().toISOString();
+          const updatedSubmissions = selectedUnit.submissions.map((submission) =>
+            submission.id === paymentId
+              ? {
+                  ...submission,
+                  status: 'APPROVED' as const,
+                  balance_amount: data.balance_amount,
+                  rejection_note: null,
+                  reviewed_at: reviewedAt,
+                }
+              : submission,
+          );
+          setSelectedUnit(buildUnitPaymentSummary(updatedSubmissions));
           setApproveDialogPayment(null);
+          setApproveDialogBalanceDue(null);
           setPaidAmount('');
+        },
+        onSettled: () => {
+          setReviewingPaymentId(null);
         },
       },
     );
   };
 
   const handleRejectSubmit = () => {
-    if (!rejectDialogId) return;
+    if (!rejectDialogId || !selectedUnit) return;
     if (!rejectionNote.trim()) {
       addToast('Please enter a rejection reason', 'warning');
       return;
     }
+    const paymentId = rejectDialogId;
+    const note = rejectionNote.trim();
+    setReviewingPaymentId(paymentId);
     rejectMutation.mutate(
-      { paymentId: rejectDialogId, rejectionNote },
+      { paymentId, rejectionNote: note },
       {
         onSuccess: () => {
+          const reviewedAt = new Date().toISOString();
+          const updatedSubmissions = selectedUnit.submissions.map((submission) =>
+            submission.id === paymentId
+              ? {
+                  ...submission,
+                  status: 'REJECTED' as const,
+                  rejection_note: note,
+                  reviewed_at: reviewedAt,
+                }
+              : submission,
+          );
+          setSelectedUnit(buildUnitPaymentSummary(updatedSubmissions));
           setRejectDialogId(null);
           setRejectionNote('');
+        },
+        onSettled: () => {
+          setReviewingPaymentId(null);
         },
       },
     );
@@ -361,7 +403,7 @@ export const UnitRegistrationPayments: React.FC = () => {
             <div className="overflow-y-auto px-6 py-4 space-y-3">
               <h4 className="text-sm font-semibold text-textDark">Payment history</h4>
               {selectedUnit.submissions.map((submission, index) => {
-                const proofPaid = getProofPaidAmount(submission);
+                const proofPaid = getProofPaidAmount(submission, selectedUnit.submissions);
                 return (
                   <div
                     key={submission.id}
@@ -415,8 +457,8 @@ export const UnitRegistrationPayments: React.FC = () => {
                               e.stopPropagation();
                               openApproveDialog(submission);
                             }}
-                            disabled={approveMutation.isPending}
-                            className="p-1.5 rounded-full bg-success/10 hover:bg-success/20 text-success transition-colors"
+                            disabled={reviewingPaymentId === submission.id || approveMutation.isPending}
+                            className="p-1.5 rounded-full bg-success/10 hover:bg-success/20 text-success transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Check className="w-4 h-4" />
                           </button>
@@ -427,8 +469,8 @@ export const UnitRegistrationPayments: React.FC = () => {
                               setRejectDialogId(submission.id);
                               setRejectionNote('');
                             }}
-                            disabled={rejectMutation.isPending}
-                            className="p-1.5 rounded-full bg-danger/10 hover:bg-danger/20 text-danger transition-colors"
+                            disabled={reviewingPaymentId === submission.id || rejectMutation.isPending}
+                            className="p-1.5 rounded-full bg-danger/10 hover:bg-danger/20 text-danger transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -452,8 +494,13 @@ export const UnitRegistrationPayments: React.FC = () => {
               <strong>{approveDialogPayment.unit_name ?? approveDialogPayment.username}</strong>.
               The system will calculate the remaining balance automatically.
             </p>
-            {approveDialogPayment.total_amount != null && (
+            {approveDialogBalanceDue != null && (
               <p className="text-sm text-textDark">
+                Balance due before this proof: <strong>₹{approveDialogBalanceDue}</strong>
+              </p>
+            )}
+            {approveDialogPayment.total_amount != null && (
+              <p className="text-sm text-textMuted">
                 Registration total: <strong>₹{approveDialogPayment.total_amount}</strong>
               </p>
             )}
@@ -464,21 +511,18 @@ export const UnitRegistrationPayments: React.FC = () => {
               <input
                 type="number"
                 min={0}
-                max={approveDialogPayment.total_amount ?? undefined}
+                max={approveDialogBalanceDue ?? approveDialogPayment.total_amount ?? undefined}
                 value={paidAmount}
                 onChange={(e) => setPaidAmount(e.target.value)}
                 className="w-full px-3 py-2 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
-            {approveDialogPayment.total_amount != null && paidAmount !== '' && (
+            {approveDialogBalanceDue != null && paidAmount !== '' && (
               <p className="text-sm text-textDark">
                 Remaining balance:{' '}
                 <strong className="text-warning">
                   ₹
-                  {Math.max(
-                    0,
-                    approveDialogPayment.total_amount - Number(paidAmount || 0),
-                  )}
+                  {Math.max(0, approveDialogBalanceDue - Number(paidAmount || 0))}
                 </strong>
               </p>
             )}
@@ -488,6 +532,7 @@ export const UnitRegistrationPayments: React.FC = () => {
                 className="flex-1"
                 onClick={() => {
                   setApproveDialogPayment(null);
+                  setApproveDialogBalanceDue(null);
                   setPaidAmount('');
                 }}
                 disabled={approveMutation.isPending}

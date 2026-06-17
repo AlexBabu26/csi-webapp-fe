@@ -124,8 +124,8 @@ export const RegistrationWizard: React.FC = () => {
             <div className="mt-4 mx-auto max-w-4xl rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-textDark text-left sm:text-center">
               Renewing registration for{' '}
               <strong>{formatRegistrationSeason(formData.registration_year)}</strong>. Review your
-              information below. Corrections to existing records must be submitted as change
-              requests from My Requests.
+              information below. Unit president and officials can be updated in the wizard; other
+              member profile changes must be submitted as change requests from My Requests.
             </div>
           )}
         </header>

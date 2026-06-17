@@ -17,6 +17,7 @@ import { PaymentModal } from './PaymentModal';
 import { isRegistrationComplete } from './utils';
 import { getMediaUrl } from '../../services/http';
 import { formatRegistrationSeason } from '../../services/authRouting';
+import { getProofPaidAmount } from '../../utils/registrationPayment';
 
 export const RegistrationComplete: React.FC = () => {
   const { data: formData, isLoading: formLoading } = useApplicationForm();
@@ -52,6 +53,7 @@ export const RegistrationComplete: React.FC = () => {
   const amountDue = isPartial && balanceAmount != null ? balanceAmount : totalAmount;
   const hasPendingSubmission =
     paymentData?.submissions.some((submission) => submission.status === 'PENDING') ?? false;
+  const canSubmitPayment = !isPaid && !hasPendingSubmission;
   const qrUrl = paymentData?.qr_url ?? null;
 
   return (
@@ -127,7 +129,8 @@ export const RegistrationComplete: React.FC = () => {
               <p className="font-medium text-textDark">Payment proof submitted</p>
               <p className="text-textMuted mt-0.5">
                 Awaiting admin review. The form download will be available once the full fee is
-                approved. You can submit additional proofs if needed.
+                approved. You can upload another proof after the admin approves or rejects this
+                one.
               </p>
             </div>
           </div>
@@ -158,7 +161,12 @@ export const RegistrationComplete: React.FC = () => {
               Payment submissions
             </p>
             <div className="space-y-2">
-              {paymentData.submissions.map((sub) => (
+              {paymentData.submissions.map((sub) => {
+                const proofPaid =
+                  sub.status === 'APPROVED'
+                    ? getProofPaidAmount(sub, paymentData.submissions)
+                    : null;
+                return (
                 <div
                   key={sub.id}
                   className="flex items-center justify-between rounded-lg border border-borderColor bg-white px-3 py-2 text-sm"
@@ -192,11 +200,11 @@ export const RegistrationComplete: React.FC = () => {
                       {sub.status}
                     </Badge>
                     {sub.status === 'APPROVED' &&
-                      sub.total_amount != null &&
+                      proofPaid != null &&
                       sub.balance_amount != null &&
                       sub.balance_amount > 0 && (
                         <p className="text-xs text-textMuted">
-                          Paid: ₹{sub.total_amount - sub.balance_amount} · Remaining: ₹
+                          Paid: ₹{proofPaid} · Remaining: ₹
                           {sub.balance_amount}
                         </p>
                       )}
@@ -206,7 +214,8 @@ export const RegistrationComplete: React.FC = () => {
                       )}
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
         )}
@@ -240,7 +249,7 @@ export const RegistrationComplete: React.FC = () => {
         {/* ── Action buttons ── */}
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
           {/* Payment CTA — shown when not yet approved */}
-          {!isPaid && (
+          {!isPaid && canSubmitPayment && (
             <Button
               variant="primary"
               onClick={() => setShowPaymentModal(true)}
@@ -250,9 +259,7 @@ export const RegistrationComplete: React.FC = () => {
                 ? 'Re-pay & Upload Proof'
                 : isPartial
                   ? 'Pay Remaining Balance'
-                  : isPending
-                    ? 'Add Another Proof'
-                    : 'Pay Now'}
+                  : 'Pay Now'}
             </Button>
           )}
 

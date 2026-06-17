@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button } from '../../../components/ui';
 import { Shield } from 'lucide-react';
 import { UnitApplicationForm } from '../../../types';
-import { useSaveUnitDetails, useConfirmUnitDetails } from '../../../hooks/queries';
-import { RenewalChangeRequestNotice } from '../components/RenewalChangeRequestNotice';
+import { useSaveUnitDetails } from '../../../hooks/queries';
 import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
 
 interface UnitDetailsStepProps extends WizardStepNavigationProps {
@@ -25,7 +24,6 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
   const [presidentName, setPresidentName] = useState(officials?.president_name || '');
   const [presidentPhone, setPresidentPhone] = useState(officials?.president_phone || '');
   const saveDetails = useSaveUnitDetails();
-  const confirmDetails = useConfirmUnitDetails();
 
   useEffect(() => {
     if (officials) {
@@ -38,12 +36,6 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isRenewal) {
-      await confirmDetails.mutateAsync();
-      onComplete();
-      return;
-    }
-
     if (!presidentDesignation || !presidentName.trim() || !presidentPhone.trim()) return;
     if (!/^[6-9]\d{9}$/.test(presidentPhone)) return;
 
@@ -55,17 +47,9 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
     onComplete();
   };
 
-  const readOnlyClass = isRenewal ? 'bg-gray-50 text-textMuted cursor-not-allowed' : '';
-
   return (
     <div className="space-y-6">
       <form id="unit-details-form" onSubmit={handleSubmit} className="space-y-4">
-        {isRenewal && (
-          <RenewalChangeRequestNotice
-            requestPath="/unit/change-request"
-            requestLabel="Officials Change request"
-          />
-        )}
         <Card>
         <div className="flex items-center gap-2 mb-4">
           <Shield className="w-5 h-5 text-primary" />
@@ -73,7 +57,7 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
         </div>
         <p className="text-sm text-textMuted mb-6">
           {isRenewal
-            ? 'Review the unit president information on file. Confirm to continue renewal registration.'
+            ? 'Review and update the unit president information (Vicar / Catechist / Reader) for this season.'
             : 'Enter the unit president information (Vicar / Catechist / Reader).'}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -82,9 +66,8 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
             <select
               value={presidentDesignation}
               onChange={(e) => setPresidentDesignation(e.target.value)}
-              className={`w-full px-3 py-2 border border-borderColor rounded-md bg-white ${readOnlyClass}`}
+              className="w-full px-3 py-2 border border-borderColor rounded-md bg-white"
               required
-              disabled={isRenewal}
             >
               <option value="">Select designation</option>
               {DESIGNATIONS.map((d) => (
@@ -98,9 +81,8 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
               type="text"
               value={presidentName}
               onChange={(e) => setPresidentName(e.target.value)}
-              className={`w-full px-3 py-2 border border-borderColor rounded-md ${readOnlyClass}`}
+              className="w-full px-3 py-2 border border-borderColor rounded-md"
               required
-              readOnly={isRenewal}
             />
           </div>
           <div>
@@ -111,9 +93,8 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
               onChange={(e) => setPresidentPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
               pattern="[6-9]\d{9}"
               placeholder="10-digit number"
-              className={`w-full px-3 py-2 border border-borderColor rounded-md ${readOnlyClass}`}
+              className="w-full px-3 py-2 border border-borderColor rounded-md"
               required
-              readOnly={isRenewal}
             />
           </div>
         </div>
@@ -121,8 +102,8 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
       </form>
 
       <WizardStepActions standalone onPrevious={onPrevious} showPrevious={showPrevious}>
-        <Button type="submit" form="unit-details-form" isLoading={saveDetails.isPending || confirmDetails.isPending}>
-          {isRenewal ? 'Confirm & Continue' : 'Save & Continue'}
+        <Button type="submit" form="unit-details-form" isLoading={saveDetails.isPending}>
+          Save & Continue
         </Button>
       </WizardStepActions>
     </div>

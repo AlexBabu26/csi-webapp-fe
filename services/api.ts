@@ -2124,10 +2124,13 @@ class ApiService {
     });
   }
 
-  async approveRegistrationPayment(paymentId: number, paidAmount: number): Promise<void> {
+  async approveRegistrationPayment(
+    paymentId: number,
+    paidAmount: number,
+  ): Promise<ApproveRegistrationPaymentResponse> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
-    await httpPost(
+    return httpPost<ApproveRegistrationPaymentResponse>(
       `/admin/units/registration-payments/${paymentId}/approve`,
       { paid_amount: paidAmount },
       { token },

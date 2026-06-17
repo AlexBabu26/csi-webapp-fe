@@ -287,18 +287,16 @@ export const useApproveRegistrationPayment = () => {
     mutationFn: ({
       paymentId,
       paidAmount,
-      totalAmount,
     }: {
       paymentId: number;
       paidAmount: number;
-      totalAmount: number | null;
+      balanceDueBefore: number | null;
     }) => api.approveRegistrationPayment(paymentId, paidAmount),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.adminPayments() });
-      const remaining =
-        variables.totalAmount != null
-          ? Math.max(0, variables.totalAmount - variables.paidAmount)
-          : 0;
+    onSuccess: async (data, variables) => {
+      await queryClient.invalidateQueries({
+        queryKey: [...unitRegistrationKeys.all, 'adminPayments'],
+      });
+      const remaining = data.balance_amount;
       const message =
         remaining > 0
           ? `Payment approved. Paid ₹${variables.paidAmount}; remaining: ₹${remaining}`
@@ -316,8 +314,10 @@ export const useRejectRegistrationPayment = () => {
   return useMutation({
     mutationFn: ({ paymentId, rejectionNote }: { paymentId: number; rejectionNote: string }) =>
       api.rejectRegistrationPayment(paymentId, rejectionNote),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.adminPayments() });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [...unitRegistrationKeys.all, 'adminPayments'],
+      });
       addToast('Payment rejected', 'success');
     },
     onError: (error: Error) => addToast(error.message || 'Failed to reject payment', 'error'),
