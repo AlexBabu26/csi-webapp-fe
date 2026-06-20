@@ -1,11 +1,68 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, Badge, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { FileText, Check, X, RotateCcw } from 'lucide-react';
 import { ProofViewButton } from '../../components/ProofDocumentViewer';
-import { useToast } from '../../components/Toast';
 import { OfficialsChangeRequest, RequestStatus } from '../../types';
 import { useOfficialsChangeRequests, useRequestActions } from '../../hooks/queries';
+
+const OFFICIAL_CHANGE_LABELS: Array<{ key: keyof NonNullable<OfficialsChangeRequest['requestedChanges']>; label: string }> = [
+  { key: 'presidentDesignation', label: 'President Designation' },
+  { key: 'presidentName', label: 'President Name' },
+  { key: 'presidentPhone', label: 'President Phone' },
+  { key: 'vicePresidentName', label: 'VP Name' },
+  { key: 'vicePresidentPhone', label: 'VP Phone' },
+  { key: 'secretaryName', label: 'Secretary Name' },
+  { key: 'secretaryPhone', label: 'Secretary Phone' },
+  { key: 'jointSecretaryName', label: 'Joint Sec Name' },
+  { key: 'jointSecretaryPhone', label: 'Joint Sec Phone' },
+  { key: 'treasurerName', label: 'Treasurer Name' },
+  { key: 'treasurerPhone', label: 'Treasurer Phone' },
+];
+
+const buildChangeList = (changes: OfficialsChangeRequest['requestedChanges']): string[] =>
+  OFFICIAL_CHANGE_LABELS
+    .filter(({ key }) => changes?.[key])
+    .map(({ key, label }) => `${label}: ${changes![key]}`);
+
+const RequestedChangesCell: React.FC<{ changes: OfficialsChangeRequest['requestedChanges'] }> = ({ changes }) => {
+  const [expanded, setExpanded] = useState(false);
+  const changeList = buildChangeList(changes);
+  const hiddenCount = Math.max(changeList.length - 3, 0);
+  const visibleChanges = expanded ? changeList : changeList.slice(0, 3);
+
+  if (changeList.length === 0) {
+    return <span className="text-sm text-textMuted">No changes</span>;
+  }
+
+  return (
+    <div className="text-sm text-textMuted max-w-xs">
+      <div className="space-y-1">
+        {visibleChanges.map((change, idx) => (
+          <div key={idx}>{change}</div>
+        ))}
+        {hiddenCount > 0 && !expanded && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="text-xs text-primary hover:underline font-medium"
+          >
+            +{hiddenCount} more
+          </button>
+        )}
+        {expanded && changeList.length > 3 && (
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="text-xs text-primary hover:underline font-medium"
+          >
+            Show less
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export const OfficialsChangeRequests: React.FC = () => {
   // Use TanStack Query
@@ -49,44 +106,13 @@ export const OfficialsChangeRequests: React.FC = () => {
         accessorKey: 'unitName',
         header: 'Unit Name',
         cell: ({ row }) => (
-          <span className="font-medium text-textDark">{row.original.unitName}</span>
+          <span className="font-medium text-textDark">{row.original.unitName || '-'}</span>
         ),
       },
       {
         id: 'changes',
         header: 'Requested Changes',
-        cell: ({ row }) => {
-          const changes = row.original.requestedChanges || {};
-          const changeList: string[] = [];
-          if (changes.presidentDesignation) changeList.push(`President Designation: ${changes.presidentDesignation}`);
-          if (changes.presidentName) changeList.push(`President Name: ${changes.presidentName}`);
-          if (changes.presidentPhone) changeList.push(`President Phone: ${changes.presidentPhone}`);
-          if (changes.vicePresidentName) changeList.push(`VP Name: ${changes.vicePresidentName}`);
-          if (changes.vicePresidentPhone) changeList.push(`VP Phone: ${changes.vicePresidentPhone}`);
-          if (changes.secretaryName) changeList.push(`Secretary Name: ${changes.secretaryName}`);
-          if (changes.secretaryPhone) changeList.push(`Secretary Phone: ${changes.secretaryPhone}`);
-          if (changes.jointSecretaryName) changeList.push(`Joint Sec Name: ${changes.jointSecretaryName}`);
-          if (changes.jointSecretaryPhone) changeList.push(`Joint Sec Phone: ${changes.jointSecretaryPhone}`);
-          if (changes.treasurerName) changeList.push(`Treasurer Name: ${changes.treasurerName}`);
-          if (changes.treasurerPhone) changeList.push(`Treasurer Phone: ${changes.treasurerPhone}`);
-          
-          return (
-            <div className="text-sm text-textMuted max-w-xs">
-              {changeList.length > 0 ? (
-                <div className="space-y-1">
-                  {changeList.slice(0, 3).map((change, idx) => (
-                    <div key={idx} className="truncate">{change}</div>
-                  ))}
-                  {changeList.length > 3 && (
-                    <div className="text-xs">+{changeList.length - 3} more</div>
-                  )}
-                </div>
-              ) : (
-                'No changes'
-              )}
-            </div>
-          );
-        },
+        cell: ({ row }) => <RequestedChangesCell changes={row.original.requestedChanges} />,
         enableSorting: false,
       },
       {

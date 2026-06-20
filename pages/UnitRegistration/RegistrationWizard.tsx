@@ -11,7 +11,7 @@ import { CouncilorsStep } from './steps/CouncilorsStep';
 import { DeclarationStep } from './steps/DeclarationStep';
 import {
   statusToStep,
-  isRegistrationComplete,
+  hasSubmittedDeclaration,
   canNavigateToStep,
   canAccessUnitChangeRequests,
   WizardStepId,
@@ -41,7 +41,7 @@ export const RegistrationWizard: React.FC = () => {
     if (returnWizardStep) return;
 
     if (!formData) return;
-    if (isRegistrationComplete(formData.registration_status)) {
+    if (hasSubmittedDeclaration(formData.registration_status)) {
       navigate('/register/complete', { replace: true });
       return;
     }

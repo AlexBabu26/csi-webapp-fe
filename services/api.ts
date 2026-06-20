@@ -981,6 +981,8 @@ class ApiService {
       cycle_status?: string | null;
       path_type?: string | null;
       payment_status?: string;
+      payment_fully_approved?: boolean;
+      can_complete_registration?: boolean;
       member_count?: number;
     }
 
@@ -1002,22 +1004,51 @@ class ApiService {
     const rawData: ApiUnit[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
 
     // Transform API response to match Unit interface
-    const data: Unit[] = rawData.map(unit => ({
+    const data: Unit[] = rawData
+      .filter((unit) => {
+        if (unit.user_id == null) {
+          console.warn('Admin units list item missing user_id', unit);
+          return false;
+        }
+        return true;
+      })
+      .map(unit => {
+      const cycleStatus = unit.cycle_status ?? unit.status ?? null;
+      const paymentApproved =
+        unit.payment_fully_approved ?? unit.payment_status === 'approved';
+      return {
       id: unit.id,
+      userId: unit.user_id,
       unitNumber: unit.username,
       name: unit.unit_name,
       clergyDistrict: this.extractClergyDistrict(unit.username),
       registrationYear: unit.registration_year ?? new Date().getFullYear(),
-      status: this.mapUnitStatus(unit.cycle_status ?? 'Not Started'),
-      cycleStatus: unit.cycle_status ?? null,
+      status: this.mapUnitStatus(cycleStatus ?? 'Not Started'),
+      cycleStatus,
       paymentStatus: unit.payment_status as Unit['paymentStatus'],
+      paymentFullyApproved: paymentApproved,
+      canCompleteRegistration:
+        unit.can_complete_registration ??
+        (cycleStatus === 'Declaration Submitted' && paymentApproved),
       pathType: unit.path_type as Unit['pathType'],
       membersCount: unit.member_count ?? 0,
       officialsCount: 0,
       councilorsCount: 0,
-    }));
+    };
+    });
 
     return { data, status: 200 };
+  }
+
+  async completeUnitRegistration(userId: number): Promise<void> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+
+    await httpPost<{ message: string }>(
+      `/admin/units/${userId}/complete-registration`,
+      {},
+      { token }
+    );
   }
 
   // GET /admin/units/not-onboarded - Master-list units without platform accounts
@@ -1052,6 +1083,7 @@ class ApiService {
   // Helper to map API status to Unit status
   private mapUnitStatus(apiStatus: string): Unit['status'] {
     if (apiStatus === 'Registration Completed') return 'Completed';
+    if (apiStatus === 'Declaration Submitted') return 'Awaiting Completion';
     if (apiStatus === 'Not Started' || apiStatus === 'Not Registered') return 'Not Started';
     return 'In Progress';
   }
@@ -1075,6 +1107,7 @@ class ApiService {
     const raw = await httpGet<ApiUnitDetail>(`/admin/units/${id}`, { token });
     const data: Unit = {
       id: raw.user.id,
+      userId: raw.user.id,
       unitNumber: raw.user.username,
       name: raw.user.unit_name ?? '',
       clergyDistrict: this.extractClergyDistrict(raw.user.username),

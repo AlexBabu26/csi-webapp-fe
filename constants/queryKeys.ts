@@ -3,7 +3,7 @@ export const queryKeys = {
   // Unit Admin
   units: {
     all: ['units'] as const,
-    list: () => [...queryKeys.units.all, 'list'] as const,
+    list: () => [...queryKeys.units.all, 'list', 'v3'] as const,
     detail: (id: number) => [...queryKeys.units.all, 'detail', id] as const,
     stats: () => [...queryKeys.units.all, 'stats'] as const,
     notOnboarded: () => [...queryKeys.units.all, 'notOnboarded'] as const,

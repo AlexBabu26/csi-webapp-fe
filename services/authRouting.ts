@@ -33,7 +33,10 @@ export const resolvePostLoginPath = async (
       if (!options?.skipLocationCheck && membersMissingLocation(form.unit_members)) {
         return '/unit/update-locations';
       }
-      if (form.registration_status === 'Registration Completed') {
+      if (
+        form.registration_status === 'Registration Completed' ||
+        form.registration_status === 'Declaration Submitted'
+      ) {
         return '/register/complete';
       }
       if (form.registration_enabled) {

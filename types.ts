@@ -449,9 +449,12 @@ export interface Unit {
   name: string;
   clergyDistrict: string;
   registrationYear: number;
-  status: 'Completed' | 'In Progress' | 'Not Started';
+  status: 'Completed' | 'In Progress' | 'Not Started' | 'Awaiting Completion';
   cycleStatus?: string | null;
-  paymentStatus?: 'not_submitted' | 'pending' | 'approved' | 'rejected';
+  userId: number;
+  paymentStatus?: 'not_submitted' | 'pending' | 'approved' | 'rejected' | 'partial';
+  paymentFullyApproved?: boolean;
+  canCompleteRegistration?: boolean;
   pathType?: 'fresh' | 'renewal' | null;
   membersCount: number;
   officialsCount: number;
@@ -551,6 +554,7 @@ export type UnitRegistrationStatus =
   | 'Unit Members Completed'
   | 'Unit Officials Completed'
   | 'Unit Councilors Completed'
+  | 'Declaration Submitted'
   | 'Registration Completed';
 
 export interface UnitRegistrationMember {

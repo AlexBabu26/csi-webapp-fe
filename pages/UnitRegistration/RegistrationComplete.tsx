@@ -14,7 +14,7 @@ import { Badge, Button } from '../../components/ui';
 import { useApplicationForm, useUnitPaymentStatus } from '../../hooks/queries';
 import { FeeSummary } from './components/FeeSummary';
 import { PaymentModal } from './PaymentModal';
-import { isRegistrationComplete } from './utils';
+import { isRegistrationComplete, hasSubmittedDeclaration } from './utils';
 import { getMediaUrl } from '../../services/http';
 import { formatRegistrationSeason } from '../../services/authRouting';
 import { getProofPaidAmount } from '../../utils/registrationPayment';
@@ -36,9 +36,11 @@ export const RegistrationComplete: React.FC = () => {
     );
   }
 
-  if (formData && !isRegistrationComplete(formData.registration_status)) {
+  if (formData && !hasSubmittedDeclaration(formData.registration_status)) {
     return <Navigate to="/register/wizard" replace />;
   }
+
+  const isAdminCompleted = isRegistrationComplete(formData?.registration_status ?? 'Not Started');
 
   const overallStatus = paymentData?.overall_status ?? 'not_submitted';
   const isPaid = overallStatus === 'approved';
@@ -63,16 +65,41 @@ export const RegistrationComplete: React.FC = () => {
         <div className="h-16 w-16 bg-success/10 rounded-full mx-auto flex items-center justify-center mb-4">
           <CheckCircle size={36} className="text-success" />
         </div>
-        <h1 className="text-2xl font-bold text-textDark">Registration Complete</h1>
+        <h1 className="text-2xl font-bold text-textDark">
+          {isAdminCompleted ? 'Registration Complete' : 'Declaration Submitted'}
+        </h1>
         <p className="mt-2 text-sm text-textMuted">
-          Your unit registration for{' '}
-          {formData ? (
-            <strong>{formatRegistrationSeason(formData.registration_year)}</strong>
+          {isAdminCompleted ? (
+            <>
+              Your unit registration for{' '}
+              {formData ? (
+                <strong>{formatRegistrationSeason(formData.registration_year)}</strong>
+              ) : (
+                'this year'
+              )}{' '}
+              has been finalized by the admin.
+            </>
           ) : (
-            'this year'
-          )}{' '}
-          has been submitted successfully.
+            <>
+              Your declaration for{' '}
+              {formData ? (
+                <strong>{formatRegistrationSeason(formData.registration_year)}</strong>
+              ) : (
+                'this year'
+              )}{' '}
+              has been submitted. Complete payment below while the admin finalizes your registration.
+            </>
+          )}
         </p>
+
+        {!isAdminCompleted && (
+          <div className="mt-4 flex items-center gap-3 rounded-lg bg-primary/5 border border-primary/20 px-4 py-3 text-left">
+            <Clock className="w-5 h-5 text-primary flex-shrink-0" />
+            <p className="text-sm text-textDark">
+              Registration will be marked complete by the admin after your payment is fully approved.
+            </p>
+          </div>
+        )}
 
         {formData && (
           <>

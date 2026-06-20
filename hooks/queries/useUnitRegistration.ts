@@ -238,7 +238,7 @@ export const useCompleteDeclaration = () => {
     mutationFn: () => api.completeDeclaration(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.applicationForm() });
-      addToast('Registration completed successfully', 'success');
+      addToast('Declaration submitted successfully', 'success');
     },
     onError: (error: Error) => addToast(error.message || 'Failed to complete registration', 'error'),
   });

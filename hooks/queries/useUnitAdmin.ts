@@ -28,6 +28,23 @@ export const useUnits = () => {
   });
 };
 
+export const useCompleteUnitRegistration = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (userId: number) => api.completeUnitRegistration(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.units.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.units.stats() });
+      addToast('Registration marked as completed', 'success');
+    },
+    onError: (error: Error) => {
+      addToast(error.message || 'Failed to complete registration', 'error');
+    },
+  });
+};
+
 // Master-list units without platform accounts
 export const useNotOnboardedUnits = () => {
   return useQuery({

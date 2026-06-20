@@ -8,7 +8,7 @@ import { Button } from '../../components/ui';
 
 import { UnitRegistrationFormDocument } from '../../components/UnitRegistrationFormDocument';
 
-import { useApplicationForm } from '../../hooks/queries';
+import { useApplicationForm, useUnitPaymentStatus } from '../../hooks/queries';
 
 import { useSiteSettings } from '../../hooks/queries/useSiteSettings';
 
@@ -16,7 +16,7 @@ import { generatePdfFromElement } from '../../services/generatePdf';
 
 import { useToast } from '../../components/Toast';
 
-import { isRegistrationComplete } from './utils';
+import { hasSubmittedDeclaration } from './utils';
 
 import { mapApplicationFormToDocument } from './utils/registrationFormMapper';
 
@@ -29,6 +29,8 @@ export const RegistrationFormPrint: React.FC = () => {
   const autoDownload = searchParams.get('download') === '1';
 
   const { data: formData, isLoading } = useApplicationForm();
+
+  const { data: paymentData, isLoading: paymentLoading } = useUnitPaymentStatus();
 
   const { data: siteSettings, isLoading: settingsLoading } = useSiteSettings();
 
@@ -96,7 +98,7 @@ export const RegistrationFormPrint: React.FC = () => {
 
 
 
-  if (isLoading || settingsLoading) {
+  if (isLoading || settingsLoading || paymentLoading) {
 
     return (
 
@@ -128,10 +130,15 @@ export const RegistrationFormPrint: React.FC = () => {
 
 
 
-  if (!isRegistrationComplete(formData.registration_status)) {
+  if (!hasSubmittedDeclaration(formData.registration_status)) {
 
     return <Navigate to="/register/wizard" replace />;
 
+  }
+
+  const isPaid = (paymentData?.overall_status ?? 'not_submitted') === 'approved';
+  if (!isPaid) {
+    return <Navigate to="/register/complete" replace />;
   }
 
 

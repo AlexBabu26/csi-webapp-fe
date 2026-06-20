@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   BarChart, 
   Bar,
@@ -16,15 +16,19 @@ import {
 } from 'recharts';
 import { Card, Badge, Button, Skeleton, IconButton } from '../components/ui';
 import { DataTable, ColumnDef } from '../components/DataTable';
-import { Download, AlertCircle, Eye, Users, Building, UserCheck, FileText, TrendingUp, Droplets, CreditCard } from 'lucide-react';
+import { Download, AlertCircle, Eye, Users, Building, UserCheck, FileText, TrendingUp, Droplets, CreditCard, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useNavigate } from 'react-router-dom';
 import { Unit } from '../types';
-import { useDashboardData } from '../hooks/queries';
+import { useDashboardData, useCompleteUnitRegistration } from '../hooks/queries';
 import { formatRegistrationSeason } from '../services/authRouting';
+
+const resolveUnitUserId = (unit: Unit): number | null => unit.userId ?? null;
 
 const unitStatusVariant = (status: Unit['status']) => {
   if (status === 'Completed') return 'success';
+  if (status === 'Awaiting Completion') return 'info';
   if (status === 'In Progress') return 'warning';
   return 'light';
 };
@@ -33,12 +37,13 @@ const paymentStatusLabel: Record<NonNullable<Unit['paymentStatus']>, string> = {
   not_submitted: 'Not submitted',
   pending: 'Pending review',
   approved: 'Approved',
+  partial: 'Partially paid',
   rejected: 'Rejected',
 };
 
 const paymentStatusVariant = (status?: Unit['paymentStatus']) => {
   if (status === 'approved') return 'success';
-  if (status === 'pending') return 'warning';
+  if (status === 'pending' || status === 'partial') return 'warning';
   if (status === 'rejected') return 'danger';
   return 'light';
 };
@@ -50,6 +55,7 @@ const REGISTRATION_STATUS_FILTER = {
   options: [
     { value: 'Not Started', label: 'Not Started' },
     { value: 'In Progress', label: 'In Progress' },
+    { value: 'Awaiting Completion', label: 'Awaiting Completion' },
     { value: 'Completed', label: 'Completed' },
   ],
 } as const;
@@ -57,9 +63,23 @@ const REGISTRATION_STATUS_FILTER = {
 export const AdminDashboard: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   
   // Use TanStack Query for data fetching
   const { stats, units, chartData, isLoading: loading, error } = useDashboardData();
+  const completeRegistration = useCompleteUnitRegistration();
+
+  const handleConfirmComplete = async () => {
+    if (!selectedUnit) return;
+    const userId = resolveUnitUserId(selectedUnit);
+    if (!userId) {
+      addToast('Unable to complete registration for this unit. Please refresh the page.', 'error');
+      return;
+    }
+    completeRegistration.mutate(userId, {
+      onSuccess: () => setSelectedUnit(null),
+    });
+  };
 
   // Show error toast on query error
   useEffect(() => {
@@ -146,15 +166,32 @@ export const AdminDashboard: React.FC = () => {
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => (
-          <IconButton
-            icon={<Eye className="w-4 h-4" />}
-            tooltip="View Details"
-            variant="info"
-            onClick={() => navigate(`/admin/units/${row.original.id}`)}
-          />
+          <div className="flex items-center gap-2">
+            {row.original.canCompleteRegistration && (
+              <Button
+                variant="success"
+                size="sm"
+                className="whitespace-nowrap"
+                onClick={() => setSelectedUnit(row.original)}
+              >
+                <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                Mark as Completed
+              </Button>
+            )}
+            <IconButton
+              icon={<Eye className="w-4 h-4" />}
+              tooltip="View Details"
+              variant="info"
+              onClick={() => {
+                const userId = row.original.userId;
+                if (!userId) return;
+                navigate(`/admin/units/${userId}`);
+              }}
+            />
+          </div>
         ),
         enableSorting: false,
-        size: 80,
+        size: 220,
       },
     ],
     [navigate]
@@ -755,7 +792,10 @@ export const AdminDashboard: React.FC = () => {
             <div>
               <h3 className="text-lg font-bold text-textDark">Current Season Registrations</h3>
               {registrationSeason && (
-                <p className="text-xs text-textMuted mt-1">{registrationSeason} cycle status and payments</p>
+                <p className="text-xs text-textMuted mt-1">
+                  {registrationSeason} cycle status and payments. Use Mark as Completed for
+                  awaiting-completion units with approved payment.
+                </p>
               )}
             </div>
         </div>
@@ -773,6 +813,19 @@ export const AdminDashboard: React.FC = () => {
           />
         </div>
       </Card>
+
+      {selectedUnit && (
+        <ConfirmDialog
+          isOpen={!!selectedUnit}
+          onClose={() => setSelectedUnit(null)}
+          onConfirm={handleConfirmComplete}
+          title="Mark Registration as Completed"
+          message={`Confirm registration completion for ${selectedUnit.name}? Full payment must already be approved.`}
+          confirmText="Mark as Completed"
+          variant="success"
+          isLoading={completeRegistration.isPending}
+        />
+      )}
     </div>
   );
 };

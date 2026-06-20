@@ -30,7 +30,20 @@ export const useOfficialsChangeRequests = () => {
     queryKey: queryKeys.requests.officials(),
     queryFn: async () => {
       const response = await api.getOfficialsChangeRequests();
-      return response.data;
+      let requests = response.data;
+
+      if (requests.some(request => !request.unitName)) {
+        const officialsResponse = await api.getUnitOfficials();
+        const unitNameByOfficialId = new Map(
+          officialsResponse.data.map(official => [Number(official.id), official.unitName])
+        );
+        requests = requests.map(request => ({
+          ...request,
+          unitName: request.unitName || unitNameByOfficialId.get(Number(request.unitId)) || '',
+        }));
+      }
+
+      return requests;
     },
   });
 };
