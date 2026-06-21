@@ -1610,6 +1610,7 @@ class ApiService {
       created_at: string;
       updated_at: string;
       unit_name?: string;
+      username?: string;
     }
 
     // API may return paginated response or direct array
@@ -1635,6 +1636,7 @@ class ApiService {
       createdAt: request.created_at,
       unitId: request.registered_user_id,
       unitName: request.unit_name || '',
+      username: request.username || undefined,
       name: request.name,
       gender: request.gender as 'M' | 'F',
       number: request.number,

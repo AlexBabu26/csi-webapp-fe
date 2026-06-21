@@ -8,7 +8,6 @@ import { Unit, UnitOfficial, UnitCouncilor, UnitMember } from '../../types';
 import { UnitRegistrationFormDocument } from '../../components/UnitRegistrationFormDocument';
 import { mapAdminUnitToDocument } from '../UnitRegistration/utils/registrationFormMapper';
 import { useSiteSettings } from '../../hooks/queries/useSiteSettings';
-import { generatePdfFromElement } from '../../services/generatePdf';
 
 export const PrintForm: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>();
@@ -74,6 +73,7 @@ export const PrintForm: React.FC = () => {
       : 'registration-form.pdf';
     try {
       setDownloading(true);
+      const { generatePdfFromElement } = await import('../../services/generatePdf');
       await generatePdfFromElement(formRef.current, { filename });
       addToast('Registration form downloaded', 'success');
     } catch (error) {

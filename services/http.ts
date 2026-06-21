@@ -351,10 +351,29 @@ export const API_SERVER_URL = DEFAULT_BASE_URL.replace('/api', '');
  */
 export const getMediaUrl = (path: string | null | undefined): string => {
   if (!path) return '';
-  // If already a full URL, return as-is
+  if (path.startsWith('data:') || path.startsWith('blob:')) {
+    return path;
+  }
+
+  // In dev, serve media through the Vite proxy (same-origin) so PDF/canvas can read pixels.
+  if (import.meta.env.DEV) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      try {
+        const url = new URL(path);
+        if (url.pathname.startsWith('/api/files/')) {
+          return url.pathname;
+        }
+      } catch {
+        // Fall through to default handling.
+      }
+    }
+    if (path.startsWith('/api/files/')) {
+      return path;
+    }
+  }
+
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  // Prepend the API server URL
   return `${API_SERVER_URL}${path}`;
 };

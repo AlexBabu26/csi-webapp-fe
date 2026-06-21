@@ -48,7 +48,10 @@ export const RegistrationComplete: React.FC = () => {
   const isRejected = overallStatus === 'rejected';
   const isPending = overallStatus === 'pending';
 
-  const totalAmount = formData?.total_amount ?? 0;
+  const totalAmount =
+    paymentData?.registration_total_amount ??
+    formData?.total_amount ??
+    0;
   const balanceAmount = paymentData?.balance_amount ?? null;
   const paidAmount =
     isPartial && balanceAmount != null ? Math.max(0, totalAmount - balanceAmount) : null;

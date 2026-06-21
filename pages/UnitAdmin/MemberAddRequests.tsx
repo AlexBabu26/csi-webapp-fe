@@ -45,7 +45,14 @@ export const MemberAddRequests: React.FC = () => {
         accessorKey: 'unitName',
         header: 'Unit',
         cell: ({ row }) => (
-          <span className="font-medium text-textDark text-sm">{row.original.unitName}</span>
+          <div className="text-sm">
+            <span className="font-medium text-textDark block">
+              {row.original.unitName || '—'}
+            </span>
+            {row.original.username ? (
+              <span className="text-textMuted">{row.original.username}</span>
+            ) : null}
+          </div>
         ),
       },
       {

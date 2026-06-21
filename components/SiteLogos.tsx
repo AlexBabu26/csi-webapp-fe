@@ -37,7 +37,6 @@ interface LogoImageProps {
   fallback: React.ReactNode;
   className?: string;
   imageClassName?: string;
-  onLoad?: () => void;
 }
 
 export const LogoImage: React.FC<LogoImageProps> = ({
@@ -45,23 +44,13 @@ export const LogoImage: React.FC<LogoImageProps> = ({
   fallback,
   className = 'w-full h-full',
   imageClassName = 'w-full h-full object-contain',
-  onLoad,
 }) => {
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-
   const imageUrl = src ? getMediaUrl(src) : null;
 
   useEffect(() => {
     setHasError(false);
-    setIsLoading(true);
   }, [src]);
-
-  useEffect(() => {
-    if (!imageUrl) {
-      onLoad?.();
-    }
-  }, [imageUrl, onLoad]);
 
   if (!imageUrl || hasError) {
     return <div className={className}>{fallback}</div>;
@@ -72,18 +61,9 @@ export const LogoImage: React.FC<LogoImageProps> = ({
       <img
         src={imageUrl}
         alt=""
-        className={`${imageClassName} ${isLoading ? 'hidden' : ''}`}
-        onLoad={() => {
-          setIsLoading(false);
-          onLoad?.();
-        }}
-        onError={() => {
-          setHasError(true);
-          setIsLoading(false);
-          onLoad?.();
-        }}
+        className={imageClassName}
+        onError={() => setHasError(true)}
       />
-      {isLoading && fallback}
     </div>
   );
 };

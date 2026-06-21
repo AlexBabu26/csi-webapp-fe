@@ -45,7 +45,11 @@ export function buildUnitPaymentSummary(
   const approved = sorted.filter((p) => p.status === 'APPROVED');
   const pending = sorted.filter((p) => p.status === 'PENDING');
   const latestApproved = approved[approved.length - 1];
+  const registrationTotal =
+    [...sorted].reverse().find((p) => p.registration_total_amount != null)
+      ?.registration_total_amount ?? null;
   const total_amount =
+    registrationTotal ??
     latestApproved?.total_amount ??
     [...sorted].reverse().find((p) => p.total_amount != null)?.total_amount ??
     null;

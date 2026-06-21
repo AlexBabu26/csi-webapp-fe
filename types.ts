@@ -709,6 +709,7 @@ export interface UnitPaymentSubmission {
 export interface UnitPaymentStatusResponse {
   overall_status: 'not_submitted' | 'pending' | 'partial' | 'approved' | 'rejected';
   balance_amount: number | null;
+  registration_total_amount?: number | null;
   latest_rejection_note: string | null;
   qr_url: string | null;
   registration_year: number;
@@ -724,6 +725,7 @@ export interface AdminRegistrationPayment {
   file_url: string | null;
   total_amount: number | null;
   balance_amount: number | null;
+  registration_total_amount?: number | null;
   status: PaymentProofStatus;
   rejection_note: string | null;
   submitted_at: string;
@@ -832,6 +834,7 @@ export interface MemberAddRequest {
   createdAt: string;
   unitId: number;
   unitName: string;
+  username?: string;
   name: string;
   gender: 'M' | 'F';
   number: string;

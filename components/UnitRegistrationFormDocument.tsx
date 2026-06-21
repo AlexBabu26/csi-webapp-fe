@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React from 'react';
 import { ChurchLogo, LogoImage, YouthLogo } from './SiteLogos';
 
 export interface RegistrationFormCouncilor {
@@ -45,7 +45,6 @@ export interface UnitRegistrationFormDocumentProps {
   totalAmount: number;
   youthLogoUrl?: string | null;
   churchLogoUrl?: string | null;
-  onLogoLoad?: () => void;
 }
 
 export const formatRegistrationYearLabel = (registrationYear: number): string =>
@@ -97,25 +96,10 @@ export const UnitRegistrationFormDocument: React.FC<UnitRegistrationFormDocument
   totalAmount,
   youthLogoUrl,
   churchLogoUrl,
-  onLogoLoad,
 }) => {
   const registrationYearLabel = formatRegistrationYearLabel(registrationYear);
   const submissionDeadline = formatSubmissionDeadline(registrationYear);
   const ageReferenceLabel = formatRegistrationAgeReferenceLabel(registrationYear);
-  const logosLoadedRef = useRef(0);
-
-  const handleLogoLoad = useCallback(() => {
-    logosLoadedRef.current += 1;
-    if (logosLoadedRef.current >= 2) {
-      onLogoLoad?.();
-    }
-  }, [onLogoLoad]);
-
-  useEffect(() => {
-    if (!youthLogoUrl && !churchLogoUrl) {
-      onLogoLoad?.();
-    }
-  }, [youthLogoUrl, churchLogoUrl, onLogoLoad]);
 
   return (
     <div className="p-8 max-w-[210mm] mx-auto print:p-5" style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -138,7 +122,6 @@ export const UnitRegistrationFormDocument: React.FC<UnitRegistrationFormDocument
             fallback={<YouthLogo className="w-20 h-20" />}
             className="w-20 h-20 flex items-center justify-center"
             imageClassName="max-w-full max-h-full w-auto h-auto"
-            onLoad={handleLogoLoad}
           />
         </div>
         <div className="text-center flex-1 mx-4">
@@ -153,7 +136,6 @@ export const UnitRegistrationFormDocument: React.FC<UnitRegistrationFormDocument
             fallback={<ChurchLogo className="w-20 h-20" />}
             className="w-20 h-20 flex items-center justify-center"
             imageClassName="max-w-full max-h-full w-auto h-auto"
-            onLoad={handleLogoLoad}
           />
         </div>
       </div>
