@@ -844,6 +844,12 @@ export interface MemberAddRequest {
   reason: string;
   status: RequestStatus;
   proof?: string;
+  residenceLocation?: ResidenceLocation;
+  residenceStateId?: number | null;
+  residenceCityId?: number | null;
+  residenceStateName?: string | null;
+  residenceCityName?: string | null;
+  residenceCountryName?: string | null;
 }
 
 export interface ArchivedMemberConcernRequest {
@@ -1053,6 +1059,9 @@ export interface MemberAddSubmission {
   bloodGroup?: string;
   reason: string;
   proof?: File;
+  residence_location: ResidenceLocation;
+  residence_state_id?: number | null;
+  residence_city_id?: number | null;
 }
 
 // ==================== KALAMELA TYPES ====================

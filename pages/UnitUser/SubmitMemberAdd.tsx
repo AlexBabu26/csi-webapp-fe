@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
@@ -8,6 +8,25 @@ import { api } from '../../services/api';
 import { getCurrentUnitId } from '../../services/auth';
 import { useSiteSettings } from '../../hooks/queries';
 import { ChangeRequestNavigationState } from '../../types';
+import { lazyImport } from '../../utils/chunkLoadError';
+import {
+  buildResidencePayload,
+  ResidenceFormValue,
+  validateResidenceFormValue,
+} from '../../utils/memberResidence';
+
+const MemberResidenceFields = lazyImport(() =>
+  import('../../components/MemberResidenceFields').then((module) => ({
+    default: module.MemberResidenceFields,
+  })),
+);
+
+const emptyResidence = (): ResidenceFormValue => ({
+  livesInKerala: null,
+  countryId: null,
+  stateId: null,
+  cityId: null,
+});
 
 export const SubmitMemberAdd: React.FC = () => {
   const { addToast } = useToast();
@@ -33,6 +52,7 @@ export const SubmitMemberAdd: React.FC = () => {
   });
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [residence, setResidence] = useState<ResidenceFormValue>(emptyResidence);
 
   // Get current unit ID from authenticated user
   const currentUnitId = getCurrentUnitId();
@@ -72,12 +92,20 @@ export const SubmitMemberAdd: React.FC = () => {
       return;
     }
 
+    const residenceError = validateResidenceFormValue(residence);
+    if (residenceError) {
+      addToast(residenceError, "warning");
+      return;
+    }
+
     try {
       setLoading(true);
+      const residencePayload = buildResidencePayload(residence);
       await api.submitMemberAdd({
         ...formData,
         reason,
         proof: proofFile || undefined,
+        ...residencePayload,
       });
       addToast("Member add request submitted successfully", "success");
       navigate('/unit/my-requests');
@@ -219,6 +247,12 @@ export const SubmitMemberAdd: React.FC = () => {
                 <option value="O+">O+</option>
                 <option value="O-">O-</option>
               </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <Suspense fallback={<p className="text-sm text-textMuted">Loading location fields...</p>}>
+                <MemberResidenceFields value={residence} onChange={setResidence} />
+              </Suspense>
             </div>
           </div>
         </Card>

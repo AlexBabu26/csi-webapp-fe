@@ -1611,6 +1611,12 @@ class ApiService {
       updated_at: string;
       unit_name?: string;
       username?: string;
+      residence_location?: ResidenceLocation;
+      residence_state_id?: number | null;
+      residence_city_id?: number | null;
+      residence_state_name?: string | null;
+      residence_city_name?: string | null;
+      residence_country_name?: string | null;
     }
 
     // API may return paginated response or direct array
@@ -1646,6 +1652,12 @@ class ApiService {
       reason: request.reason,
       status: request.status as RequestStatus,
       proof: request.proof || undefined,
+      residenceLocation: request.residence_location || undefined,
+      residenceStateId: request.residence_state_id ?? undefined,
+      residenceCityId: request.residence_city_id ?? undefined,
+      residenceStateName: request.residence_state_name ?? undefined,
+      residenceCityName: request.residence_city_name ?? undefined,
+      residenceCountryName: request.residence_country_name ?? undefined,
     }));
 
     return { data, status: 200 };
@@ -2318,6 +2330,13 @@ class ApiService {
     formData.append('number', payload.number);
     formData.append('blood_group', payload.bloodGroup || '');
     formData.append('reason', payload.reason);
+    formData.append('residence_location', payload.residence_location);
+    if (payload.residence_state_id != null) {
+      formData.append('residence_state_id', String(payload.residence_state_id));
+    }
+    if (payload.residence_city_id != null) {
+      formData.append('residence_city_id', String(payload.residence_city_id));
+    }
     if (payload.qualification) {
       formData.append('qualification', payload.qualification);
     }

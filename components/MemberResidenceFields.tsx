@@ -372,6 +372,7 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
             emptyMessage={loadingCountries ? 'Loading countries...' : 'No countries match your search.'}
           />
           <SearchableSelect
+            key={`state-${value.countryId ?? 'none'}`}
             label="State / Emirate"
             required
             value={value.stateId ? String(value.stateId) : ''}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 
 export interface SearchableSelectOption {
@@ -40,6 +40,13 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     if (value) return false;
     return !initiallyCollapsed;
   });
+
+  useEffect(() => {
+    if (!value) {
+      setSearch('');
+      setShowPicker(!initiallyCollapsed);
+    }
+  }, [value, initiallyCollapsed]);
 
   const filteredOptions = useMemo(() => {
     if (onSearchChange) return options;
@@ -85,14 +92,12 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             <input
               type="search"
               value={search}
-              onFocus={() => {
-                if (initiallyCollapsed) setShowPicker(true);
-              }}
+              onFocus={() => setShowPicker(true)}
               onChange={(e) => {
                 const nextSearch = e.target.value;
                 setSearch(nextSearch);
                 onSearchChange?.(nextSearch);
-                if (initiallyCollapsed) setShowPicker(true);
+                setShowPicker(true);
               }}
               placeholder={searchPlaceholder}
               disabled={disabled}

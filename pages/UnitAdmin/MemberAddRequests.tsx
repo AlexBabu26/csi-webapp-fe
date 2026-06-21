@@ -6,6 +6,7 @@ import { ProofViewButton } from '../../components/ProofDocumentViewer';
 import { useToast } from '../../components/Toast';
 import { MemberAddRequest, RequestStatus } from '../../types';
 import { useMemberAddRequests, useRequestActions } from '../../hooks/queries';
+import { getMemberResidenceLabel } from '../../utils/memberResidence';
 
 export const MemberAddRequests: React.FC = () => {
   // Use TanStack Query
@@ -85,6 +86,32 @@ export const MemberAddRequests: React.FC = () => {
           <span className="text-textMuted text-sm">{row.original.bloodGroup || '-'}</span>
         ),
         size: 100,
+      },
+      {
+        id: 'location',
+        header: 'Location',
+        accessorFn: (row) =>
+          getMemberResidenceLabel({
+            residence_location: row.residenceLocation,
+            residence_state_id: row.residenceStateId,
+            residence_city_id: row.residenceCityId,
+            residence_state_name: row.residenceStateName,
+            residence_city_name: row.residenceCityName,
+            residence_country_name: row.residenceCountryName,
+          }),
+        cell: ({ row }) => (
+          <span className="text-textMuted text-sm">
+            {getMemberResidenceLabel({
+              residence_location: row.original.residenceLocation,
+              residence_state_id: row.original.residenceStateId,
+              residence_city_id: row.original.residenceCityId,
+              residence_state_name: row.original.residenceStateName,
+              residence_city_name: row.original.residenceCityName,
+              residence_country_name: row.original.residenceCountryName,
+            })}
+          </span>
+        ),
+        size: 180,
       },
       {
         accessorKey: 'reason',
