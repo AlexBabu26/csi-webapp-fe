@@ -2,10 +2,12 @@ import { getAuthToken, getRefreshToken, setAuthTokens, clearAuth, isTokenExpirin
 import { parseApiErrorBody, toUserFriendlyError } from './errorMessages';
 
 export const API_BASE_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env.DEV && import.meta.env.VITE_API_BASE_URL?.startsWith('/')
+    ? import.meta.env.VITE_API_BASE_URL
+    : undefined) ||
   (typeof process !== 'undefined' && (process as any).env?.API_BASE_URL) ||
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_BASE_URL) ||
   'https://csi-project-be.vercel.app/api';
-  // 'http://localhost:7000/api';
 
 const DEFAULT_BASE_URL = API_BASE_URL;
 
@@ -339,7 +341,9 @@ export const httpPostFormData = <T = any>(url: string, formData: FormData, token
   });
 
 // Export the server base URL for media/file URLs (without /api suffix)
-export const API_SERVER_URL = DEFAULT_BASE_URL.replace('/api', '');
+export const API_SERVER_URL = API_BASE_URL.startsWith('/')
+  ? ''
+  : API_BASE_URL.replace('/api', '');
 
 /**
  * Converts a relative API path to a full URL for media files.

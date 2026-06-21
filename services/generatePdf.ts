@@ -25,7 +25,6 @@ export async function waitForImagesInElement(element: HTMLElement): Promise<void
   );
 }
 
-/** Draw an already-loaded <img> into a data URL (works for same-origin / CORS-enabled images). */
 function loadedImageToDataUrl(img: HTMLImageElement): string | null {
   if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
     return null;
@@ -46,52 +45,30 @@ function loadedImageToDataUrl(img: HTMLImageElement): string | null {
   }
 }
 
-async function loadImageWithCors(url: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(loadedImageToDataUrl(img));
-    img.onerror = () => resolve(null);
-    img.src = url;
-  });
-}
+/** Temporarily swap logo src to data URLs so html2canvas can embed them in the PDF. */
+async function inlineVisibleImagesForPdf(element: HTMLElement): Promise<() => void> {
+  const restored: Array<{ img: HTMLImageElement; src: string }> = [];
 
-/**
- * Replace remote image URLs in the PDF clone with data URLs.
- * Uses images already rendered on the page first, then a CORS reload as fallback.
- */
-async function inlineImagesForPdf(sourceElement: HTMLElement, clone: HTMLElement): Promise<void> {
-  const sourceImages = Array.from(sourceElement.querySelectorAll('img'));
-  const cloneImages = Array.from(clone.querySelectorAll('img'));
+  for (const img of Array.from(element.querySelectorAll('img'))) {
+    const originalSrc = img.src;
+    const dataUrl = loadedImageToDataUrl(img);
+    if (!dataUrl) {
+      continue;
+    }
 
-  await Promise.all(
-    cloneImages.map(async (cloneImg, index) => {
-      const src = cloneImg.getAttribute('src') || cloneImg.src;
-      if (!src || src.startsWith('data:') || src.startsWith('blob:')) {
-        return;
-      }
+    restored.push({ img, src: originalSrc });
+    img.src = dataUrl;
+  }
 
-      const sourceImg = sourceImages[index];
-      let dataUrl = sourceImg ? loadedImageToDataUrl(sourceImg) : null;
+  if (restored.length > 0) {
+    await waitForImagesInElement(element);
+  }
 
-      if (!dataUrl) {
-        dataUrl = await loadImageWithCors(src);
-      }
-
-      if (!dataUrl) {
-        return;
-      }
-
-      await new Promise<void>((resolve) => {
-        cloneImg.onload = () => resolve();
-        cloneImg.onerror = () => resolve();
-        cloneImg.src = dataUrl!;
-        if (cloneImg.complete) {
-          resolve();
-        }
-      });
-    }),
-  );
+  return () => {
+    for (const { img, src } of restored) {
+      img.src = src;
+    }
+  };
 }
 
 async function loadHtml2Pdf() {
@@ -107,19 +84,9 @@ export async function generatePdfFromElement(
   const html2pdf = await loadHtml2Pdf();
 
   await waitForImagesInElement(element);
-
-  const clone = element.cloneNode(true) as HTMLElement;
-  clone.style.position = 'absolute';
-  clone.style.left = '-9999px';
-  clone.style.top = '0';
-  clone.style.width = `${element.scrollWidth}px`;
-  clone.style.background = '#ffffff';
-  document.body.appendChild(clone);
+  const restoreImages = await inlineVisibleImagesForPdf(element);
 
   try {
-    await inlineImagesForPdf(element, clone);
-    await waitForImagesInElement(clone);
-
     const opt = {
       margin: [10, 15, 14, 15],
       filename,
@@ -131,6 +98,10 @@ export async function generatePdfFromElement(
         logging: false,
         letterRendering: true,
         backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
       },
       jsPDF: {
         unit: 'mm',
@@ -138,12 +109,12 @@ export async function generatePdfFromElement(
         orientation: 'portrait',
       },
       pagebreak: {
-        mode: ['avoid-all', 'css', 'legacy'],
+        mode: ['css', 'legacy'],
       },
     };
 
-    await html2pdf().set(opt).from(clone).save();
+    await html2pdf().set(opt).from(element).save();
   } finally {
-    clone.remove();
+    restoreImages();
   }
 }

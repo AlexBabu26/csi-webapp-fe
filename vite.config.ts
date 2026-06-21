@@ -4,21 +4,34 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    const apiTarget =
-      env.VITE_API_BASE_URL?.replace(/\/api\/?$/, '') ||
-      'https://csi-project-be.vercel.app';
+    const localApi = env.VITE_API_BASE_URL?.replace(/\/api\/?$/, '') || 'http://127.0.0.1:7000';
+    const useLocalApi = env.VITE_USE_LOCAL_API === 'true' || env.VITE_API_BASE_URL?.startsWith('/');
 
     return {
       server: {
         port: 3000,
         host: '0.0.0.0',
-        proxy: {
-          '/api/files': {
-            target: apiTarget,
-            changeOrigin: true,
-            secure: true,
-          },
-        },
+        proxy: useLocalApi
+          ? {
+              // Logos/files: serve from production (local B2 credentials may differ)
+              '/api/files': {
+                target: 'https://csi-project-be.vercel.app',
+                changeOrigin: true,
+                secure: true,
+              },
+              // All other API calls: local backend (same-origin via proxy, no CORS)
+              '/api': {
+                target: localApi,
+                changeOrigin: true,
+              },
+            }
+          : {
+              '/api/files': {
+                target: 'https://csi-project-be.vercel.app',
+                changeOrigin: true,
+                secure: true,
+              },
+            },
       },
       plugins: [react()],
       define: {
