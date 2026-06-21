@@ -14,11 +14,16 @@ import { getMediaUrl } from '../../services/http';
 import {
   UnitPaymentSummary,
   buildUnitPaymentSummary,
-  filterUnitSummaries,
   getUnitPaymentStatusLabel,
   groupPaymentsByUnit,
 } from './unitPaymentSummary';
 import { getProofPaidAmount } from '../../utils/registrationPayment';
+import {
+  PAYMENT_STATUS_FILTER,
+  enumMatchFilter,
+  nonSortableActionColumn,
+  textIncludesFilter,
+} from './adminTableUtils';
 
 const paymentStatusBadgeVariant = (
   status: UnitPaymentSummary['display_status'],
@@ -47,7 +52,6 @@ const submissionStatusBadge = (status: AdminRegistrationPayment['status']) => {
 };
 
 export const UnitRegistrationPayments: React.FC = () => {
-  const [statusFilter, setStatusFilter] = useState<string>('');
   const [yearFilter, setYearFilter] = useState<string>('');
   const [selectedUnit, setSelectedUnit] = useState<UnitPaymentSummary | null>(null);
   const [rejectDialogId, setRejectDialogId] = useState<number | null>(null);
@@ -67,10 +71,7 @@ export const UnitRegistrationPayments: React.FC = () => {
     yearFilter ? Number(yearFilter) : undefined,
   );
 
-  const unitSummaries = useMemo(() => {
-    const grouped = groupPaymentsByUnit(payments);
-    return filterUnitSummaries(grouped, statusFilter);
-  }, [payments, statusFilter]);
+  const unitSummaries = useMemo(() => groupPaymentsByUnit(payments), [payments]);
 
   useEffect(() => {
     if (!selectedUnit) return;
@@ -186,20 +187,24 @@ export const UnitRegistrationPayments: React.FC = () => {
       {
         accessorKey: 'unit_name',
         header: 'Unit',
-        enableSorting: false,
+        accessorFn: (row) => `${row.unit_name ?? ''} ${row.username}`,
         cell: ({ row }) => (
           <div className="text-sm">
             <span className="font-medium text-textDark block">
-              {row.original.unit_name ?? '-'}
+              {row.original.unit_name ?? row.original.username}
             </span>
             <span className="text-textMuted text-xs">{row.original.username}</span>
           </div>
         ),
+        filterFn: textIncludesFilter,
       },
       {
         accessorKey: 'registration_year',
         header: 'Season',
-        enableSorting: false,
+        accessorFn: (row) =>
+          row.registration_year
+            ? `${row.registration_year - 1}–${row.registration_year}`
+            : '',
         cell: ({ row }) => (
           <span className="text-sm text-textMuted">
             {row.original.registration_year
@@ -207,45 +212,45 @@ export const UnitRegistrationPayments: React.FC = () => {
               : '-'}
           </span>
         ),
+        filterFn: textIncludesFilter,
         size: 110,
       },
       {
         accessorKey: 'display_status',
         header: 'Payment Status',
-        enableSorting: false,
         cell: ({ row }) => (
           <Badge variant={paymentStatusBadgeVariant(row.original.display_status)}>
             {getUnitPaymentStatusLabel(row.original.display_status)}
           </Badge>
         ),
+        filterFn: enumMatchFilter,
         size: 140,
       },
       {
         accessorKey: 'total_amount',
         header: 'Total',
-        enableSorting: false,
         cell: ({ row }) => (
           <span className="text-sm font-medium">
             {row.original.total_amount != null ? `₹${row.original.total_amount}` : '-'}
           </span>
         ),
+        filterFn: textIncludesFilter,
         size: 90,
       },
       {
         accessorKey: 'paid_amount',
         header: 'Paid',
-        enableSorting: false,
         cell: ({ row }) => (
           <span className="text-sm font-medium text-success">
             {row.original.paid_amount > 0 ? `₹${row.original.paid_amount}` : '—'}
           </span>
         ),
+        filterFn: textIncludesFilter,
         size: 90,
       },
       {
         accessorKey: 'remaining_amount',
         header: 'Remaining',
-        enableSorting: false,
         cell: ({ row }) =>
           row.original.display_status === 'fully_paid' ? (
             <span className="text-xs text-success font-medium">₹0</span>
@@ -254,12 +259,14 @@ export const UnitRegistrationPayments: React.FC = () => {
               ₹{row.original.remaining_amount}
             </span>
           ),
+        filterFn: textIncludesFilter,
         size: 100,
       },
       {
         accessorKey: 'submission_count',
         header: 'Proofs',
-        enableSorting: false,
+        accessorFn: (row) =>
+          `${row.submission_count}${row.pending_count > 0 ? ` (${row.pending_count} pending)` : ''}`,
         cell: ({ row }) => (
           <span className="text-sm text-textMuted">
             {row.original.submission_count}
@@ -268,23 +275,24 @@ export const UnitRegistrationPayments: React.FC = () => {
               : ''}
           </span>
         ),
+        filterFn: textIncludesFilter,
         size: 110,
       },
       {
         accessorKey: 'last_activity_at',
         header: 'Last Activity',
-        enableSorting: false,
         cell: ({ row }) => (
           <span className="text-textMuted text-sm">
             {new Date(row.original.last_activity_at).toLocaleDateString()}
           </span>
         ),
+        filterFn: textIncludesFilter,
         size: 110,
       },
       {
         id: 'details',
         header: '',
-        enableSorting: false,
+        ...nonSortableActionColumn,
         cell: () => (
           <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
             View <ChevronRight className="w-4 h-4" />
@@ -324,25 +332,19 @@ export const UnitRegistrationPayments: React.FC = () => {
               {currentYear - 1}–{currentYear}
             </option>
           </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 border border-borderColor rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <option value="">All statuses</option>
-            <option value="PENDING">Pending Review</option>
-            <option value="PARTIAL">Partial Payment</option>
-            <option value="FULLY_PAID">Fully Paid</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
         </div>
-        <DataTable
-          data={unitSummaries}
-          columns={columns}
-          isLoading={isLoading}
-          emptyMessage="No unit payment records found."
-          onRowClick={setSelectedUnit}
-        />
+        <div className="px-4 pb-4">
+          <DataTable
+            data={unitSummaries}
+            columns={columns}
+            isLoading={isLoading}
+            showColumnFilters
+            searchPlaceholder="Search by unit name or registration number..."
+            emptyMessage="No unit payment records found."
+            columnFiltersConfig={[PAYMENT_STATUS_FILTER]}
+            onRowClick={setSelectedUnit}
+          />
+        </div>
       </Card>
 
       {selectedUnit !== null && (

@@ -7,6 +7,12 @@ import { useToast } from '../../components/Toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { TransferRequest, RequestStatus } from '../../types';
 import { useTransferRequests, useRequestActions } from '../../hooks/queries';
+import {
+  REQUEST_STATUS_FILTER,
+  enumMatchFilter,
+  nonSortableActionColumn,
+  textIncludesFilter,
+} from './adminTableUtils';
 
 export const UnitTransferRequests: React.FC = () => {
   // Use TanStack Query
@@ -90,7 +96,16 @@ export const UnitTransferRequests: React.FC = () => {
             {new Date(row.original.createdAt).toLocaleDateString()}
           </span>
         ),
+        filterFn: textIncludesFilter,
         size: 120,
+      },
+      {
+        accessorKey: 'currentUnitName',
+        header: 'Unit Name',
+        cell: ({ row }) => (
+          <span className="font-medium text-textDark">{row.original.currentUnitName}</span>
+        ),
+        filterFn: textIncludesFilter,
       },
       {
         accessorKey: 'memberName',
@@ -98,10 +113,13 @@ export const UnitTransferRequests: React.FC = () => {
         cell: ({ row }) => (
           <span className="font-medium text-textDark">{row.original.memberName}</span>
         ),
+        filterFn: textIncludesFilter,
       },
       {
         id: 'transfer',
         header: 'Transfer Info',
+        accessorFn: (row) =>
+          `${row.currentUnitName} ${row.destinationUnitName}`,
         cell: ({ row }) => (
           <div className="text-sm">
             <span className="text-textMuted">From: </span>
@@ -111,7 +129,7 @@ export const UnitTransferRequests: React.FC = () => {
             <span className="font-medium text-textDark">{row.original.destinationUnitName}</span>
           </div>
         ),
-        enableSorting: false,
+        filterFn: textIncludesFilter,
       },
       {
         accessorKey: 'reason',
@@ -119,11 +137,13 @@ export const UnitTransferRequests: React.FC = () => {
         cell: ({ row }) => (
           <span className="text-textMuted text-sm line-clamp-2">{row.original.reason}</span>
         ),
+        filterFn: textIncludesFilter,
       },
       {
         accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => getStatusBadge(row.original.status),
+        filterFn: enumMatchFilter,
         size: 100,
       },
       {
@@ -136,7 +156,7 @@ export const UnitTransferRequests: React.FC = () => {
             subtitle={row.original.memberName}
           />
         ),
-        enableSorting: false,
+        ...nonSortableActionColumn,
         size: 80,
       },
       {
@@ -174,7 +194,7 @@ export const UnitTransferRequests: React.FC = () => {
             return <span className="text-textMuted text-sm">{status}</span>;
           }
         },
-        enableSorting: false,
+        ...nonSortableActionColumn,
         size: 100,
       },
     ],
@@ -202,10 +222,12 @@ export const UnitTransferRequests: React.FC = () => {
             columns={columns}
             isLoading={loading}
             showRowSelection={false}
+            showColumnFilters
             searchPlaceholder="Search by member name or unit..."
             pageSize={10}
             emptyMessage="No transfer requests found"
             emptyIcon={<FileText className="w-8 h-8 text-textMuted" />}
+            columnFiltersConfig={[REQUEST_STATUS_FILTER]}
           />
         </div>
       </Card>

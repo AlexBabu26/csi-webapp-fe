@@ -6,6 +6,12 @@ import { ProofViewButton } from '../../components/ProofDocumentViewer';
 import { useToast } from '../../components/Toast';
 import { CouncilorChangeRequest, RequestStatus } from '../../types';
 import { useCouncilorChangeRequests, useRequestActions } from '../../hooks/queries';
+import {
+  REQUEST_STATUS_FILTER,
+  enumMatchFilter,
+  nonSortableActionColumn,
+  textIncludesFilter,
+} from './adminTableUtils';
 
 export const CouncilorChangeRequests: React.FC = () => {
   // Use TanStack Query
@@ -43,30 +49,36 @@ export const CouncilorChangeRequests: React.FC = () => {
             {new Date(row.original.createdAt).toLocaleDateString()}
           </span>
         ),
+        filterFn: textIncludesFilter,
         size: 120,
       },
       {
         accessorKey: 'unitName',
         header: 'Unit Name',
         cell: ({ row }) => (
-          <span className="font-medium text-textDark">{row.original.unitName}</span>
+          <span className="font-medium text-textDark">
+            {row.original.unitName || '—'}
+          </span>
         ),
+        filterFn: textIncludesFilter,
       },
       {
-        id: 'originalCouncilor',
+        accessorKey: 'originalMemberName',
         header: 'Original Councilor',
         cell: ({ row }) => (
           <span className="text-textMuted text-sm">{row.original.originalMemberName}</span>
         ),
+        filterFn: textIncludesFilter,
       },
       {
-        id: 'newCouncilor',
+        accessorKey: 'newMemberName',
         header: 'New Councilor',
         cell: ({ row }) => (
           <span className="text-textDark text-sm font-medium">
             {row.original.newMemberName || 'No new member selected'}
           </span>
         ),
+        filterFn: textIncludesFilter,
       },
       {
         accessorKey: 'reason',
@@ -74,11 +86,13 @@ export const CouncilorChangeRequests: React.FC = () => {
         cell: ({ row }) => (
           <span className="text-textMuted text-sm line-clamp-2">{row.original.reason}</span>
         ),
+        filterFn: textIncludesFilter,
       },
       {
         accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => getStatusBadge(row.original.status),
+        filterFn: enumMatchFilter,
         size: 100,
       },
       {
@@ -91,7 +105,7 @@ export const CouncilorChangeRequests: React.FC = () => {
             subtitle={row.original.unitName}
           />
         ),
-        enableSorting: false,
+        ...nonSortableActionColumn,
         size: 80,
       },
       {
@@ -129,7 +143,7 @@ export const CouncilorChangeRequests: React.FC = () => {
             return <span className="text-textMuted text-sm">{status}</span>;
           }
         },
-        enableSorting: false,
+        ...nonSortableActionColumn,
         size: 100,
       },
     ],
@@ -157,10 +171,12 @@ export const CouncilorChangeRequests: React.FC = () => {
             columns={columns}
             isLoading={loading}
             showRowSelection={false}
+            showColumnFilters
             searchPlaceholder="Search by unit or councilor name..."
             pageSize={10}
             emptyMessage="No councilor change requests found"
             emptyIcon={<FileText className="w-8 h-8 text-textMuted" />}
+            columnFiltersConfig={[REQUEST_STATUS_FILTER]}
           />
         </div>
       </Card>

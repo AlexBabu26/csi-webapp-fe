@@ -7,6 +7,12 @@ import { useToast } from '../../components/Toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { MemberInfoChangeRequest, RequestStatus } from '../../types';
 import { useMemberInfoChangeRequests, useRequestActions } from '../../hooks/queries';
+import {
+  REQUEST_STATUS_FILTER,
+  enumMatchFilter,
+  nonSortableActionColumn,
+  textIncludesFilter,
+} from './adminTableUtils';
 
 export const MemberInfoChangeRequests: React.FC = () => {
   // Use TanStack Query
@@ -90,21 +96,40 @@ export const MemberInfoChangeRequests: React.FC = () => {
             {new Date(row.original.createdAt).toLocaleDateString()}
           </span>
         ),
+        filterFn: textIncludesFilter,
         size: 120,
+      },
+      {
+        accessorKey: 'unitName',
+        header: 'Unit Name',
+        cell: ({ row }) => (
+          <span className="font-medium text-textDark">
+            {row.original.unitName || '—'}
+          </span>
+        ),
+        filterFn: textIncludesFilter,
       },
       {
         accessorKey: 'memberName',
         header: 'Member Name',
         cell: ({ row }) => (
-          <div>
-            <span className="font-medium text-textDark block">{row.original.memberName}</span>
-            <span className="text-xs text-textMuted">{row.original.unitName}</span>
-          </div>
+          <span className="font-medium text-textDark">{row.original.memberName}</span>
         ),
+        filterFn: textIncludesFilter,
       },
       {
         id: 'changes',
         header: 'Requested Changes',
+        accessorFn: (row) => {
+          const changes = row.changes || {};
+          const changeList: string[] = [];
+          if (changes.name) changeList.push(`Name: ${changes.name}`);
+          if (changes.gender) changeList.push(`Gender: ${changes.gender}`);
+          if (changes.dob) changeList.push(`DOB: ${changes.dob}`);
+          if (changes.bloodGroup) changeList.push(`Blood Group: ${changes.bloodGroup}`);
+          if (changes.qualification) changeList.push(`Qualification: ${changes.qualification}`);
+          return changeList.join(' ');
+        },
         cell: ({ row }) => {
           const changes = row.original.changes || {};
           const changeList: string[] = [];
@@ -126,7 +151,7 @@ export const MemberInfoChangeRequests: React.FC = () => {
             </div>
           );
         },
-        enableSorting: false,
+        filterFn: textIncludesFilter,
       },
       {
         accessorKey: 'reason',
@@ -134,11 +159,13 @@ export const MemberInfoChangeRequests: React.FC = () => {
         cell: ({ row }) => (
           <span className="text-textMuted text-sm line-clamp-2">{row.original.reason}</span>
         ),
+        filterFn: textIncludesFilter,
       },
       {
         accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => getStatusBadge(row.original.status),
+        filterFn: enumMatchFilter,
         size: 100,
       },
       {
@@ -151,7 +178,7 @@ export const MemberInfoChangeRequests: React.FC = () => {
             subtitle={row.original.memberName}
           />
         ),
-        enableSorting: false,
+        ...nonSortableActionColumn,
         size: 80,
       },
       {
@@ -189,7 +216,7 @@ export const MemberInfoChangeRequests: React.FC = () => {
             return <span className="text-textMuted text-sm">{status}</span>;
           }
         },
-        enableSorting: false,
+        ...nonSortableActionColumn,
         size: 100,
       },
     ],
@@ -217,10 +244,12 @@ export const MemberInfoChangeRequests: React.FC = () => {
             columns={columns}
             isLoading={loading}
             showRowSelection={false}
+            showColumnFilters
             searchPlaceholder="Search by member name or unit..."
             pageSize={10}
             emptyMessage="No member info change requests found"
             emptyIcon={<FileText className="w-8 h-8 text-textMuted" />}
+            columnFiltersConfig={[REQUEST_STATUS_FILTER]}
           />
         </div>
       </Card>

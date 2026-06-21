@@ -40,6 +40,7 @@ interface DataTableProps<TData> {
   showSearch?: boolean;
   showPagination?: boolean;
   showRowSelection?: boolean;
+  showColumnFilters?: boolean;
   pageSize?: number;
   onRowSelectionChange?: (selectedRows: TData[]) => void;
   onRowClick?: (row: TData) => void;
@@ -56,6 +57,7 @@ export function DataTable<TData>({
   showSearch = true,
   showPagination = true,
   showRowSelection = false,
+  showColumnFilters = false,
   pageSize = 10,
   onRowSelectionChange,
   onRowClick,
@@ -136,6 +138,7 @@ export function DataTable<TData>({
       rowSelection,
     },
     enableRowSelection: showRowSelection,
+    enableColumnFilters: showColumnFilters || Boolean(columnFiltersConfig?.length),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -150,6 +153,11 @@ export function DataTable<TData>({
       },
     },
   });
+
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+  const hasActiveFilters =
+    Boolean(globalFilter.trim()) ||
+    columnFilters.some((filter) => Boolean(filter.value));
 
   // Notify parent of selection changes
   React.useEffect(() => {
@@ -230,36 +238,56 @@ export function DataTable<TData>({
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-borderColor">
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider"
-                      style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
-                    >
-                      {header.isPlaceholder ? null : (
-                        <div
-                          className={`flex items-center gap-2 ${
-                            header.column.getCanSort() ? 'cursor-pointer select-none hover:text-textDark' : ''
-                          }`}
-                          onClick={header.column.getToggleSortingHandler()}
-                        >
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {header.column.getCanSort() && (
-                            <span className="text-textMuted">
-                              {{
-                                asc: <ChevronUp className="h-4 w-4" />,
-                                desc: <ChevronDown className="h-4 w-4" />,
-                              }[header.column.getIsSorted() as string] ?? (
-                                <ChevronsUpDown className="h-4 w-4 opacity-50" />
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </th>
-                  ))}
-                </tr>
+                <React.Fragment key={headerGroup.id}>
+                  <tr>
+                    {headerGroup.headers.map((header) => (
+                      <th
+                        key={header.id}
+                        className="px-4 py-3 text-left text-xs font-semibold text-textMuted uppercase tracking-wider"
+                        style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}
+                      >
+                        {header.isPlaceholder ? null : (
+                          <div
+                            className={`flex items-center gap-2 ${
+                              header.column.getCanSort() ? 'cursor-pointer select-none hover:text-textDark' : ''
+                            }`}
+                            onClick={header.column.getToggleSortingHandler()}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                            {header.column.getCanSort() && (
+                              <span className="text-textMuted">
+                                {{
+                                  asc: <ChevronUp className="h-4 w-4" />,
+                                  desc: <ChevronDown className="h-4 w-4" />,
+                                }[header.column.getIsSorted() as string] ?? (
+                                  <ChevronsUpDown className="h-4 w-4 opacity-50" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                  {showColumnFilters && (
+                    <tr className="border-t border-borderColor/60 bg-white">
+                      {headerGroup.headers.map((header) => (
+                        <th key={`${header.id}-filter`} className="px-4 py-2">
+                          {header.column.getCanFilter() ? (
+                            <input
+                              type="text"
+                              value={(header.column.getFilterValue() as string) ?? ''}
+                              onChange={(e) => header.column.setFilterValue(e.target.value)}
+                              placeholder="Filter..."
+                              className="w-full px-2 py-1.5 border border-borderColor rounded text-xs font-normal normal-case tracking-normal text-textDark focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          ) : null}
+                        </th>
+                      ))}
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </thead>
             <tbody className="bg-white divide-y divide-borderColor">
@@ -290,6 +318,11 @@ export function DataTable<TData>({
                           Try adjusting your search or filter settings
                         </p>
                       )}
+                      {hasActiveFilters && !globalFilter && (
+                        <p className="text-sm text-textMuted mt-1">
+                          Try adjusting your column filters
+                        </p>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -316,7 +349,7 @@ export function DataTable<TData>({
       </div>
 
       {/* Pagination */}
-      {showPagination && !isLoading && filteredData.length > 0 && (
+      {showPagination && !isLoading && data.length > 0 && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-4">
           <div className="flex items-center gap-2 text-sm text-textMuted">
             <span>Rows per page:</span>
@@ -336,7 +369,7 @@ export function DataTable<TData>({
           <div className="flex items-center gap-2">
             <span className="text-sm text-textMuted">
               Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount() || 1}
-              {' '}({filteredData.length}{globalFilter ? ` of ${data.length}` : ''} records)
+              {' '}({filteredRowCount}{hasActiveFilters ? ` of ${data.length}` : ''} records)
             </span>
             
             <div className="flex items-center gap-1">
