@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui';
-import { ArrowLeft, ChevronDown, Download } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
 import { UnitRegistrationFormDocument } from '../../components/UnitRegistrationFormDocument';
 import { mapAdminUnitToDocument } from '../UnitRegistration/utils/registrationFormMapper';
 import { useSiteSettings } from '../../hooks/queries/useSiteSettings';
@@ -27,7 +27,6 @@ export const PrintForm: React.FC = () => {
   } = useUnitDetailFull(parsedUnitId);
 
   const [downloading, setDownloading] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
   const handleDownloadPdf = async () => {
@@ -47,14 +46,6 @@ export const PrintForm: React.FC = () => {
       setDownloading(false);
     }
   };
-
-  useEffect(() => {
-    const handleClickOutside = () => setShowDropdown(false);
-    if (showDropdown) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [showDropdown]);
 
   if (loading || !unit) {
     return (
@@ -87,52 +78,10 @@ export const PrintForm: React.FC = () => {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowDropdown(!showDropdown);
-              }}
-            >
-              Request Changes
-              <ChevronDown className="w-4 h-4 ml-2" />
-            </Button>
-            {showDropdown && (
-              <div
-                className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg z-10 border border-borderColor"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="py-1">
-                  <button onClick={() => navigate('/admin/archived-members')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    Archived Members
-                  </button>
-                  <button onClick={() => navigate('/admin/requests/transfers')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    View Unit Transfer Requests
-                  </button>
-                  <button onClick={() => navigate('/unit/change-request')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    New Change Request
-                  </button>
-                  <button onClick={() => navigate('/admin/requests/member-info')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    View Member Info Change Requests
-                  </button>
-                  <button onClick={() => navigate('/admin/requests/officials')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    View Officials Change Requests
-                  </button>
-                  <button onClick={() => navigate('/admin/requests/councilors')} className="block w-full text-left px-4 py-2 text-sm text-textDark hover:bg-gray-100">
-                    View Councilor Change Requests
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-          <Button variant="primary" size="sm" onClick={handleDownloadPdf} isLoading={downloading}>
-            <Download className="w-4 h-4 mr-2" />
-            Download PDF
-          </Button>
-        </div>
+        <Button variant="primary" size="sm" onClick={handleDownloadPdf} isLoading={downloading}>
+          <Download className="w-4 h-4 mr-2" />
+          Download PDF
+        </Button>
       </div>
 
       <div ref={formRef}>
