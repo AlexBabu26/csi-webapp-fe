@@ -941,6 +941,7 @@ export interface UnitStats {
   inProgressUnits: number;
   notStartedUnits: number;
   notOnboardedUnits: number;
+  pendingApprovalUnits: number;
   currentRegistrationYear: number;
   pendingPayments: number;
   totalMembers: number;

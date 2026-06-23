@@ -927,6 +927,7 @@ class ApiService {
       in_progress_units_count: number;
       not_started_units_count: number;
       not_onboarded_units_count: number;
+      pending_approval_units_count?: number;
       pending_payments_count: number;
       total_unit_members: number;
       total_male_members: number;
@@ -952,6 +953,7 @@ class ApiService {
         0,
         (rawData.total_units_count ?? 0) - (rawData.registered_units_count ?? rawData.total_units_count ?? 0),
       ),
+      pendingApprovalUnits: rawData.pending_approval_units_count ?? 0,
       currentRegistrationYear: rawData.current_registration_year ?? new Date().getFullYear(),
       pendingPayments: rawData.pending_payments_count ?? 0,
       totalMembers: rawData.total_unit_members,

@@ -475,6 +475,20 @@ export const AdminDashboard: React.FC = () => {
               <span className="font-medium text-warning">{stats.inProgressUnits}</span>
             </div>
             <div className="flex items-center justify-between">
+              <span className="text-textMuted">Pending for approval:</span>
+              {stats.pendingApprovalUnits > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/units')}
+                  className="font-medium text-info hover:underline"
+                >
+                  {stats.pendingApprovalUnits}
+                </button>
+              ) : (
+                <span className="font-medium text-textDark">0</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
               <span className="text-textMuted">Units not started:</span>
               <span className="font-medium text-textDark">{stats.notStartedUnits}</span>
             </div>
