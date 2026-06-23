@@ -88,6 +88,30 @@ function formatDownloadTimestampIst(): string {
   });
 }
 
+const PDF_DOWNLOAD_FOOTER_ATTR = 'data-pdf-download-footer';
+
+/**
+ * Injects a download timestamp into the last content block so html2pdf renders
+ * it on the final page instead of creating a separate trailing page (jsPDF overlay).
+ */
+function appendDownloadFooter(element: HTMLElement): HTMLElement {
+  const sections = element.querySelectorAll('.break-inside-avoid');
+  const container = sections.length > 0 ? sections[sections.length - 1] : element;
+
+  const footer = document.createElement('p');
+  footer.setAttribute(PDF_DOWNLOAD_FOOTER_ATTR, 'true');
+  footer.textContent = `Downloaded on: ${formatDownloadTimestampIst()}`;
+  footer.style.marginTop = '12px';
+  footer.style.fontSize = '10px';
+  footer.style.color = '#666666';
+  footer.style.textAlign = 'right';
+  footer.style.fontFamily = 'Arial, sans-serif';
+  footer.style.pageBreakBefore = 'avoid';
+  footer.style.breakBefore = 'avoid';
+  container.appendChild(footer);
+  return footer;
+}
+
 export async function generatePdfFromElement(
   element: HTMLElement,
   options: GeneratePdfOptions,
@@ -97,6 +121,7 @@ export async function generatePdfFromElement(
 
   await waitForImagesInElement(element);
   const restoreImages = await inlineVisibleImagesForPdf(element);
+  const downloadFooter = appendDownloadFooter(element);
 
   try {
     const opt = {
@@ -125,23 +150,9 @@ export async function generatePdfFromElement(
       },
     };
 
-    await html2pdf()
-      .set(opt)
-      .from(element)
-      .toPdf()
-      .get('pdf')
-      .then((pdf) => {
-        const pageCount = pdf.internal.getNumberOfPages();
-        pdf.setPage(pageCount);
-        pdf.setFontSize(8);
-        pdf.setTextColor(102, 102, 102);
-        const footerText = `Downloaded on: ${formatDownloadTimestampIst()}`;
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        pdf.text(footerText, pageWidth - 15, pageHeight - 8, { align: 'right' });
-      })
-      .save();
+    await html2pdf().set(opt).from(element).save();
   } finally {
+    downloadFooter.remove();
     restoreImages();
   }
 }
