@@ -1150,6 +1150,7 @@ class ApiService {
         id: number;
         username: string;
         unit_name: string | null;
+        clergy_district_name?: string | null;
       };
       member_count: number;
       registration_year?: number;
@@ -1171,7 +1172,8 @@ class ApiService {
       userId: raw.user.id,
       unitNumber: raw.user.username,
       name: unitName,
-      clergyDistrict: this.extractClergyDistrict(raw.user.username),
+      clergyDistrict:
+        raw.user.clergy_district_name?.trim() || this.extractClergyDistrict(raw.user.username),
       registrationYear: raw.registration_year ?? getCurrentYearIST(),
       status: this.mapUnitStatus(raw.cycle_status ?? 'Not Started'),
       membersCount: raw.member_count,

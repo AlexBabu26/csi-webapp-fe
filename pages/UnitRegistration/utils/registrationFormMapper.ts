@@ -135,7 +135,7 @@ export const mapApplicationFormToDocument = (
   formData: UnitApplicationForm,
 ): UnitRegistrationFormDocumentProps => ({
   registrationNumber: formData.user_data.username,
-  clergyDistrict: formData.user_data.clergy_district_name || 'Unknown',
+  clergyDistrict: formData.user_data.clergy_district_name?.trim() || 'Unknown',
   unitName: formData.user_data.unit_name || 'Unknown',
   registrationYear: formData.registration_year ?? formData.unit_details?.registration_year ?? defaultRegistrationYear(),
   membersCount: formData.member_count,
@@ -158,7 +158,7 @@ export const mapAdminUnitToDocument = (
   fees: { unitRegistrationFee: number; unitMemberFee: number; totalAmount: number },
 ): UnitRegistrationFormDocumentProps => ({
   registrationNumber: unit.unitNumber,
-  clergyDistrict: unit.clergyDistrict,
+  clergyDistrict: unit.clergyDistrict?.trim() || 'Unknown',
   unitName: unit.name,
   registrationYear: unit.registrationYear,
   membersCount: unit.membersCount,
