@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getCurrentYearIST } from '../../utils/datetime';
 import { Card, Button, Badge, IconButton } from '../../components/ui';
 import { Settings, Save, Upload, Plus, Trash2, Edit2, GripVertical, ExternalLink, Globe, Phone, Mail, MapPin, Facebook, Instagram, Youtube, Image, Bell, Link2, Info, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useToast } from '../../components/Toast';
@@ -51,7 +52,7 @@ export const SiteSettings: React.FC = () => {
         about_text: settings.about_text || '',
         registration_enabled: settings.registration_enabled,
         registration_closed_message: settings.registration_closed_message || '',
-        current_registration_year: settings.current_registration_year ?? new Date().getFullYear(),
+        current_registration_year: settings.current_registration_year ?? getCurrentYearIST(),
         contact: settings.contact,
         social_links: settings.social_links,
       });
@@ -224,7 +225,7 @@ export const SiteSettings: React.FC = () => {
                 type="number"
                 min={2020}
                 max={2100}
-                value={formData.current_registration_year ?? new Date().getFullYear()}
+                value={formData.current_registration_year ?? getCurrentYearIST()}
                 onChange={(e) =>
                   setFormData({ ...formData, current_registration_year: Number(e.target.value) })
                 }

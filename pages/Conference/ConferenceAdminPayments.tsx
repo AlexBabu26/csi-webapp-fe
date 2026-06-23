@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { Card, Badge, Button } from '../../components/ui';
 import { CreditCard, Download, ChevronDown, ChevronRight, MapPin, Search, CheckCircle, Clock, XCircle, FileText } from 'lucide-react';
 import { useToast } from '../../components/Toast';
@@ -353,7 +354,7 @@ export const ConferenceAdminPayments: React.FC = () => {
                                       ₹{payment.amount_to_pay.toLocaleString()}
                                     </td>
                                     <td className="px-3 py-2 text-textMuted">
-                                      {new Date(payment.date).toLocaleDateString()}
+                                      {formatDateIST(payment.date)}
                                     </td>
                                     <td className="px-3 py-2 text-textMuted">
                                       {payment.uploaded_by || 'N/A'}

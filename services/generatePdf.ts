@@ -3,6 +3,8 @@
  * html2pdf is loaded on demand so registration form preview stays lightweight.
  */
 
+import { formatNowDateTimeIST } from '../utils/datetime';
+
 export interface GeneratePdfOptions {
   filename: string;
   scale?: number;
@@ -76,18 +78,6 @@ async function loadHtml2Pdf() {
   return module.default;
 }
 
-function formatDownloadTimestampIst(): string {
-  return new Date().toLocaleString('en-IN', {
-    timeZone: 'Asia/Kolkata',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
-
 const PDF_DOWNLOAD_FOOTER_ATTR = 'data-pdf-download-footer';
 
 /**
@@ -100,7 +90,7 @@ function appendDownloadFooter(element: HTMLElement): HTMLElement {
 
   const footer = document.createElement('p');
   footer.setAttribute(PDF_DOWNLOAD_FOOTER_ATTR, 'true');
-  footer.textContent = `Downloaded on: ${formatDownloadTimestampIst()}`;
+  footer.textContent = `Downloaded on: ${formatNowDateTimeIST()}`;
   footer.style.marginTop = '12px';
   footer.style.fontSize = '10px';
   footer.style.color = '#666666';

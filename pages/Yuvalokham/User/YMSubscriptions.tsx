@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import { ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   Card,
@@ -29,7 +30,7 @@ const statusBadge = (status: string) => {
 };
 
 const fmtDate = (d: string | null) =>
-  d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+  d ? formatDateIST(d, { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
 export const YMSubscriptions: React.FC = () => {
   const [page, setPage] = useState(0);

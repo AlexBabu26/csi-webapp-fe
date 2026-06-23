@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { Card, Badge, Button } from '../../components/ui';
 import { Plus, Info, Edit2, Trash2, X, Users, Filter, CheckCircle, XCircle, AlertCircle, Calendar, Tag, UserCheck, Clock, Layers } from 'lucide-react';
 import { useToast } from '../../components/Toast';
@@ -529,7 +530,7 @@ export const EventsManagement: React.FC = () => {
                           <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">Created</span>
                         </div>
                         <p className="text-lg font-semibold text-slate-900">
-                          {selectedEvent.created_on ? new Date(selectedEvent.created_on).toLocaleDateString('en-US', {
+                          {selectedEvent.created_on ? formatDateIST(selectedEvent.created_on, {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric'

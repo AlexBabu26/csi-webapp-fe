@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import {
   Plus,
   Upload,
@@ -338,7 +339,7 @@ export const YMMagazineManagement: React.FC = () => {
                   {mag.issue_number && `Issue ${mag.issue_number}`}
                   {mag.issue_number && mag.volume && ' · '}
                   {mag.volume && `Vol. ${mag.volume}`}
-                  {mag.published_date && ` · ${new Date(mag.published_date).toLocaleDateString('en-IN')}`}
+                  {mag.published_date && ` · ${formatDateIST(mag.published_date)}`}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-1.5 pt-3 border-t border-borderColor">

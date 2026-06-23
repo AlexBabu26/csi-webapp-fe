@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDateIST, formatNowDateTimeIST } from '../../utils/datetime';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui';
 import { ArrowLeft, Printer } from 'lucide-react';
@@ -66,7 +67,7 @@ export const PrintView: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600 mb-1">Payment Date</p>
                 <p className="font-semibold text-gray-900">
-                  {new Date(data.payment_date).toLocaleDateString('en-IN')}
+                  {formatDateIST(data.payment_date)}
                 </p>
               </div>
             )}
@@ -174,7 +175,7 @@ export const PrintView: React.FC = () => {
           </div>
           
           <div className="mt-8 text-center text-sm text-gray-600">
-            <p>Generated on: {new Date().toLocaleString('en-IN')}</p>
+            <p>Generated on: {formatNowDateTimeIST()}</p>
             <p className="mt-2">For official use only - CSI Madhya Kerala Diocese Youth Movement</p>
           </div>
         </div>

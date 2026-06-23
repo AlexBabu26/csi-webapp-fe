@@ -1,3 +1,4 @@
+import { formatDateTimeIST } from '../../utils/datetime';
 import React, { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import {
@@ -213,7 +214,7 @@ export const RegistrationComplete: React.FC = () => {
                         View proof
                       </a>
                       <p className="text-xs text-textMuted">
-                        {new Date(sub.submitted_at).toLocaleString()}
+                        {formatDateTimeIST(sub.submitted_at)}
                       </p>
                     </div>
                   </div>

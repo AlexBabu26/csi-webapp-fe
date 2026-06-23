@@ -1,3 +1,4 @@
+import { formatDateTimeIST } from '../utils/datetime';
 import React, { useState } from 'react';
 import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { Badge } from './ui';
@@ -71,7 +72,7 @@ export const RequestStatusBadge: React.FC<RequestStatusBadgeProps> = ({
             {timestamp && (
               <div className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                {new Date(timestamp).toLocaleString()}
+                {formatDateTimeIST(timestamp)}
               </div>
             )}
             {updatedBy && (

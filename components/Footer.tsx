@@ -1,4 +1,5 @@
 import React from 'react';
+import { getCurrentYearIST } from '../utils/datetime';
 import { Mail, Phone, MapPin, Facebook, Instagram, Youtube } from 'lucide-react';
 import { SiteSettings } from '../types';
 
@@ -7,7 +8,7 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ siteSettings }) => {
-  const currentYear = new Date().getFullYear();
+  const currentYear = getCurrentYearIST();
 
   // Default values if site settings not available
   const appName = siteSettings?.app_name || 'CSI MKD Youth Movement';

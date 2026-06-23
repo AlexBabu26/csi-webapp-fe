@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDateOnlyIST } from '../utils/datetime';
 import { ChurchLogo, LogoImage, YouthLogo } from './SiteLogos';
 
 export interface RegistrationFormCouncilor {
@@ -61,9 +62,8 @@ export const formatRegistrationAgeReferenceLabel = (registrationYear: number): s
 
 const formatDob = (dob?: string): string => {
   if (!dob) return '';
-  const date = new Date(dob);
-  if (Number.isNaN(date.getTime())) return dob;
-  return date.toLocaleDateString('en-GB').replace(/\//g, '-');
+  const formatted = formatDateOnlyIST(dob);
+  return formatted === '—' ? dob : formatted.replace(/\//g, '-');
 };
 
 const formatPhone = (phone?: string): string => {

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { Card, Badge, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { FileText, Check, X, RotateCcw } from 'lucide-react';
@@ -46,7 +47,7 @@ export const CouncilorChangeRequests: React.FC = () => {
         header: 'Created Date',
         cell: ({ row }) => (
           <span className="text-textMuted text-sm">
-            {new Date(row.original.createdAt).toLocaleDateString()}
+            {formatDateIST(row.original.createdAt)}
           </span>
         ),
         filterFn: textIncludesFilter,

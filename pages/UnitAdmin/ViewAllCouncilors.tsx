@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { Card, Badge, Button } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Download, UserCheck } from 'lucide-react';
@@ -58,7 +59,7 @@ export const ViewAllCouncilors: React.FC = () => {
         accessorKey: 'memberDob',
         header: 'Date of Birth',
         cell: ({ row }) => (
-          <span className="text-textMuted">{new Date(row.original.memberDob).toLocaleDateString()}</span>
+          <span className="text-textMuted">{formatDateIST(row.original.memberDob)}</span>
         ),
         size: 120,
       },

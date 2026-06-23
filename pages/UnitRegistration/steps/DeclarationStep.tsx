@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getCurrentYearIST } from '../../../utils/datetime';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button } from '../../../components/ui';
 import { FileText, CheckCircle } from 'lucide-react';
@@ -47,7 +48,7 @@ export const DeclarationStep: React.FC<WizardStepNavigationProps> = ({
               Registration year:{' '}
               {summary.unit_details?.registration_year != null
                 ? `${summary.unit_details.registration_year - 1}–${summary.unit_details.registration_year}`
-                : new Date().getFullYear()}
+                : getCurrentYearIST()}
             </p>
             <p className="text-sm text-textMuted mt-1">Total members: {summary.members_count}</p>
           </Card>

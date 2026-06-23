@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getTodayISOIST } from '../../utils/datetime';
 import { FileSpreadsheet, Download, CheckCircle } from 'lucide-react';
 import { Card, Button } from '../../components/ui';
 import { api } from '../../services/api';
@@ -17,7 +18,7 @@ export const ConferenceExport: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `conference-delegates-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `conference-delegates-${getTodayISOIST()}.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import {
   AlertTriangle,
   ChevronLeft,
@@ -164,7 +165,7 @@ export const YMPaymentReview: React.FC = () => {
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm text-textMuted hidden md:table-cell">
-                        {new Date(p.created_at).toLocaleDateString('en-IN')}
+                        {formatDateIST(p.created_at)}
                       </td>
                       {statusFilter === 'pending' && (
                         <td className="px-4 py-3">

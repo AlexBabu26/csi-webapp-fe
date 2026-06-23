@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import {
   Users,
   CreditCard,
@@ -174,7 +175,7 @@ export const YMAdminDashboard: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-sm text-textDark">{sub.plan_name}</td>
                     <td className="px-4 py-3 text-sm text-textDark">
-                      {new Date(sub.end_date).toLocaleDateString('en-IN')}
+                      {formatDateIST(sub.end_date)}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant={sub.days_remaining < 7 ? 'danger' : sub.days_remaining < 15 ? 'warning' : 'light'}>

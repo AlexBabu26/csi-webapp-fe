@@ -1,5 +1,6 @@
 
 import { downloadBlob } from './download';
+import { getCurrentYearIST } from '../utils/datetime';
 import {
   Metric,
   Participant,
@@ -955,7 +956,7 @@ class ApiService {
         (rawData.total_units_count ?? 0) - (rawData.registered_units_count ?? rawData.total_units_count ?? 0),
       ),
       pendingApprovalUnits: rawData.pending_approval_units_count ?? 0,
-      currentRegistrationYear: rawData.current_registration_year ?? new Date().getFullYear(),
+      currentRegistrationYear: rawData.current_registration_year ?? getCurrentYearIST(),
       pendingPayments: rawData.pending_payments_count ?? 0,
       totalMembers: rawData.total_unit_members,
       maleMembers: rawData.total_male_members,
@@ -1025,7 +1026,7 @@ class ApiService {
       unitNumber: unit.username,
       name: unit.unit_name,
       clergyDistrict: this.extractClergyDistrict(unit.username),
-      registrationYear: unit.registration_year ?? new Date().getFullYear(),
+      registrationYear: unit.registration_year ?? getCurrentYearIST(),
       status: this.mapUnitStatus(cycleStatus ?? 'Not Started'),
       cycleStatus,
       paymentStatus: unit.payment_status as Unit['paymentStatus'],
@@ -1171,7 +1172,7 @@ class ApiService {
       unitNumber: raw.user.username,
       name: unitName,
       clergyDistrict: this.extractClergyDistrict(raw.user.username),
-      registrationYear: raw.registration_year ?? new Date().getFullYear(),
+      registrationYear: raw.registration_year ?? getCurrentYearIST(),
       status: this.mapUnitStatus(raw.cycle_status ?? 'Not Started'),
       membersCount: raw.member_count,
       officialsCount: raw.officials ? 1 : 0,

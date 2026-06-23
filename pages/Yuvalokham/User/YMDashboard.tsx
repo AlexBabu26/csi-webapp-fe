@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import { Link } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -114,7 +115,7 @@ export const YMDashboard: React.FC = () => {
                 {subscription.end_date && (
                   <span className="flex items-center gap-1.5">
                     <CalendarClock className="w-4 h-4" />
-                    Expires {new Date(subscription.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    Expires {formatDateIST(subscription.end_date, { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
                 )}
               </div>

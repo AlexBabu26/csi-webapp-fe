@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import { useNavigate } from 'react-router-dom';
 import { CreditCard, Plus, Eye, Clock, CheckCircle, XCircle, X, Download } from 'lucide-react';
 import { useYMPayments } from '../../../hooks/queries';
@@ -95,7 +96,7 @@ export const YMPayments: React.FC = () => {
                         {p.admin_remarks || '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-textMuted">
-                        {new Date(p.created_at).toLocaleDateString()}
+                        {formatDateIST(p.created_at)}
                       </td>
                       <td className="px-4 py-3">
                         {p.proof_file_url && (

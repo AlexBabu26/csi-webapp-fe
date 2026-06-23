@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import { Lock, BookOpen, Download, ExternalLink, Calendar } from 'lucide-react';
 import { Card, Skeleton, Badge, EmptyState } from '../../../components/ui';
 import { useYMMagazines } from '../../../hooks/queries';
@@ -110,7 +111,7 @@ const MagazineCard: React.FC<{ magazine: YMMagazine }> = ({ magazine }) => {
         {magazine.published_date && (
           <p className="text-xs text-textMuted mt-1 flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            {new Date(magazine.published_date).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+            {formatDateIST(magazine.published_date, { month: 'short', year: 'numeric' })}
           </p>
         )}
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import {
   MessageSquarePlus,
   ChevronDown,
@@ -231,7 +232,7 @@ const ComplaintItem: React.FC<{ complaint: YMComplaint }> = ({ complaint }) => {
             {statusBadge(complaint.status)}
             <Badge variant="light">{categoryLabel(complaint.category)}</Badge>
             <span className="text-xs text-textMuted ml-auto flex-shrink-0">
-              {new Date(complaint.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {formatDateIST(complaint.created_at, { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           </div>
           <p className="font-medium text-textDark text-sm">{complaint.subject}</p>
@@ -253,7 +254,7 @@ const ComplaintItem: React.FC<{ complaint: YMComplaint }> = ({ complaint }) => {
           </p>
           {complaint.responded_at && (
             <p className="text-xs text-textMuted mt-1.5">
-              Responded on {new Date(complaint.responded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              Responded on {formatDateIST(complaint.responded_at, { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
           )}
         </div>

@@ -14,8 +14,9 @@ import {
   UnitRegistrationOfficial,
 } from '../../../types';
 import { getMemberResidenceLabel, ResidenceMemberLike } from '../../../utils/memberResidence';
+import { getCurrentYearIST } from '../../../utils/datetime';
 
-const defaultRegistrationYear = () => new Date().getFullYear();
+const defaultRegistrationYear = () => getCurrentYearIST();
 
 const calcAgeAsOf = (dob: string | undefined, referenceDate: Date): number | undefined => {
   if (!dob) return undefined;

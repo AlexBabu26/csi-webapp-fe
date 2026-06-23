@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
 import { ArrowLeft, Download, FileText, Archive } from 'lucide-react';
@@ -252,7 +253,7 @@ export const ViewIndividualUnit: React.FC = () => {
                     <div>
                       <span className="font-medium">{member.age} years</span>
                       <br />
-                      <span className="text-xs">{new Date(member.dob).toLocaleDateString()}</span>
+                      <span className="text-xs">{formatDateIST(member.dob)}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-textMuted font-mono">+91 {member.number}</td>

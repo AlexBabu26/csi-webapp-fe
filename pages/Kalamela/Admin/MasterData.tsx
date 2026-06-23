@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import { Card, Badge, Button } from '../../../components/ui';
 import { Plus, Edit2, Trash2, X, Tag, AlertCircle, DollarSign, Database, Settings, Save, Calendar, Users, CheckCircle, RefreshCw, FileDown, Download } from 'lucide-react';
 import { api } from '../../../services/api';
@@ -328,8 +329,7 @@ export const MasterData: React.FC = () => {
   const formatRuleValue = (rule: KalamelaRule) => {
     const inputType = getRuleInputType(rule.rule_key);
     if (inputType === 'date') {
-      const date = new Date(rule.rule_value);
-      return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      return formatDateIST(rule.rule_value);
     }
     if (rule.rule_key.includes('fee')) {
       return `₹${rule.rule_value}`;
@@ -467,7 +467,7 @@ export const MasterData: React.FC = () => {
                   {category.description || 'No description'}
                 </p>
                 <div className="text-xs text-textMuted mb-4">
-                  Created: {new Date(category.created_on).toLocaleDateString()}
+                  Created: {formatDateIST(category.created_on)}
                 </div>
                 <div className="flex gap-2">
                   <Button variant="warning" size="sm" onClick={() => openCategoryModal('edit', category)}>
@@ -522,7 +522,7 @@ export const MasterData: React.FC = () => {
                   ₹{fee.amount.toLocaleString()}
                 </div>
                 <div className="text-xs text-textMuted mb-4">
-                  Created: {new Date(fee.created_on).toLocaleDateString()}
+                  Created: {formatDateIST(fee.created_on)}
                 </div>
                 <div className="flex gap-2">
                   <Button variant="warning" size="sm" onClick={() => openFeeModal('edit', fee)}>

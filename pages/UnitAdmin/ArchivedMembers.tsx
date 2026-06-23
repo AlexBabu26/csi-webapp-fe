@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { formatDateIST, getCurrentYearIST } from '../../utils/datetime';
 import { Card, Badge, Button, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import {
@@ -59,7 +60,7 @@ export const ArchivedMembers: React.FC = () => {
   // ── Yearly archive review ───────────────────────────────────────────────────
   const { data: previewData, isLoading: previewLoading, refetch: refetchPreview } = useArchivePreview();
   const bulkArchiveMutation = useBulkArchive();
-  const currentYear = new Date().getFullYear();
+  const currentYear = getCurrentYearIST();
   const [archiveYear, setArchiveYear] = useState(String(currentYear));
   const [archiveReason, setArchiveReason] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -168,7 +169,7 @@ export const ArchivedMembers: React.FC = () => {
         header: 'Archived',
         cell: ({ row }) => (
           <span className="text-textMuted text-sm whitespace-nowrap">
-            {new Date(row.original.archivedAt).toLocaleDateString()}
+            {formatDateIST(row.original.archivedAt)}
           </span>
         ),
         size: 100,
@@ -199,7 +200,7 @@ export const ArchivedMembers: React.FC = () => {
         header: 'DOB / Age',
         cell: ({ row }) => (
           <div>
-            <p className="text-sm text-textDark">{new Date(row.original.dob).toLocaleDateString()}</p>
+            <p className="text-sm text-textDark">{formatDateIST(row.original.dob)}</p>
             <p className="text-xs text-textMuted">{row.original.age} yrs</p>
           </div>
         ),

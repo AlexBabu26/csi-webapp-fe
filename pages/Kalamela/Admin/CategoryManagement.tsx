@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import { Card, Badge, Button } from '../../../components/ui';
 import { Plus, Edit2, Trash2, X, Tag, AlertCircle } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
@@ -176,7 +177,7 @@ export const CategoryManagement: React.FC = () => {
               </p>
               
               <div className="text-xs text-textMuted mb-4">
-                Created: {new Date(category.created_on).toLocaleDateString()}
+                Created: {formatDateIST(category.created_on)}
               </div>
               
               <div className="flex gap-2">

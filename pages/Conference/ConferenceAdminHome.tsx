@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { Card, Badge, Button } from '../../components/ui';
 import { Plus, Edit2, Trash2, X, Calendar, Users, CheckCircle, AlertCircle } from 'lucide-react';
 import { useToast } from '../../components/Toast';
@@ -205,7 +206,7 @@ export const ConferenceAdminHome: React.FC = () => {
                 {conference.details || 'No description provided'}
               </p>
               <p className="text-xs text-textMuted mb-4">
-                Created: {new Date(conference.added_on).toLocaleDateString()}
+                Created: {formatDateIST(conference.added_on)}
               </p>
               
               <div className="flex gap-2">

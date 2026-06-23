@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { Card, Badge, Button } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Download, Users, Trash2 } from 'lucide-react';
@@ -66,7 +67,7 @@ export const ViewAllMembers: React.FC = () => {
         cell: ({ row }) => (
           <div>
             <span className="text-textDark font-medium block">{row.original.age} years</span>
-            <span className="text-xs text-textMuted">{new Date(row.original.dob).toLocaleDateString()}</span>
+            <span className="text-xs text-textMuted">{formatDateIST(row.original.dob)}</span>
           </div>
         ),
         size: 120,

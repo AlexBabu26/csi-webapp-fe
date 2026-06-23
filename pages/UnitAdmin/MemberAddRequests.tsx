@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { Card, Badge, IconButton } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { FileText, Check, X } from 'lucide-react';
@@ -37,7 +38,7 @@ export const MemberAddRequests: React.FC = () => {
         header: 'Created Date',
         cell: ({ row }) => (
           <span className="text-textMuted text-sm">
-            {new Date(row.original.createdAt).toLocaleDateString()}
+            {formatDateIST(row.original.createdAt)}
           </span>
         ),
         size: 120,
@@ -64,7 +65,7 @@ export const MemberAddRequests: React.FC = () => {
             <span className="font-medium text-textDark block">{row.original.name}</span>
             <span className="text-textMuted">
               {row.original.gender === 'M' ? 'Male' : 'Female'} • 
-              {new Date(row.original.dob).toLocaleDateString()} •
+              {formatDateIST(row.original.dob)} •
               +91 {row.original.number}
             </span>
           </div>

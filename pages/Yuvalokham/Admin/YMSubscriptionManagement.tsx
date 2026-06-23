@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import { FileText, Clock, CheckCircle, XCircle, Search } from 'lucide-react';
 import { useYMAdminSubscriptions } from '../../../hooks/queries';
 import { YMSubscriptionStatus } from '../../../types';
@@ -107,10 +108,10 @@ export const YMSubscriptionManagement: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-textMuted">
-                        {sub.start_date ? new Date(sub.start_date).toLocaleDateString() : '—'}
+                        {sub.start_date ? formatDateIST(sub.start_date) : '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-textMuted">
-                        {sub.end_date ? new Date(sub.end_date).toLocaleDateString() : '—'}
+                        {sub.end_date ? formatDateIST(sub.end_date) : '—'}
                       </td>
                     </tr>
                   );

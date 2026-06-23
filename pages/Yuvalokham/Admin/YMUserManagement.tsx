@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import { Search, AlertTriangle, ChevronLeft, ChevronRight, X, KeyRound } from 'lucide-react';
 import { Card, Badge, Button, Skeleton } from '../../../components/ui';
 import { useYMAdminUsers, useYMAdminUpdateUser, useYMAdminResetPassword } from '../../../hooks/queries';
@@ -184,7 +185,7 @@ export const YMUserManagement: React.FC = () => {
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-sm text-textMuted hidden xl:table-cell">
-                          {new Date(user.created_at).toLocaleDateString('en-IN')}
+                          {formatDateIST(user.created_at)}
                         </td>
                       </tr>
                       {expandedUserId === user.id && (

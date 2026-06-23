@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../../../utils/datetime';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '../../../../components/ui';
 import { FileUpload } from '../../../../components/FileUpload';
@@ -92,7 +93,7 @@ export const TransferFormStep: React.FC<TransferFormStepProps> = ({
               <div>
                 <span className="text-textMuted">DOB:</span>{' '}
                 <span className="font-medium">
-                  {new Date(selectedMember.dob).toLocaleDateString()}
+                  {formatDateIST(selectedMember.dob)}
                 </span>
               </div>
             </div>

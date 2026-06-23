@@ -1,3 +1,4 @@
+import { formatDateIST } from '../../utils/datetime';
 import React, { useState } from 'react';
 import { Card, Badge, Button } from '../../components/ui';
 import { 
@@ -119,8 +120,7 @@ export const KalamelaRulesManagement: React.FC = () => {
   const formatRuleValue = (rule: KalamelaRule) => {
     const inputType = getRuleInputType(rule.rule_key);
     if (inputType === 'date') {
-      const date = new Date(rule.rule_value);
-      return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      return formatDateIST(rule.rule_value);
     }
     if (rule.rule_key.includes('fee')) {
       return `₹${rule.rule_value}`;

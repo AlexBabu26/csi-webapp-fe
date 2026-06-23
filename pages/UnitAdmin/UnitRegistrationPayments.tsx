@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { formatDateIST, formatDateTimeIST, getCurrentYearIST, nowISOStringIST } from '../../utils/datetime';
 import { Card, Badge, Button } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Check, ChevronRight, ExternalLink, X } from 'lucide-react';
@@ -64,7 +65,7 @@ export const UnitRegistrationPayments: React.FC = () => {
 
   const { data: siteSettings } = useSiteSettings();
   const activeRegistrationYear =
-    siteSettings?.current_registration_year ?? new Date().getFullYear();
+    siteSettings?.current_registration_year ?? getCurrentYearIST();
 
   const { data: payments = [], isLoading } = useAdminRegistrationPayments(
     undefined,
@@ -123,7 +124,7 @@ export const UnitRegistrationPayments: React.FC = () => {
       },
       {
         onSuccess: (data) => {
-          const reviewedAt = new Date().toISOString();
+          const reviewedAt = nowISOStringIST();
           const updatedSubmissions = selectedUnit.submissions.map((submission) =>
             submission.id === paymentId
               ? {
@@ -160,7 +161,7 @@ export const UnitRegistrationPayments: React.FC = () => {
       { paymentId, rejectionNote: note },
       {
         onSuccess: () => {
-          const reviewedAt = new Date().toISOString();
+          const reviewedAt = nowISOStringIST();
           const updatedSubmissions = selectedUnit.submissions.map((submission) =>
             submission.id === paymentId
               ? {
@@ -283,7 +284,7 @@ export const UnitRegistrationPayments: React.FC = () => {
         header: 'Last Activity',
         cell: ({ row }) => (
           <span className="text-textMuted text-sm">
-            {new Date(row.original.last_activity_at).toLocaleDateString()}
+            {formatDateIST(row.original.last_activity_at)}
           </span>
         ),
         filterFn: textIncludesFilter,
@@ -416,11 +417,11 @@ export const UnitRegistrationPayments: React.FC = () => {
                         Proof #{index + 1}
                       </p>
                       <p className="text-xs text-textMuted">
-                        Submitted: {new Date(submission.submitted_at).toLocaleString()}
+                        Submitted: {formatDateTimeIST(submission.submitted_at)}
                       </p>
                       {submission.reviewed_at && (
                         <p className="text-xs text-textMuted">
-                          Reviewed: {new Date(submission.reviewed_at).toLocaleString()}
+                          Reviewed: {formatDateTimeIST(submission.reviewed_at)}
                         </p>
                       )}
                       {submission.rejection_note && (

@@ -1,3 +1,4 @@
+import { formatDateIST, formatDateTimeIST, formatTimeIST } from '../../../utils/datetime';
 import React, { useState, useMemo } from 'react';
 import { Card, Badge, Button } from '../../../components/ui';
 import { 
@@ -122,10 +123,9 @@ export const ScheduleManagement: React.FC = () => {
   };
 
   const formatDateTime = (dateTime: string) => {
-    const date = new Date(dateTime);
     return {
-      date: date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }),
-      time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+      date: formatDateIST(dateTime, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }),
+      time: formatTimeIST(dateTime),
     };
   };
 
@@ -380,9 +380,9 @@ export const ScheduleManagement: React.FC = () => {
                                   </div>
                                 </div>
                                 <div className="text-xs text-textMuted">
-                                  <div>Created: {new Date(schedule.created_on).toLocaleDateString()}</div>
+                                  <div>Created: {formatDateIST(schedule.created_on)}</div>
                                   {schedule.updated_on !== schedule.created_on && (
-                                    <div>Updated: {new Date(schedule.updated_on).toLocaleDateString()}</div>
+                                    <div>Updated: {formatDateIST(schedule.updated_on)}</div>
                                   )}
                                 </div>
                               </div>

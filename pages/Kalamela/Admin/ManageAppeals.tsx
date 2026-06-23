@@ -1,3 +1,4 @@
+import { formatDateTimeIST } from '../../../utils/datetime';
 import React, { useState } from 'react';
 import { Card, Badge, Button } from '../../../components/ui';
 import { MessageSquare, AlertCircle } from 'lucide-react';
@@ -141,7 +142,7 @@ export const ManageAppeals: React.FC = () => {
 
                   {appeal.submitted_at && (
                     <p className="text-xs text-textMuted">
-                      Submitted: {new Date(appeal.submitted_at).toLocaleString('en-IN')}
+                      Submitted: {formatDateTimeIST(appeal.submitted_at)}
                     </p>
                   )}
                 </div>
@@ -181,7 +182,7 @@ export const ManageAppeals: React.FC = () => {
 
                   {appeal.replied_at && (
                     <p className="text-xs text-textMuted">
-                      Replied: {new Date(appeal.replied_at).toLocaleString('en-IN')}
+                      Replied: {formatDateTimeIST(appeal.replied_at)}
                     </p>
                   )}
                 </div>

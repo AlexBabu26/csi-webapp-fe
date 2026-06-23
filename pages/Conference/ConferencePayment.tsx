@@ -1,3 +1,4 @@
+import { formatDateTimeIST } from '../../utils/datetime';
 import React, { useState, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { 
@@ -199,10 +200,10 @@ export const ConferencePayment: React.FC = () => {
                   <p>Reference: <span className="font-medium text-gray-800">{payment.payment_reference}</span></p>
                 )}
                 {payment.submitted_at && (
-                  <p>Submitted: <span className="font-medium text-gray-800">{new Date(payment.submitted_at).toLocaleString()}</span></p>
+                  <p>Submitted: <span className="font-medium text-gray-800">{formatDateTimeIST(payment.submitted_at)}</span></p>
                 )}
                 {payment.verified_at && (
-                  <p>Verified: <span className="font-medium text-gray-800">{new Date(payment.verified_at).toLocaleString()}</span></p>
+                  <p>Verified: <span className="font-medium text-gray-800">{formatDateTimeIST(payment.verified_at)}</span></p>
                 )}
                 {payment.remarks && (
                   <p className="text-red-600">Remarks: {payment.remarks}</p>

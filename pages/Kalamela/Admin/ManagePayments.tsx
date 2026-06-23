@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { formatDateTimeIST, getTodayISOIST } from '../../../utils/datetime';
 import { Card, Badge, Button } from '../../../components/ui';
 import { CheckCircle, XCircle, Eye, Download, Search, Filter, Calendar, CreditCard, TrendingUp, FileText, X, User, MapPin, Hash, Clock, FileImage, Loader2 } from 'lucide-react';
 import { useToast } from '../../../components/Toast';
@@ -217,8 +218,8 @@ export const ManagePayments: React.FC = () => {
       p.group_events_count || 0,
       p.amount || 0,
       p.status || '',
-      p.created_on ? new Date(p.created_on).toLocaleString('en-IN') : '',
-      p.approved_at ? new Date(p.approved_at).toLocaleString('en-IN') : (p.declined_at ? new Date(p.declined_at).toLocaleString('en-IN') : ''),
+      p.created_on ? formatDateTimeIST(p.created_on) : '',
+      p.approved_at ? formatDateTimeIST(p.approved_at) : (p.declined_at ? formatDateTimeIST(p.declined_at) : ''),
       p.decline_reason || ''
     ]);
     
@@ -231,7 +232,7 @@ export const ManagePayments: React.FC = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `kalamela_payments_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `kalamela_payments_${getTodayISOIST()}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -529,7 +530,7 @@ export const ManagePayments: React.FC = () => {
                     </div>
                     {payment.created_on && (
                       <p className="text-xs text-textMuted mt-2">
-                        Submitted: {new Date(payment.created_on).toLocaleString('en-IN')}
+                        Submitted: {formatDateTimeIST(payment.created_on)}
                       </p>
                     )}
                   </div>
@@ -603,7 +604,7 @@ export const ManagePayments: React.FC = () => {
                     </p>
                     {payment.approved_at && (
                       <p className="text-xs text-textMuted mt-1">
-                        Approved: {new Date(payment.approved_at).toLocaleString('en-IN')}
+                        Approved: {formatDateTimeIST(payment.approved_at)}
                       </p>
                     )}
                   </div>
@@ -672,7 +673,7 @@ export const ManagePayments: React.FC = () => {
                     )}
                     {payment.declined_at && (
                       <p className="text-xs text-textMuted mt-1">
-                        Declined: {new Date(payment.declined_at).toLocaleString('en-IN')}
+                        Declined: {formatDateTimeIST(payment.declined_at)}
                       </p>
                     )}
                   </div>
@@ -909,7 +910,7 @@ export const ManagePayments: React.FC = () => {
                         <p className="text-sm text-textDark">Submitted</p>
                         <p className="text-xs text-textMuted">
                           {detailsPayment.created_on 
-                            ? new Date(detailsPayment.created_on).toLocaleString('en-IN', {
+                            ? formatDateTimeIST(detailsPayment.created_on, {
                                 dateStyle: 'medium',
                                 timeStyle: 'short'
                               })
@@ -924,7 +925,7 @@ export const ManagePayments: React.FC = () => {
                         <div className="flex-1">
                           <p className="text-sm text-textDark">Approved</p>
                           <p className="text-xs text-textMuted">
-                            {new Date(detailsPayment.approved_at).toLocaleString('en-IN', {
+                            {formatDateTimeIST(detailsPayment.approved_at, {
                               dateStyle: 'medium',
                               timeStyle: 'short'
                             })}
@@ -938,7 +939,7 @@ export const ManagePayments: React.FC = () => {
                         <div className="flex-1">
                           <p className="text-sm text-textDark">Declined</p>
                           <p className="text-xs text-textMuted">
-                            {new Date(detailsPayment.declined_at).toLocaleString('en-IN', {
+                            {formatDateTimeIST(detailsPayment.declined_at, {
                               dateStyle: 'medium',
                               timeStyle: 'short'
                             })}

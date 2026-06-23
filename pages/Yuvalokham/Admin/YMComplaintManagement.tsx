@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../../utils/datetime';
 import {
   AlertTriangle,
   ChevronLeft,
@@ -178,7 +179,7 @@ export const YMComplaintManagement: React.FC = () => {
                           <Badge variant={statusColors[c.status]}>{c.status}</Badge>
                         </td>
                         <td className="px-4 py-3 text-sm text-textMuted hidden md:table-cell">
-                          {new Date(c.created_at).toLocaleDateString('en-IN')}
+                          {formatDateIST(c.created_at)}
                         </td>
                         {statusFilter === 'open' && (
                           <td className="px-4 py-3">
@@ -215,7 +216,7 @@ export const YMComplaintManagement: React.FC = () => {
                                   <p className="text-textMuted mt-1">{c.admin_response}</p>
                                   {c.responded_at && (
                                     <p className="text-xs text-textMuted mt-1">
-                                      Responded on {new Date(c.responded_at).toLocaleDateString('en-IN')}
+                                      Responded on {formatDateIST(c.responded_at)}
                                     </p>
                                   )}
                                 </div>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import ReactDOM from 'react-dom';
 import { Card, Badge, Button } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
@@ -352,7 +353,7 @@ export const BloodDonorSearch: React.FC = () => {
           const age = calcAge(dob);
           return dob ? (
             <div className="leading-tight">
-              <span className="text-textDark text-sm">{new Date(dob).toLocaleDateString()}</span>
+              <span className="text-textDark text-sm">{formatDateIST(dob)}</span>
               {age !== null && (
                 <span className="block text-xs text-textMuted">{age} yrs</span>
               )}

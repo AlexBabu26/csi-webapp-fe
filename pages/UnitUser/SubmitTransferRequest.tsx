@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
@@ -155,7 +156,7 @@ export const SubmitTransferRequest: React.FC = () => {
                   <div><span className="text-textMuted">Gender:</span> <span className="font-medium">{selectedMember.gender === 'M' ? 'Male' : 'Female'}</span></div>
                   <div><span className="text-textMuted">Age:</span> <span className="font-medium">{selectedMember.age} years</span></div>
                   <div><span className="text-textMuted">Phone:</span> <span className="font-medium">+91 {selectedMember.number}</span></div>
-                  <div><span className="text-textMuted">DOB:</span> <span className="font-medium">{new Date(selectedMember.dob).toLocaleDateString()}</span></div>
+                  <div><span className="text-textMuted">DOB:</span> <span className="font-medium">{formatDateIST(selectedMember.dob)}</span></div>
                 </div>
               </Card>
             )}

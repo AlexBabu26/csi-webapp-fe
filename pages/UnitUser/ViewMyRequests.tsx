@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { useNavigate } from 'react-router-dom';
 import { Card, Badge, Button } from '../../components/ui';
 import { RequestStatusBadge } from '../../components/RequestStatusBadge';
@@ -163,7 +164,7 @@ export const ViewMyRequests: React.FC = () => {
                       {request.currentUnitName} → {request.destinationUnitName}
                     </p>
                     <p className="text-xs text-textMuted mt-1">
-                      Submitted: {new Date(request.createdAt).toLocaleDateString()}
+                      Submitted: {formatDateIST(request.createdAt)}
                     </p>
                     <RequestProofRow
                       proof={request.proof}
@@ -195,7 +196,7 @@ export const ViewMyRequests: React.FC = () => {
                     <p className="font-medium text-textDark">{request.memberName}</p>
                     <p className="text-sm text-textMuted mt-1">{request.reason}</p>
                     <p className="text-xs text-textMuted mt-1">
-                      Submitted: {new Date(request.createdAt).toLocaleDateString()}
+                      Submitted: {formatDateIST(request.createdAt)}
                     </p>
                     <RequestProofRow
                       proof={request.proof}
@@ -227,7 +228,7 @@ export const ViewMyRequests: React.FC = () => {
                     <p className="font-medium text-textDark">{request.unitName}</p>
                     <p className="text-sm text-textMuted mt-1">{request.reason}</p>
                     <p className="text-xs text-textMuted mt-1">
-                      Submitted: {new Date(request.createdAt).toLocaleDateString()}
+                      Submitted: {formatDateIST(request.createdAt)}
                     </p>
                     <RequestProofRow
                       proof={request.proof}
@@ -261,7 +262,7 @@ export const ViewMyRequests: React.FC = () => {
                       {request.originalMemberName} → {request.newMemberName || 'Not selected'}
                     </p>
                     <p className="text-xs text-textMuted mt-1">
-                      Submitted: {new Date(request.createdAt).toLocaleDateString()}
+                      Submitted: {formatDateIST(request.createdAt)}
                     </p>
                     <RequestProofRow
                       proof={request.proof}
@@ -293,7 +294,7 @@ export const ViewMyRequests: React.FC = () => {
                     <p className="font-medium text-textDark">{request.name}</p>
                     <p className="text-sm text-textMuted mt-1">{request.unitName}</p>
                     <p className="text-xs text-textMuted mt-1">
-                      Submitted: {new Date(request.createdAt).toLocaleDateString()}
+                      Submitted: {formatDateIST(request.createdAt)}
                     </p>
                     <RequestProofRow
                       proof={request.proof}
@@ -330,7 +331,7 @@ export const ViewMyRequests: React.FC = () => {
                       </p>
                     )}
                     <p className="text-xs text-textMuted mt-1">
-                      Submitted: {new Date(request.createdAt).toLocaleDateString()}
+                      Submitted: {formatDateIST(request.createdAt)}
                       {request.archiveYear ? ` • Season ${request.archiveYear}` : ''}
                     </p>
                   </div>

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { formatDateIST } from '../../utils/datetime';
 import { Card, Badge, Button } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { Archive, Check, X } from 'lucide-react';
@@ -49,7 +50,7 @@ export const ArchivedMemberConcernRequests: React.FC = () => {
         header: 'Submitted',
         cell: ({ row }) => (
           <span className="text-textMuted text-sm whitespace-nowrap">
-            {new Date(row.original.createdAt).toLocaleDateString()}
+            {formatDateIST(row.original.createdAt)}
           </span>
         ),
         size: 110,

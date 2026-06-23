@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { formatDateIST } from '../utils/datetime';
 import { Link } from 'react-router-dom';
 import { Archive, MessageSquareWarning } from 'lucide-react';
 import { Card, Button, Badge } from './ui';
@@ -198,7 +199,7 @@ export const ArchivedMembersSection: React.FC<ArchivedMembersSectionProps> = ({
                   {!isPreview && <td className="py-2 pr-3 whitespace-nowrap">{member.dob}</td>}
                   {!isPreview && <td className="py-2 pr-3 whitespace-nowrap">{member.number}</td>}
                   <td className="py-2 pr-3 whitespace-nowrap text-textMuted text-xs">
-                    {new Date(member.archived_at).toLocaleDateString()}
+                    {formatDateIST(member.archived_at)}
                   </td>
                   <td className="py-2 text-right">{renderConcernCell(member)}</td>
                 </tr>

@@ -159,13 +159,14 @@ export function validateParticipantAddition(
   };
 }
 
+import { formatDateIST, getTodayPartsIST, parseDateOnly } from './datetime';
+
 /**
  * Format date for display
  */
 export function formatDate(dateStr: string | undefined | null): string {
   if (!dateStr) return '-';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  return formatDateIST(dateStr);
 }
 
 /**
@@ -173,11 +174,12 @@ export function formatDate(dateStr: string | undefined | null): string {
  */
 export function calculateAge(dob: string | undefined | null): number | null {
   if (!dob) return null;
-  const birthDate = new Date(dob);
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+  const birthDate = parseDateOnly(dob) ?? new Date(dob);
+  if (Number.isNaN(birthDate.getTime())) return null;
+  const today = getTodayPartsIST();
+  let age = today.year - birthDate.getFullYear();
+  const monthDiff = today.month - (birthDate.getMonth() + 1);
+  if (monthDiff < 0 || (monthDiff === 0 && today.day < birthDate.getDate())) {
     age--;
   }
   return age;
