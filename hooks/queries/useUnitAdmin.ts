@@ -102,6 +102,7 @@ export const useUnitOfficials = (unitId?: number) => {
       const response = await api.getUnitOfficials(unitId);
       return response.data;
     },
+    enabled: unitId === undefined || !!unitId,
   });
 };
 
@@ -124,6 +125,7 @@ export const useUnitCouncilors = (unitId?: number) => {
       const response = await api.getUnitCouncilors(unitId);
       return response.data;
     },
+    enabled: unitId === undefined || !!unitId,
   });
 };
 
@@ -152,6 +154,7 @@ export const useMembers = (
       const response = await api.getUnitMembers(unitId, residenceLocation, missingResidenceLocation);
       return response.data;
     },
+    enabled: unitId === undefined || !!unitId,
   });
 };
 
@@ -182,24 +185,26 @@ export const useClergyDistricts = () => {
 
 // Combined unit detail hook for ViewIndividualUnit page
 export const useUnitDetailFull = (unitId: number) => {
-  const unit = useUnitDetail(unitId);
-  const officials = useUnitOfficials(unitId);
-  const councilors = useUnitCouncilors(unitId);
-  const members = useMembers(unitId);
+  const query = useQuery({
+    queryKey: [...queryKeys.units.detail(unitId), 'full'],
+    queryFn: async () => {
+      const response = await api.getAdminUnitFullDetail(unitId);
+      return response.data;
+    },
+    enabled: !!unitId,
+  });
 
   return {
-    unit: unit.data,
-    official: officials.data?.[0] || null,
-    councilors: councilors.data ?? [],
-    members: members.data ?? [],
-    isLoading: unit.isLoading || officials.isLoading || councilors.isLoading || members.isLoading,
-    error: unit.error || officials.error || councilors.error || members.error,
-    refetch: () => {
-      unit.refetch();
-      officials.refetch();
-      councilors.refetch();
-      members.refetch();
-    },
+    unit: query.data?.unit,
+    official: query.data?.official ?? null,
+    councilors: query.data?.councilors ?? [],
+    members: query.data?.members ?? [],
+    unitRegistrationFee: query.data?.unitRegistrationFee ?? 100,
+    unitMemberFee: query.data?.unitMemberFee ?? 10,
+    totalAmount: query.data?.totalAmount ?? 0,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
   };
 };
 

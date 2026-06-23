@@ -461,6 +461,16 @@ export interface Unit {
   councilorsCount: number;
 }
 
+export interface AdminUnitFullDetail {
+  unit: Unit;
+  official: UnitOfficial | null;
+  councilors: UnitCouncilor[];
+  members: UnitMember[];
+  unitRegistrationFee: number;
+  unitMemberFee: number;
+  totalAmount: number;
+}
+
 export interface MasterListUnit {
   id: number;
   name: string;

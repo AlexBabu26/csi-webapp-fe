@@ -2,69 +2,33 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui';
 import { ArrowLeft, ChevronDown, Download } from 'lucide-react';
-import { useToast } from '../../components/Toast';
-import { api } from '../../services/api';
-import { Unit, UnitOfficial, UnitCouncilor, UnitMember } from '../../types';
 import { UnitRegistrationFormDocument } from '../../components/UnitRegistrationFormDocument';
 import { mapAdminUnitToDocument } from '../UnitRegistration/utils/registrationFormMapper';
 import { useSiteSettings } from '../../hooks/queries/useSiteSettings';
+import { useUnitDetailFull } from '../../hooks/queries';
+import { useToast } from '../../components/Toast';
 
 export const PrintForm: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>();
-  const { addToast } = useToast();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const { data: siteSettings } = useSiteSettings();
 
-  const [unit, setUnit] = useState<Unit | null>(null);
-  const [official, setOfficial] = useState<UnitOfficial | null>(null);
-  const [councilors, setCouncilors] = useState<UnitCouncilor[]>([]);
-  const [members, setMembers] = useState<UnitMember[]>([]);
-  const [fees, setFees] = useState({ unitRegistrationFee: 100, unitMemberFee: 10, totalAmount: 0 });
-  const [loading, setLoading] = useState(true);
+  const parsedUnitId = unitId ? parseInt(unitId, 10) : 0;
+  const {
+    unit,
+    official,
+    councilors,
+    members,
+    unitRegistrationFee,
+    unitMemberFee,
+    totalAmount,
+    isLoading: loading,
+  } = useUnitDetailFull(parsedUnitId);
+
   const [downloading, setDownloading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const loadUnitDetails = async () => {
-      if (!unitId) return;
-
-      try {
-        setLoading(true);
-        const id = parseInt(unitId);
-
-        const [unitRes, officialsRes, councilorsRes, membersRes, settingsRes] = await Promise.all([
-          api.getUnitById(id),
-          api.getUnitOfficials(id),
-          api.getUnitCouncilors(id),
-          api.getUnitMembers(id),
-          api.getSiteSettings(),
-        ]);
-
-        const unitRegistrationFee = settingsRes.unit_registration_fee ?? 100;
-        const unitMemberFee = settingsRes.unit_member_fee ?? 10;
-        const membersCount = membersRes.data.length;
-        const totalAmount = unitRegistrationFee + membersCount * unitMemberFee;
-
-        setUnit({
-          ...unitRes.data,
-          membersCount,
-        });
-        setOfficial(officialsRes.data[0] || null);
-        setCouncilors(councilorsRes.data);
-        setMembers(membersRes.data);
-        setFees({ unitRegistrationFee, unitMemberFee, totalAmount });
-      } catch (err) {
-        console.error('Failed to load unit details', err);
-        addToast('Failed to load unit details', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUnitDetails();
-  }, [unitId, addToast]);
-
 
   const handleDownloadPdf = async () => {
     if (!formRef.current) return;
@@ -100,7 +64,17 @@ export const PrintForm: React.FC = () => {
     );
   }
 
-  const documentProps = mapAdminUnitToDocument(unit, official, councilors, members, fees);
+  const documentProps = mapAdminUnitToDocument(
+    unit,
+    official,
+    councilors,
+    members,
+    {
+      unitRegistrationFee,
+      unitMemberFee,
+      totalAmount,
+    },
+  );
 
   return (
     <div className="min-h-screen bg-white">

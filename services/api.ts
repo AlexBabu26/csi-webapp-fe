@@ -14,6 +14,7 @@ import {
   PaymentRecord,
   PaymentStatus,
   Unit,
+  AdminUnitFullDetail,
   UnitMember,
   UnitOfficial,
   UnitCouncilor,
@@ -1092,10 +1093,58 @@ class ApiService {
 
   // GET /admin/units/{unit_id} - Get unit by ID
   async getUnitById(id: number): Promise<ApiResponse<Unit>> {
+    const full = await this.getAdminUnitFullDetail(id);
+    return { data: full.data.unit, status: 200 };
+  }
+
+  // GET /admin/units/{unit_id} - Full unit detail (officials, councilors, members, fees)
+  async getAdminUnitFullDetail(id: number): Promise<ApiResponse<AdminUnitFullDetail>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
 
-    interface ApiUnitDetail {
+    interface ApiOfficial {
+      id: number;
+      president_designation?: string;
+      president_name?: string;
+      president_phone?: string;
+      vice_president_name?: string;
+      vice_president_phone?: string;
+      secretary_name?: string;
+      secretary_phone?: string;
+      joint_secretary_name?: string;
+      joint_secretary_phone?: string;
+      treasurer_name?: string;
+      treasurer_phone?: string;
+    }
+
+    interface ApiCouncilor {
+      id: number;
+      unit_member_id: number;
+      member_name?: string | null;
+      member_phone?: string | null;
+      member_gender?: string | null;
+    }
+
+    interface ApiMember {
+      id: number;
+      registered_user_id: number;
+      name: string;
+      gender: string;
+      dob: string;
+      age: number;
+      number: string;
+      qualification: string;
+      blood_group: string;
+      residence_location?: ResidenceLocation;
+      residence_state_id?: number;
+      residence_city_id?: number;
+      residence_state_name?: string;
+      residence_city_name?: string;
+      residence_country_name?: string;
+      residence_country_id?: number;
+    }
+
+    interface ApiUnitFullDetail {
       user: {
         id: number;
         username: string;
@@ -1104,23 +1153,100 @@ class ApiService {
       member_count: number;
       registration_year?: number;
       cycle_status?: string | null;
+      path_type?: string | null;
+      officials?: ApiOfficial | null;
+      councilors?: ApiCouncilor[];
+      members?: ApiMember[];
+      unit_registration_fee?: number;
+      unit_member_fee?: number;
+      total_amount?: number;
     }
 
-    const raw = await httpGet<ApiUnitDetail>(`/admin/units/${id}`, { token });
-    const data: Unit = {
+    const raw = await httpGet<ApiUnitFullDetail>(`/admin/units/${id}`, { token });
+    const unitName = raw.user.unit_name ?? '';
+
+    const unit: Unit = {
       id: raw.user.id,
       userId: raw.user.id,
       unitNumber: raw.user.username,
-      name: raw.user.unit_name ?? '',
+      name: unitName,
       clergyDistrict: this.extractClergyDistrict(raw.user.username),
       registrationYear: raw.registration_year ?? new Date().getFullYear(),
       status: this.mapUnitStatus(raw.cycle_status ?? 'Not Started'),
       membersCount: raw.member_count,
-      officialsCount: 0,
-      councilorsCount: 0,
+      officialsCount: raw.officials ? 1 : 0,
+      councilorsCount: raw.councilors?.length ?? 0,
+      pathType: (raw.path_type as Unit['pathType']) ?? null,
     };
 
-    return { data, status: 200 };
+    const official: UnitOfficial | null = raw.officials
+      ? {
+          id: raw.officials.id,
+          unitId: raw.user.id,
+          unitName,
+          presidentDesignation: raw.officials.president_designation,
+          presidentName: raw.officials.president_name ?? '',
+          presidentPhone: raw.officials.president_phone ?? '',
+          vicePresidentName: raw.officials.vice_president_name ?? '',
+          vicePresidentPhone: raw.officials.vice_president_phone ?? '',
+          secretaryName: raw.officials.secretary_name ?? '',
+          secretaryPhone: raw.officials.secretary_phone ?? '',
+          jointSecretaryName: raw.officials.joint_secretary_name ?? '',
+          jointSecretaryPhone: raw.officials.joint_secretary_phone ?? '',
+          treasurerName: raw.officials.treasurer_name ?? '',
+          treasurerPhone: raw.officials.treasurer_phone ?? '',
+        }
+      : null;
+
+    const councilors: UnitCouncilor[] = (raw.councilors ?? []).map((councilor) => ({
+      id: councilor.id,
+      unitId: raw.user.id,
+      unitName,
+      memberId: councilor.unit_member_id,
+      memberName: councilor.member_name ?? '',
+      memberPhone: councilor.member_phone ?? '',
+      memberGender: councilor.member_gender ?? '',
+      memberDob: '',
+    }));
+
+    const members: UnitMember[] = (raw.members ?? []).map((member) => ({
+      id: member.id,
+      name: member.name,
+      gender: member.gender as 'M' | 'F',
+      number: member.number,
+      dob: member.dob,
+      age: member.age,
+      qualification: member.qualification || undefined,
+      bloodGroup: member.blood_group || undefined,
+      residenceLocation: member.residence_location || undefined,
+      residenceStateId: member.residence_state_id || undefined,
+      residenceCityId: member.residence_city_id || undefined,
+      residenceStateName: member.residence_state_name || undefined,
+      residenceCityName: member.residence_city_name || undefined,
+      residenceCountryName: member.residence_country_name || undefined,
+      residenceCountryId: member.residence_country_id || undefined,
+      unitId: member.registered_user_id,
+      unitName,
+      isArchived: false,
+    }));
+
+    const unitRegistrationFee = raw.unit_registration_fee ?? 100;
+    const unitMemberFee = raw.unit_member_fee ?? 10;
+    const totalAmount =
+      raw.total_amount ?? unitRegistrationFee + members.length * unitMemberFee;
+
+    return {
+      data: {
+        unit,
+        official,
+        councilors,
+        members,
+        unitRegistrationFee,
+        unitMemberFee,
+        totalAmount,
+      },
+      status: 200,
+    };
   }
 
   // GET /admin/units/members - Get all members (optionally filtered by unit)
