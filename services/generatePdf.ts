@@ -76,6 +76,18 @@ async function loadHtml2Pdf() {
   return module.default;
 }
 
+function formatDownloadTimestampIst(): string {
+  return new Date().toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
 export async function generatePdfFromElement(
   element: HTMLElement,
   options: GeneratePdfOptions,
@@ -113,7 +125,22 @@ export async function generatePdfFromElement(
       },
     };
 
-    await html2pdf().set(opt).from(element).save();
+    await html2pdf()
+      .set(opt)
+      .from(element)
+      .toPdf()
+      .get('pdf')
+      .then((pdf) => {
+        const pageCount = pdf.internal.getNumberOfPages();
+        pdf.setPage(pageCount);
+        pdf.setFontSize(8);
+        pdf.setTextColor(102, 102, 102);
+        const footerText = `Downloaded on: ${formatDownloadTimestampIst()}`;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        pdf.text(footerText, pageWidth - 15, pageHeight - 8, { align: 'right' });
+      })
+      .save();
   } finally {
     restoreImages();
   }
