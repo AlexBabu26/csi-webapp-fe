@@ -37,6 +37,7 @@ import { getAuthUser, clearAuthToken, clearAuthUser } from '../services/auth';
 import { AuthUser } from '../types';
 import { useApplicationForm } from '../hooks/queries';
 import { canAccessUnitChangeRequests } from '../pages/UnitRegistration/utils';
+import { UnitRemovedMembersNotice } from './UnitRemovedMembersNotice';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -543,6 +544,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Main Content */}
         <main className="flex-1 overflow-auto bg-bgLight focus:outline-none" tabIndex={-1}>
           <div className="max-w-[1200px] mx-auto p-4 sm:p-6 lg:p-8">
+            {userRole === 'unit' && <UnitRemovedMembersNotice />}
             {children}
           </div>
         </main>

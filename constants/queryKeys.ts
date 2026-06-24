@@ -46,6 +46,10 @@ export const queryKeys = {
     all: ['unitArchived'] as const,
     recent: () => [...queryKeys.unitArchived.all, 'recent'] as const,
   },
+  unitRemoved: {
+    all: ['unitRemoved'] as const,
+    pending: () => [...queryKeys.unitRemoved.all, 'pending'] as const,
+  },
 
   // Conference
   conference: {

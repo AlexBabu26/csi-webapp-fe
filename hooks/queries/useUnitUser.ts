@@ -13,6 +13,31 @@ export const useRecentArchivedMembers = () => {
   });
 };
 
+export const usePendingRemovedMembers = (enabled = true) => {
+  return useQuery({
+    queryKey: queryKeys.unitRemoved.pending(),
+    queryFn: () => api.getPendingRemovedMembers(),
+    enabled,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+};
+
+export const useAcknowledgeRemovedMembers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (removedMemberIds?: number[]) => api.acknowledgeRemovedMembers(removedMemberIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.unitRemoved.all });
+    },
+    onError: (error: any) => {
+      // Surface errors only via console; closing should feel silent
+      console.error('Failed to acknowledge removed members:', error);
+    },
+  });
+};
+
 // Registered units available as transfer destinations
 export const useTransferDestinations = (enabled = true) => {
   return useQuery({

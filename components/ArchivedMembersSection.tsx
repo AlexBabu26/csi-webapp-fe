@@ -148,6 +148,8 @@ export const ArchivedMembersSection: React.FC<ArchivedMembersSectionProps> = ({
                 {data.archive_year ? ` for season ${data.archive_year}` : ''}.
                 {' '}
                 {data.summary.male} male, {data.summary.female} female.
+                {' '}
+                Seasonal archival — not the same as admin removal.
               </p>
               {data.archive_reason && (
                 <p className="text-sm text-textDark mt-2">

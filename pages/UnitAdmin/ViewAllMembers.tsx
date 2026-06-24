@@ -1,41 +1,134 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { formatDateIST } from '../../utils/datetime';
 import { Card, Badge, Button } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Download, Users, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
 import { UnitMember, ResidenceLocation, RESIDENCE_LOCATION_OPTIONS } from '../../types';
 import { getMemberResidenceLabel } from '../../utils/memberResidence';
-import { useMembers } from '../../hooks/queries';
+import { useMembers, useRemoveUnitMember, useBulkRemoveUnitMembers, useSiteSettings } from '../../hooks/queries';
+
+const MIN_REASON_LENGTH = 10;
+
+type DeleteMode = 'single' | 'bulk' | null;
+
+const isMemberArchiveEligible = (
+  member: UnitMember,
+  minDob: string,
+  maxDob: string,
+): boolean => member.dob < minDob || member.dob > maxDob;
 
 export const ViewAllMembers: React.FC = () => {
   const { addToast } = useToast();
   const [locationFilter, setLocationFilter] = useState<ResidenceLocation | '' | 'NOT_SET'>('');
-  
-  // Use TanStack Query
-  const { data: members = [], isLoading: loading } = useMembers(undefined, {
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const { data: siteSettings } = useSiteSettings();
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const minDob = siteSettings?.member_min_dob ?? '1990-01-01';
+  const maxDob = siteSettings?.member_max_dob ?? '2011-12-31';
+
+  const { data: members = [], isLoading: loading, isFetching } = useMembers(undefined, {
     residenceLocation: locationFilter && locationFilter !== 'NOT_SET' ? locationFilter : undefined,
     missingResidenceLocation: locationFilter === 'NOT_SET',
+    search: debouncedSearch || undefined,
   });
   const [selectedRows, setSelectedRows] = useState<UnitMember[]>([]);
+  const [deleteMode, setDeleteMode] = useState<DeleteMode>(null);
+  const [memberToDelete, setMemberToDelete] = useState<UnitMember | null>(null);
+  const [confirmNotArchival, setConfirmNotArchival] = useState(false);
+
+  const removeMember = useRemoveUnitMember();
+  const bulkRemove = useBulkRemoveUnitMembers();
+
+  const deleteTargets = useMemo(
+    () => (deleteMode === 'bulk' ? selectedRows : memberToDelete ? [memberToDelete] : []),
+    [deleteMode, selectedRows, memberToDelete],
+  );
+
+  const hasArchiveEligibleTargets = useMemo(
+    () => deleteTargets.some((member) => isMemberArchiveEligible(member, minDob, maxDob)),
+    [deleteTargets, minDob, maxDob],
+  );
 
   const handleExport = async () => {
     try {
       await api.exportData('members');
-      addToast("Members data exported successfully", "success");
-    } catch (err) {
-      addToast("Failed to export data", "error");
+      addToast('Members data exported successfully', 'success');
+    } catch {
+      addToast('Failed to export data', 'error');
     }
   };
 
-  const handleBulkAction = (action: string) => {
+  const openSingleDelete = useCallback((member: UnitMember) => {
+    setConfirmNotArchival(false);
+    setMemberToDelete(member);
+    setDeleteMode('single');
+  }, []);
+
+  const openBulkDelete = () => {
     if (selectedRows.length === 0) {
       addToast('Please select at least one member', 'warning');
       return;
     }
-    addToast(`${action} ${selectedRows.length} member(s)`, 'info');
+    setConfirmNotArchival(false);
+    setDeleteMode('bulk');
   };
+
+  const closeDeleteDialog = () => {
+    setDeleteMode(null);
+    setMemberToDelete(null);
+    setConfirmNotArchival(false);
+  };
+
+  const handleConfirmDelete = async (remarks?: string) => {
+    const reason = (remarks || '').trim();
+    if (reason.length < MIN_REASON_LENGTH) {
+      addToast(`Please provide a reason of at least ${MIN_REASON_LENGTH} characters.`, 'error');
+      return;
+    }
+
+    try {
+      if (deleteMode === 'single' && memberToDelete) {
+        await removeMember.mutateAsync({
+          memberId: memberToDelete.id,
+          reason,
+          confirmNotArchival: hasArchiveEligibleTargets,
+        });
+        setSelectedRows((prev) => prev.filter((row) => row.id !== memberToDelete.id));
+      } else if (deleteMode === 'bulk') {
+        await bulkRemove.mutateAsync({
+          member_ids: selectedRows.map((row) => row.id),
+          reason,
+          confirm_not_archival: hasArchiveEligibleTargets,
+        });
+        setSelectedRows([]);
+      }
+      closeDeleteDialog();
+    } catch {
+      // Toast handled by mutation hooks
+    }
+  };
+
+  const isDeleting = removeMember.isPending || bulkRemove.isPending;
+
+  const deleteDialogTitle =
+    deleteMode === 'bulk'
+      ? `Remove ${selectedRows.length} member(s)?`
+      : `Remove ${memberToDelete?.name ?? 'member'}?`;
+
+  const deleteDialogMessage = hasArchiveEligibleTargets
+    ? 'One or more selected members are outside the configured age range and should normally be handled via Admin → Archive Members (seasonal archival). Admin removal is separate: it deletes the member permanently and notifies the unit. It does not create an archived record that can be restored.'
+    : deleteMode === 'bulk'
+      ? 'These members will be permanently removed from active rosters (not seasonally archived). Affected units will be notified with your reason.'
+      : 'This member will be permanently removed from the active roster (not seasonally archived). The unit will be notified with your reason.';
 
   const columns = useMemo<ColumnDef<UnitMember, any>[]>(
     () => [
@@ -112,13 +205,30 @@ export const ViewAllMembers: React.FC = () => {
         ),
         size: 180,
       },
+      {
+        id: 'actions',
+        header: '',
+        cell: ({ row }) => (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-danger hover:text-danger hover:bg-red-50"
+            onClick={() => openSingleDelete(row.original)}
+            aria-label={`Remove ${row.original.name}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        ),
+        size: 56,
+        enableSorting: false,
+      },
     ],
-    []
+    [openSingleDelete],
   );
 
   return (
     <div className="space-y-6 animate-slide-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-textDark tracking-tight">Unit Members</h1>
@@ -132,7 +242,6 @@ export const ViewAllMembers: React.FC = () => {
         </div>
       </div>
 
-      {/* Members Table */}
       <Card noPadding className="overflow-hidden">
         <div className="px-6 py-4 border-b border-borderColor flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gray-50/50">
           <h3 className="text-lg font-bold text-textDark">Unit Members Details</h3>
@@ -149,16 +258,10 @@ export const ViewAllMembers: React.FC = () => {
               ))}
             </select>
             {selectedRows.length > 0 && (
-              <>
-                <Button variant="outline" size="sm" onClick={() => handleBulkAction('Export')}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Selected
-                </Button>
-                <Button variant="danger" size="sm" onClick={() => handleBulkAction('Remove')}>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Remove Selected
-                </Button>
-              </>
+              <Button variant="danger" size="sm" onClick={openBulkDelete}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Remove Selected ({selectedRows.length})
+              </Button>
             )}
           </div>
         </div>
@@ -166,18 +269,37 @@ export const ViewAllMembers: React.FC = () => {
           <DataTable
             data={members}
             columns={columns}
-            isLoading={loading}
+            isLoading={loading || isFetching}
             showRowSelection={true}
             onRowSelectionChange={setSelectedRows}
             searchPlaceholder="Search by name, unit, qualification..."
+            searchValue={searchInput}
+            onSearchChange={setSearchInput}
+            serverSideSearch
             pageSize={20}
-            emptyMessage="No members found"
+            emptyMessage={debouncedSearch ? 'No members match your search' : 'No members found'}
             emptyIcon={<Users className="w-8 h-8 text-textMuted" />}
           />
         </div>
       </Card>
+
+      <ConfirmDialog
+        isOpen={deleteMode !== null}
+        onClose={closeDeleteDialog}
+        onConfirm={handleConfirmDelete}
+        title={deleteDialogTitle}
+        message={deleteDialogMessage}
+        confirmText="Remove member"
+        variant="danger"
+        showRemarksField
+        remarksLabel="Reason for removal (required)"
+        remarksPlaceholder={`Explain why this member is being removed (minimum ${MIN_REASON_LENGTH} characters)...`}
+        isLoading={isDeleting}
+        showExtraCheckbox={hasArchiveEligibleTargets}
+        extraCheckboxLabel="I confirm this is an intentional admin removal, not seasonal age archiving."
+        extraCheckboxChecked={confirmNotArchival}
+        onExtraCheckboxChange={setConfirmNotArchival}
+      />
     </div>
   );
 };
-
-

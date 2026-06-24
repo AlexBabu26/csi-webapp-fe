@@ -143,15 +143,25 @@ export const useCouncilors = () => {
 // Members
 export const useMembers = (
   unitId?: number,
-  options?: { residenceLocation?: ResidenceLocation; missingResidenceLocation?: boolean },
+  options?: {
+    residenceLocation?: ResidenceLocation;
+    missingResidenceLocation?: boolean;
+    search?: string;
+  },
 ) => {
-  const { residenceLocation, missingResidenceLocation } = options ?? {};
+  const { residenceLocation, missingResidenceLocation, search } = options ?? {};
+  const normalizedSearch = search?.trim() || '';
   return useQuery({
     queryKey: unitId
-      ? [...queryKeys.members.byUnit(unitId), residenceLocation ?? 'all', missingResidenceLocation ?? false]
-      : [...queryKeys.members.list(), residenceLocation ?? 'all', missingResidenceLocation ?? false],
+      ? [...queryKeys.members.byUnit(unitId), residenceLocation ?? 'all', missingResidenceLocation ?? false, normalizedSearch]
+      : [...queryKeys.members.list(), residenceLocation ?? 'all', missingResidenceLocation ?? false, normalizedSearch],
     queryFn: async () => {
-      const response = await api.getUnitMembers(unitId, residenceLocation, missingResidenceLocation);
+      const response = await api.getUnitMembers(
+        unitId,
+        residenceLocation,
+        missingResidenceLocation,
+        normalizedSearch || undefined,
+      );
       return response.data;
     },
     enabled: unitId === undefined || !!unitId,
@@ -225,6 +235,53 @@ export const useArchiveMember = () => {
     },
     onError: () => {
       addToast('Failed to archive member', 'error');
+    },
+  });
+};
+
+// Remove member (admin delete with mandatory reason)
+export const useRemoveUnitMember = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      memberId,
+      reason,
+      confirmNotArchival,
+    }: {
+      memberId: number;
+      reason: string;
+      confirmNotArchival?: boolean;
+    }) => api.removeUnitMember(memberId, reason, confirmNotArchival),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
+      addToast('Member removed successfully', 'success');
+    },
+    onError: (error: Error) => {
+      addToast(error.message || 'Failed to remove member', 'error');
+    },
+  });
+};
+
+// Bulk remove members (admin delete with mandatory reason)
+export const useBulkRemoveUnitMembers = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: (payload: {
+      member_ids: number[];
+      reason: string;
+      confirm_not_archival?: boolean;
+    }) => api.bulkRemoveUnitMembers(payload),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
+      const count = (res as any)?.data?.removed_count ?? '?';
+      addToast(`${count} member(s) removed successfully`, 'success');
+    },
+    onError: (error: Error) => {
+      addToast(error.message || 'Failed to remove members', 'error');
     },
   });
 };

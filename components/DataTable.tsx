@@ -48,6 +48,11 @@ interface DataTableProps<TData> {
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
   columnFiltersConfig?: DataTableColumnFilter[];
+  /** When set, search input is controlled externally (e.g. server-side search). */
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  /** Skip client-side filtering — data is already filtered by the server. */
+  serverSideSearch?: boolean;
 }
 
 export function DataTable<TData>({
@@ -65,10 +70,15 @@ export function DataTable<TData>({
   emptyMessage = 'No data available',
   emptyIcon,
   columnFiltersConfig,
+  searchValue,
+  onSearchChange,
+  serverSideSearch = false,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [internalGlobalFilter, setInternalGlobalFilter] = useState('');
+  const globalFilter = searchValue ?? internalGlobalFilter;
+  const setGlobalFilter = onSearchChange ?? setInternalGlobalFilter;
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
@@ -82,9 +92,9 @@ export function DataTable<TData>({
   const getColumnFilterValue = (columnId: string) =>
     (columnFilters.find((f) => f.id === columnId)?.value as string) ?? '';
 
-  // Pre-filter data based on global search
+  // Pre-filter data based on global search (client-side unless serverSideSearch)
   const filteredData = useMemo(() => {
-    if (!globalFilter.trim()) return data;
+    if (serverSideSearch || !globalFilter.trim()) return data;
     
     const searchLower = globalFilter.toLowerCase().trim();
     return data.filter((row) => {
@@ -94,7 +104,7 @@ export function DataTable<TData>({
         return String(value).toLowerCase().includes(searchLower);
       });
     });
-  }, [data, globalFilter]);
+  }, [data, globalFilter, serverSideSearch]);
 
   // Add selection column if enabled
   const tableColumns = useMemo(() => {
@@ -156,7 +166,7 @@ export function DataTable<TData>({
 
   const filteredRowCount = table.getFilteredRowModel().rows.length;
   const hasActiveFilters =
-    Boolean(globalFilter.trim()) ||
+    (!serverSideSearch && Boolean(globalFilter.trim())) ||
     columnFilters.some((filter) => Boolean(filter.value));
 
   // Notify parent of selection changes

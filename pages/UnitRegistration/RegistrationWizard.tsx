@@ -18,6 +18,7 @@ import {
 } from './utils';
 import { membersMissingLocation, formatRegistrationSeason } from '../../services/authRouting';
 import { WizardReturnState } from '../../types';
+import { UnitRemovedMembersNotice } from '../../components/UnitRemovedMembersNotice';
 
 export const RegistrationWizard: React.FC = () => {
   const navigate = useNavigate();
@@ -129,6 +130,8 @@ export const RegistrationWizard: React.FC = () => {
             </div>
           )}
         </header>
+
+        <UnitRemovedMembersNotice />
 
         <RegistrationStepper
           activeStep={activeStep}

@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { setAuthTokens, setAuthUser } from '../services/auth';
 import { resolvePostLoginPath } from '../services/authRouting';
+import { resetRemovedMembersAlertDismiss } from '../utils/removedMembersAlert';
 import { UserRole } from '../types';
 
 interface LoginProps {
@@ -96,6 +97,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
           
           // Store user profile for use throughout the app
           setAuthUser(me);
+          resetRemovedMembersAlertDismiss(me.id);
           
           // Update user_type from profile if available
           if (me.user_type) {

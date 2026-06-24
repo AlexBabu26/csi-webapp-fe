@@ -8,6 +8,7 @@ import { UserRole, SiteSettings, Notice } from '../types';
 import { Footer } from '../components/Footer';
 import { api } from '../services/api';
 import { setAuthUser, setAuthTokens, getAuthToken, isTokenExpired, isUnitUser, isAuthenticated } from '../services/auth';
+import { resetRemovedMembersAlertDismiss } from '../utils/removedMembersAlert';
 import { resolvePostLoginPath } from '../services/authRouting';
 import { useSiteSettings, useNotices } from '../hooks/queries';
 import { ChurchLogo, CSLogo, LogoImage, YouthLogo } from '../components/SiteLogos';
@@ -89,6 +90,7 @@ export const PublicHome: React.FC<PublicHomeProps> = ({ onLogin }) => {
       
       // Store user profile for use throughout the app
       setAuthUser(me);
+      resetRemovedMembersAlertDismiss(me.id);
       
       // Store user_type for role-based navigation
       localStorage.setItem('user_type', me.user_type);

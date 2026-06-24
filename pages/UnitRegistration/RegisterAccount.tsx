@@ -4,6 +4,7 @@ import { Button } from '../../components/ui';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { setAuthTokens, setAuthUser, isAuthenticated, isUnitUser } from '../../services/auth';
+import { resetRemovedMembersAlertDismiss } from '../../utils/removedMembersAlert';
 import { resolvePostLoginPath } from '../../services/authRouting';
 import { ClergyDistrict, UnitName } from '../../types';
 import { useSiteSettings } from '../../hooks/queries';
@@ -138,6 +139,7 @@ export const RegisterAccount: React.FC = () => {
 
       const me = await api.me(tokens.access_token);
       setAuthUser(me);
+      resetRemovedMembersAlertDismiss(me.id);
       if (me.user_type) localStorage.setItem('user_type', me.user_type);
 
       navigate('/register/wizard');

@@ -19,6 +19,7 @@ import { isRegistrationComplete, hasSubmittedDeclaration } from './utils';
 import { getMediaUrl } from '../../services/http';
 import { formatRegistrationSeason } from '../../services/authRouting';
 import { getProofPaidAmount } from '../../utils/registrationPayment';
+import { UnitRemovedMembersNotice } from '../../components/UnitRemovedMembersNotice';
 
 export const RegistrationComplete: React.FC = () => {
   const { data: formData, isLoading: formLoading } = useApplicationForm();
@@ -63,7 +64,10 @@ export const RegistrationComplete: React.FC = () => {
   const qrUrl = paymentData?.qr_url ?? null;
 
   return (
-    <div className="min-h-screen bg-bgLight flex flex-col justify-center py-12 px-4">
+    <div className="min-h-screen bg-bgLight py-12 px-4">
+      <div className="max-w-2xl mx-auto w-full mb-6">
+        <UnitRemovedMembersNotice />
+      </div>
       <div className="max-w-lg mx-auto w-full text-center">
         {/* Success icon */}
         <div className="h-16 w-16 bg-success/10 rounded-full mx-auto flex items-center justify-center mb-4">

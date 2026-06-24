@@ -16,6 +16,10 @@ interface ConfirmDialogProps {
   remarksLabel?: string;
   remarksPlaceholder?: string;
   isLoading?: boolean;
+  showExtraCheckbox?: boolean;
+  extraCheckboxLabel?: string;
+  extraCheckboxChecked?: boolean;
+  onExtraCheckboxChange?: (checked: boolean) => void;
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -31,6 +35,10 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   remarksLabel = 'Remarks',
   remarksPlaceholder = 'Enter remarks...',
   isLoading = false,
+  showExtraCheckbox = false,
+  extraCheckboxLabel = '',
+  extraCheckboxChecked = false,
+  onExtraCheckboxChange,
 }) => {
   const [remarks, setRemarks] = useState('');
 
@@ -88,6 +96,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   };
 
   const variantStyles = getVariantStyles();
+  const confirmDisabled =
+    isLoading || (showExtraCheckbox && !extraCheckboxChecked);
 
   return (
     <Portal>
@@ -147,6 +157,19 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 />
               </div>
             )}
+
+            {showExtraCheckbox && (
+              <label className="mt-4 flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={extraCheckboxChecked}
+                  onChange={(e) => onExtraCheckboxChange?.(e.target.checked)}
+                  disabled={isLoading}
+                  className="mt-0.5 rounded border-borderColor text-primary focus:ring-primary/30"
+                />
+                <span className="text-sm text-textDark leading-snug">{extraCheckboxLabel}</span>
+              </label>
+            )}
           </div>
 
           {/* Actions */}
@@ -163,7 +186,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               variant={variantStyles.confirmButton as any}
               size="sm"
               onClick={handleConfirm}
-              disabled={isLoading}
+              disabled={confirmDisabled}
             >
               {isLoading ? 'Processing...' : confirmText}
             </Button>

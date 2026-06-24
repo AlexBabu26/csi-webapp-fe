@@ -913,6 +913,29 @@ export interface RecentArchivedMembersResponse {
   member_concerns: Record<string, ArchivedMemberConcernStatus>;
 }
 
+export interface RemovedUnitMember {
+  id: number;
+  registered_user_id: number;
+  name: string;
+  gender?: string;
+  dob: string;
+  number: string;
+  qualification?: string;
+  blood_group?: string;
+  archived_at: string;
+  delete_reason?: string;
+  deleted_by_id?: number;
+  original_member_id?: number;
+  notified_at?: string | null;
+  removal_type?: string;
+  removed_at?: string;
+}
+
+export interface PendingRemovedMembersResponse {
+  summary: RecentArchivedMembersSummary;
+  members: RemovedUnitMember[];
+}
+
 export interface WizardReturnState {
   returnTo?: string;
   returnLabel?: string;

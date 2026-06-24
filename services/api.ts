@@ -32,6 +32,7 @@ import {
   ArchivedMemberConcernRequest,
   ArchivedMemberConcernSubmission,
   RecentArchivedMembersResponse,
+  PendingRemovedMembersResponse,
   UnitStats,
   MasterListUnit,
   DistrictWiseData,
@@ -1257,6 +1258,7 @@ class ApiService {
     unitId?: number,
     residenceLocation?: ResidenceLocation,
     missingResidenceLocation?: boolean,
+    search?: string,
   ): Promise<ApiResponse<UnitMember[]>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
@@ -1282,39 +1284,60 @@ class ApiService {
       residence_country_id?: number;
     }
 
-    const query: Record<string, string | number> = { page: 1, page_size: 1000 };
+    const trimmedSearch = search?.trim();
+    const query: Record<string, string | number> = {
+      page: 1,
+      page_size: trimmedSearch ? 500 : 1000,
+    };
     if (unitId) query.unit_id = unitId;
     if (missingResidenceLocation) query.missing_residence_location = true;
     else if (residenceLocation) query.residence_location = residenceLocation;
+    if (trimmedSearch) query.search = trimmedSearch;
 
-    const response = await httpGet<{ data: ApiMember[], total: number, page: number, page_size: number, pages: number }>('/admin/units/members', {
-      token,
-      query,
-    });
+    const mapMembers = (rows: ApiMember[]): UnitMember[] =>
+      rows.map((m) => ({
+        id: m.id,
+        name: m.name,
+        gender: m.gender as 'M' | 'F',
+        number: m.number,
+        dob: m.dob,
+        age: m.age,
+        qualification: m.qualification || undefined,
+        bloodGroup: m.blood_group || undefined,
+        residenceLocation: m.residence_location || undefined,
+        residenceStateId: m.residence_state_id || undefined,
+        residenceCityId: m.residence_city_id || undefined,
+        residenceStateName: m.residence_state_name || undefined,
+        residenceCityName: m.residence_city_name || undefined,
+        residenceCountryName: m.residence_country_name || undefined,
+        residenceCountryId: m.residence_country_id || undefined,
+        unitId: m.registered_user_id,
+        unitName: m.unit_name,
+        isArchived: false,
+      }));
 
-    // Transform snake_case API response to camelCase
-    const members: UnitMember[] = response.data.map(m => ({
-      id: m.id,
-      name: m.name,
-      gender: m.gender as 'M' | 'F',
-      number: m.number,
-      dob: m.dob,
-      age: m.age,
-      qualification: m.qualification || undefined,
-      bloodGroup: m.blood_group || undefined,
-      residenceLocation: m.residence_location || undefined,
-      residenceStateId: m.residence_state_id || undefined,
-      residenceCityId: m.residence_city_id || undefined,
-      residenceStateName: m.residence_state_name || undefined,
-      residenceCityName: m.residence_city_name || undefined,
-      residenceCountryName: m.residence_country_name || undefined,
-      residenceCountryId: m.residence_country_id || undefined,
-      unitId: m.registered_user_id,
-      unitName: m.unit_name,
-      isArchived: false,
-    }));
+    const response = await httpGet<{
+      data: ApiMember[];
+      total: number;
+      page: number;
+      page_size: number;
+      pages: number;
+    }>('/admin/units/members', { token, query });
 
-    return { data: members, status: 200 };
+    let allRows = [...response.data];
+
+    // Without a search term, fetch remaining pages (10k+ members exceed one page).
+    if (!trimmedSearch && response.pages > 1) {
+      for (let page = 2; page <= response.pages; page += 1) {
+        const next = await httpGet<typeof response>('/admin/units/members', {
+          token,
+          query: { ...query, page },
+        });
+        allRows = allRows.concat(next.data);
+      }
+    }
+
+    return { data: mapMembers(allRows), status: 200 };
   }
 
   // GET /admin/units/officials - Get all officials (optionally filtered by unit)
@@ -1911,6 +1934,42 @@ class ApiService {
     return { data, message: 'Members archived successfully', status: 200 };
   }
 
+  // POST /admin/units/members/{member_id}/remove - Remove member with mandatory reason
+  async removeUnitMember(
+    memberId: number,
+    reason: string,
+    confirmNotArchival = false,
+  ): Promise<ApiResponse<any>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpPost<any>(
+      `/admin/units/members/${memberId}/remove`,
+      { reason, confirm_not_archival: confirmNotArchival },
+      { token },
+    );
+    return { data, message: 'Member removed successfully', status: 200 };
+  }
+
+  // POST /admin/units/members/bulk-remove - Bulk remove members with mandatory reason
+  async bulkRemoveUnitMembers(payload: {
+    member_ids: number[];
+    reason: string;
+    confirm_not_archival?: boolean;
+  }): Promise<ApiResponse<any>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    const data = await httpPost<any>(
+      '/admin/units/members/bulk-remove',
+      {
+        member_ids: payload.member_ids,
+        reason: payload.reason,
+        confirm_not_archival: payload.confirm_not_archival ?? false,
+      },
+      { token },
+    );
+    return { data, message: 'Members removed successfully', status: 200 };
+  }
+
   // GET /admin/units/archived-members/export - Export archived members (Excel or CSV)
   async exportArchivedMembers(options?: {
     format?: 'xlsx' | 'csv';
@@ -2199,6 +2258,23 @@ class ApiService {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     return httpGet<RecentArchivedMembersResponse>('/units/archived-members/recent', { token });
+  }
+
+  async getPendingRemovedMembers(): Promise<PendingRemovedMembersResponse> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpGet<PendingRemovedMembersResponse>('/units/removed-members/pending', { token });
+  }
+
+  async acknowledgeRemovedMembers(removedMemberIds?: number[]): Promise<ApiResponse<boolean>> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    await httpPost<any>(
+      '/units/removed-members/acknowledge',
+      { removed_member_ids: removedMemberIds ?? null },
+      { token },
+    );
+    return { data: true, message: 'Notifications acknowledged', status: 200 };
   }
 
   async submitArchivedMemberConcern(
