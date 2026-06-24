@@ -1287,7 +1287,7 @@ class ApiService {
     const trimmedSearch = search?.trim();
     const query: Record<string, string | number> = {
       page: 1,
-      page_size: trimmedSearch ? 500 : 1000,
+      page_size: trimmedSearch ? 500 : 15000,
     };
     if (unitId) query.unit_id = unitId;
     if (missingResidenceLocation) query.missing_residence_location = true;
@@ -1324,20 +1324,7 @@ class ApiService {
       pages: number;
     }>('/admin/units/members', { token, query });
 
-    let allRows = [...response.data];
-
-    // Without a search term, fetch remaining pages (10k+ members exceed one page).
-    if (!trimmedSearch && response.pages > 1) {
-      for (let page = 2; page <= response.pages; page += 1) {
-        const next = await httpGet<typeof response>('/admin/units/members', {
-          token,
-          query: { ...query, page },
-        });
-        allRows = allRows.concat(next.data);
-      }
-    }
-
-    return { data: mapMembers(allRows), status: 200 };
+    return { data: mapMembers(response.data ?? []), status: 200 };
   }
 
   // GET /admin/units/officials - Get all officials (optionally filtered by unit)
@@ -1536,6 +1523,9 @@ class ApiService {
       dob: string | null;
       blood_group: string | null;
       qualification: string | null;
+      residence_location: string | null;
+      residence_state_id: number | null;
+      residence_city_id: number | null;
       original_name: string;
       original_gender: string;
       original_dob: string;
@@ -1578,6 +1568,9 @@ class ApiService {
         dob: request.dob || undefined,
         bloodGroup: request.blood_group || undefined,
         qualification: request.qualification || undefined,
+        residenceLocation: (request.residence_location as ResidenceLocation | null) || undefined,
+        residenceStateId: request.residence_state_id ?? undefined,
+        residenceCityId: request.residence_city_id ?? undefined,
       },
       reason: request.reason,
       status: request.status as RequestStatus,
@@ -2463,6 +2456,15 @@ class ApiService {
     if (payload.changes.dob) formData.append('dob', payload.changes.dob);
     if (payload.changes.bloodGroup) formData.append('blood_group', payload.changes.bloodGroup);
     if (payload.changes.qualification) formData.append('qualification', payload.changes.qualification);
+    if (payload.changes.residenceLocation) {
+      formData.append('residence_location', payload.changes.residenceLocation);
+    }
+    if (payload.changes.residenceStateId != null) {
+      formData.append('residence_state_id', String(payload.changes.residenceStateId));
+    }
+    if (payload.changes.residenceCityId != null) {
+      formData.append('residence_city_id', String(payload.changes.residenceCityId));
+    }
     formData.append('proof', payload.proof, payload.proof.name);
 
     await httpPost<any>('/units/member-change-request', formData, { token });

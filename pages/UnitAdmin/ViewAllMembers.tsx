@@ -35,11 +35,13 @@ export const ViewAllMembers: React.FC = () => {
   const minDob = siteSettings?.member_min_dob ?? '1990-01-01';
   const maxDob = siteSettings?.member_max_dob ?? '2011-12-31';
 
-  const { data: members = [], isLoading: loading, isFetching } = useMembers(undefined, {
+  const { data: members = [], isPending, isFetching, isError, error } = useMembers(undefined, {
     residenceLocation: locationFilter && locationFilter !== 'NOT_SET' ? locationFilter : undefined,
     missingResidenceLocation: locationFilter === 'NOT_SET',
     search: debouncedSearch || undefined,
   });
+
+  const tableLoading = isPending || isFetching;
   const [selectedRows, setSelectedRows] = useState<UnitMember[]>([]);
   const [deleteMode, setDeleteMode] = useState<DeleteMode>(null);
   const [memberToDelete, setMemberToDelete] = useState<UnitMember | null>(null);
@@ -266,10 +268,15 @@ export const ViewAllMembers: React.FC = () => {
           </div>
         </div>
         <div className="p-4">
+          {isError && debouncedSearch && (
+            <p className="mb-3 text-sm text-danger">
+              Search failed{(error as Error)?.message ? `: ${(error as Error).message}` : ''}. Try logging in again.
+            </p>
+          )}
           <DataTable
             data={members}
             columns={columns}
-            isLoading={loading || isFetching}
+            isLoading={tableLoading}
             showRowSelection={true}
             onRowSelectionChange={setSelectedRows}
             searchPlaceholder="Search by name, unit, qualification..."
@@ -277,7 +284,13 @@ export const ViewAllMembers: React.FC = () => {
             onSearchChange={setSearchInput}
             serverSideSearch
             pageSize={20}
-            emptyMessage={debouncedSearch ? 'No members match your search' : 'No members found'}
+            emptyMessage={
+              isError && debouncedSearch
+                ? 'Search could not be completed'
+                : debouncedSearch
+                  ? 'No members match your search'
+                  : 'No members found'
+            }
             emptyIcon={<Users className="w-8 h-8 text-textMuted" />}
           />
         </div>

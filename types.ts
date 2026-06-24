@@ -720,6 +720,7 @@ export interface UnitPaymentStatusResponse {
   overall_status: 'not_submitted' | 'pending' | 'partial' | 'approved' | 'rejected';
   balance_amount: number | null;
   registration_total_amount?: number | null;
+  registration_member_count?: number | null;
   latest_rejection_note: string | null;
   qr_url: string | null;
   registration_year: number;
@@ -782,6 +783,9 @@ export interface MemberInfoChangeRequest {
     dob?: string;
     bloodGroup?: string;
     qualification?: string;
+    residenceLocation?: ResidenceLocation;
+    residenceStateId?: number | null;
+    residenceCityId?: number | null;
   };
   reason: string;
   status: RequestStatus;
@@ -1053,6 +1057,9 @@ export interface MemberInfoChangeSubmission {
     dob?: string;
     bloodGroup?: string;
     qualification?: string;
+    residenceLocation?: ResidenceLocation;
+    residenceStateId?: number | null;
+    residenceCityId?: number | null;
   };
   reason: string;
   proof?: File;

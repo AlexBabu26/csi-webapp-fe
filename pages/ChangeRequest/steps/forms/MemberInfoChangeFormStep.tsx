@@ -1,10 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { Card, Badge } from '../../../../components/ui';
 import { FileUpload } from '../../../../components/FileUpload';
 import { useToast } from '../../../../components/Toast';
 import { UnitMember } from '../../../../types';
 import { useSubmitMemberInfoChange } from '../../../../hooks/queries';
 import { WizardFormActions } from '../../components/WizardFormActions';
+import { lazyImport } from '../../../../utils/chunkLoadError';
+import {
+  getResidenceChange,
+  parseResidenceFormValue,
+  ResidenceFormValue,
+} from '../../../../utils/memberResidence';
+
+const MemberResidenceFields = lazyImport(() =>
+  import('../../../../components/MemberResidenceFields').then((module) => ({
+    default: module.MemberResidenceFields,
+  })),
+);
 
 interface MemberInfoChangeFormStepProps {
   selectedMember: UnitMember;
@@ -26,6 +38,12 @@ export const MemberInfoChangeFormStep: React.FC<MemberInfoChangeFormStepProps> =
     bloodGroup: '',
     qualification: '',
   });
+  const [residence, setResidence] = useState<ResidenceFormValue>({
+    livesInKerala: null,
+    countryId: null,
+    stateId: null,
+    cityId: null,
+  });
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
 
@@ -37,6 +55,7 @@ export const MemberInfoChangeFormStep: React.FC<MemberInfoChangeFormStepProps> =
       bloodGroup: selectedMember.bloodGroup || '',
       qualification: selectedMember.qualification || '',
     });
+    setResidence(parseResidenceFormValue(selectedMember));
   }, [selectedMember]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,13 +66,24 @@ export const MemberInfoChangeFormStep: React.FC<MemberInfoChangeFormStepProps> =
       return;
     }
 
-    const changes: Record<string, string> = {};
+    const changes: Record<string, string | number | null> = {};
     if (formData.name !== selectedMember.name) changes.name = formData.name;
     if (formData.gender !== selectedMember.gender) changes.gender = formData.gender;
     if (formData.dob !== selectedMember.dob) changes.dob = formData.dob;
     if (formData.bloodGroup !== (selectedMember.bloodGroup || '')) changes.bloodGroup = formData.bloodGroup;
     if (formData.qualification !== (selectedMember.qualification || '')) {
       changes.qualification = formData.qualification;
+    }
+
+    const residenceChange = getResidenceChange(selectedMember, residence);
+    if (residenceChange.error) {
+      addToast(residenceChange.error, 'warning');
+      return;
+    }
+    if (residenceChange.changed && residenceChange.payload) {
+      changes.residenceLocation = residenceChange.payload.residence_location;
+      changes.residenceStateId = residenceChange.payload.residence_state_id ?? null;
+      changes.residenceCityId = residenceChange.payload.residence_city_id ?? null;
     }
 
     if (Object.keys(changes).length === 0) {
@@ -132,6 +162,11 @@ export const MemberInfoChangeFormStep: React.FC<MemberInfoChangeFormStepProps> =
               onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
               className="w-full px-3 py-2 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
             />
+          </div>
+          <div className="md:col-span-2">
+            <Suspense fallback={<p className="text-sm text-textMuted">Loading location fields...</p>}>
+              <MemberResidenceFields value={residence} onChange={setResidence} />
+            </Suspense>
           </div>
         </div>
       </Card>

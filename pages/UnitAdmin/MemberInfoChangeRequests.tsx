@@ -6,7 +6,7 @@ import { FileText, Check, X, RotateCcw } from 'lucide-react';
 import { ProofViewButton } from '../../components/ProofDocumentViewer';
 import { useToast } from '../../components/Toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { MemberInfoChangeRequest, RequestStatus } from '../../types';
+import { MemberInfoChangeRequest, RequestStatus, getResidenceLocationLabel } from '../../types';
 import { useMemberInfoChangeRequests, useRequestActions } from '../../hooks/queries';
 import {
   REQUEST_STATUS_FILTER,
@@ -87,6 +87,19 @@ export const MemberInfoChangeRequests: React.FC = () => {
     return <Badge variant={variants[status] as any}>{status}</Badge>;
   };
 
+  const formatChangeList = (changes: MemberInfoChangeRequest['changes']) => {
+    const changeList: string[] = [];
+    if (changes.name) changeList.push(`Name: ${changes.name}`);
+    if (changes.gender) changeList.push(`Gender: ${changes.gender}`);
+    if (changes.dob) changeList.push(`DOB: ${changes.dob}`);
+    if (changes.bloodGroup) changeList.push(`Blood Group: ${changes.bloodGroup}`);
+    if (changes.qualification) changeList.push(`Qualification: ${changes.qualification}`);
+    if (changes.residenceLocation) {
+      changeList.push(`Location: ${getResidenceLocationLabel(changes.residenceLocation)}`);
+    }
+    return changeList;
+  };
+
   const columns = useMemo<ColumnDef<MemberInfoChangeRequest, any>[]>(
     () => [
       {
@@ -121,24 +134,9 @@ export const MemberInfoChangeRequests: React.FC = () => {
       {
         id: 'changes',
         header: 'Requested Changes',
-        accessorFn: (row) => {
-          const changes = row.changes || {};
-          const changeList: string[] = [];
-          if (changes.name) changeList.push(`Name: ${changes.name}`);
-          if (changes.gender) changeList.push(`Gender: ${changes.gender}`);
-          if (changes.dob) changeList.push(`DOB: ${changes.dob}`);
-          if (changes.bloodGroup) changeList.push(`Blood Group: ${changes.bloodGroup}`);
-          if (changes.qualification) changeList.push(`Qualification: ${changes.qualification}`);
-          return changeList.join(' ');
-        },
+        accessorFn: (row) => formatChangeList(row.changes || {}).join(' '),
         cell: ({ row }) => {
-          const changes = row.original.changes || {};
-          const changeList: string[] = [];
-          if (changes.name) changeList.push(`Name: ${changes.name}`);
-          if (changes.gender) changeList.push(`Gender: ${changes.gender}`);
-          if (changes.dob) changeList.push(`DOB: ${changes.dob}`);
-          if (changes.bloodGroup) changeList.push(`Blood Group: ${changes.bloodGroup}`);
-          if (changes.qualification) changeList.push(`Qualification: ${changes.qualification}`);
+          const changeList = formatChangeList(row.original.changes || {});
           
           return (
             <div className="text-sm text-textMuted">

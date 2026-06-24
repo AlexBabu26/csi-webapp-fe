@@ -50,17 +50,36 @@ export const RegistrationComplete: React.FC = () => {
   const isRejected = overallStatus === 'rejected';
   const isPending = overallStatus === 'pending';
 
+  const unitRegistrationFee = formData?.unit_registration_fee ?? 0;
+  const unitMemberFee = formData?.unit_member_fee ?? 0;
+  const liveMemberCount = formData?.member_count ?? 0;
+  const liveTotalAmount = formData?.total_amount ?? 0;
+  const snapshotMemberCount = paymentData?.registration_member_count ?? null;
+  const snapshotTotalAmount = paymentData?.registration_total_amount ?? null;
+  const feeMemberCount =
+    snapshotMemberCount != null && snapshotMemberCount <= liveMemberCount
+      ? snapshotMemberCount
+      : liveMemberCount;
   const totalAmount =
-    paymentData?.registration_total_amount ??
-    formData?.total_amount ??
-    0;
+    snapshotTotalAmount != null && snapshotTotalAmount <= liveTotalAmount
+      ? snapshotTotalAmount
+      : liveTotalAmount || snapshotTotalAmount || 0;
+  const membersAmount =
+    totalAmount > 0 && unitRegistrationFee >= 0
+      ? Math.max(0, totalAmount - unitRegistrationFee)
+      : feeMemberCount * unitMemberFee;
   const balanceAmount = paymentData?.balance_amount ?? null;
   const paidAmount =
     isPartial && balanceAmount != null ? Math.max(0, totalAmount - balanceAmount) : null;
   const amountDue = isPartial && balanceAmount != null ? balanceAmount : totalAmount;
-  const hasPendingSubmission =
-    paymentData?.submissions.some((submission) => submission.status === 'PENDING') ?? false;
-  const canSubmitPayment = !isPaid && !hasPendingSubmission;
+  const pendingSubmission = paymentData?.submissions.find(
+    (submission) => submission.status === 'PENDING',
+  );
+  const hasPendingSubmission = pendingSubmission != null;
+  const hasStalePendingPayment =
+    pendingSubmission?.total_amount != null &&
+    pendingSubmission.total_amount > totalAmount;
+  const canSubmitPayment = !isPaid && (!hasPendingSubmission || hasStalePendingPayment);
   const qrUrl = paymentData?.qr_url ?? null;
 
   return (
@@ -119,11 +138,11 @@ export const RegistrationComplete: React.FC = () => {
             </p>
             <div className="mt-6 text-left">
               <FeeSummary
-                memberCount={formData.member_count}
-                unitRegistrationFee={formData.unit_registration_fee}
-                unitMemberFee={formData.unit_member_fee}
-                membersAmount={formData.members_amount}
-                totalAmount={formData.total_amount}
+                memberCount={feeMemberCount}
+                unitRegistrationFee={unitRegistrationFee}
+                unitMemberFee={unitMemberFee}
+                membersAmount={membersAmount}
+                totalAmount={totalAmount}
               />
             </div>
           </>
@@ -157,7 +176,7 @@ export const RegistrationComplete: React.FC = () => {
           </div>
         )}
 
-        {(isPending || (isPartial && hasPendingSubmission)) && (
+        {(isPending || (isPartial && hasPendingSubmission)) && !hasStalePendingPayment && (
           <div className="mt-4 flex items-center gap-3 rounded-lg bg-warning/10 border border-warning/30 px-4 py-3 text-left">
             <Clock className="w-5 h-5 text-warning flex-shrink-0" />
             <div className="text-sm">
@@ -166,6 +185,20 @@ export const RegistrationComplete: React.FC = () => {
                 Awaiting admin review. The form download will be available once the full fee is
                 approved. You can upload another proof after the admin approves or rejects this
                 one.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {hasStalePendingPayment && (
+          <div className="mt-4 flex items-center gap-3 rounded-lg bg-primary/5 border border-primary/20 px-4 py-3 text-left">
+            <AlertCircle className="w-5 h-5 text-primary flex-shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-textDark">Registration fee revised</p>
+              <p className="text-textMuted mt-0.5">
+                Your fee is now <strong>₹{totalAmount}</strong> after member updates. The proof
+                submitted for ₹{pendingSubmission?.total_amount} is outdated — please upload a new
+                payment proof for the revised amount.
               </p>
             </div>
           </div>
@@ -290,7 +323,7 @@ export const RegistrationComplete: React.FC = () => {
               onClick={() => setShowPaymentModal(true)}
             >
               <CreditCard className="w-4 h-4 mr-2" />
-              {isRejected
+              {isRejected || hasStalePendingPayment
                 ? 'Re-pay & Upload Proof'
                 : isPartial
                   ? 'Pay Remaining Balance'

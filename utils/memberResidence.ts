@@ -22,32 +22,107 @@ export interface ResidenceMemberLike {
   residence_city_name?: string | null;
   residence_country_name?: string | null;
   residence_country_id?: number | null;
+  residenceLocation?: ResidenceLocation | null;
+  residenceStateId?: number | null;
+  residenceCityId?: number | null;
+  residenceStateName?: string | null;
+  residenceCityName?: string | null;
+  residenceCountryName?: string | null;
+  residenceCountryId?: number | null;
 }
 
+const readResidenceLocation = (member: ResidenceMemberLike) =>
+  member.residence_location ?? member.residenceLocation ?? null;
+
+const readResidenceStateId = (member: ResidenceMemberLike) =>
+  member.residence_state_id ?? member.residenceStateId ?? null;
+
+const readResidenceCityId = (member: ResidenceMemberLike) =>
+  member.residence_city_id ?? member.residenceCityId ?? null;
+
+const readResidenceStateName = (member: ResidenceMemberLike) =>
+  member.residence_state_name ?? member.residenceStateName ?? null;
+
+const readResidenceCityName = (member: ResidenceMemberLike) =>
+  member.residence_city_name ?? member.residenceCityName ?? null;
+
+const readResidenceCountryName = (member: ResidenceMemberLike) =>
+  member.residence_country_name ?? member.residenceCountryName ?? null;
+
+const readResidenceCountryId = (member: ResidenceMemberLike) =>
+  member.residence_country_id ?? member.residenceCountryId ?? null;
+
+export const memberToResidenceSnapshot = (member: ResidenceMemberLike): ResidencePayload & {
+  residence_location?: ResidenceLocation | null;
+} => ({
+  residence_location: readResidenceLocation(member),
+  residence_state_id: readResidenceStateId(member),
+  residence_city_id: readResidenceCityId(member),
+});
+
+export const residenceSnapshotsEqual = (
+  left: ResidencePayload,
+  right: ResidencePayload,
+): boolean =>
+  left.residence_location === right.residence_location &&
+  (left.residence_state_id ?? null) === (right.residence_state_id ?? null) &&
+  (left.residence_city_id ?? null) === (right.residence_city_id ?? null);
+
+export interface ResidenceChangeResult {
+  changed: boolean;
+  payload?: ResidencePayload;
+  error?: string;
+}
+
+export const getResidenceChange = (
+  member: ResidenceMemberLike,
+  value: ResidenceFormValue,
+): ResidenceChangeResult => {
+  if (value.livesInKerala === null) {
+    return { changed: false };
+  }
+
+  const validationError = validateResidenceFormValue(value);
+  if (validationError) {
+    return { changed: false, error: validationError };
+  }
+
+  const nextPayload = buildResidencePayload(value);
+  const currentPayload = memberToResidenceSnapshot(member);
+
+  if (residenceSnapshotsEqual(currentPayload, nextPayload)) {
+    return { changed: false };
+  }
+
+  return { changed: true, payload: nextPayload };
+};
+
 export const isResidenceComplete = (member: ResidenceMemberLike): boolean => {
-  if (!member.residence_location) return false;
-  return Boolean(member.residence_state_id);
+  const location = readResidenceLocation(member);
+  if (!location) return false;
+  return Boolean(readResidenceStateId(member));
 };
 
 export const parseResidenceFormValue = (member: ResidenceMemberLike): ResidenceFormValue => {
-  if (!member.residence_location) {
+  const residenceLocation = readResidenceLocation(member);
+  if (!residenceLocation) {
     return { livesInKerala: null, countryId: null, stateId: null, cityId: null };
   }
-  if (member.residence_location === 'WITHIN_KERALA') {
+  if (residenceLocation === 'WITHIN_KERALA') {
     return {
       livesInKerala: true,
-      countryId: member.residence_country_id ?? null,
-      stateId: member.residence_state_id ?? null,
-      cityId: member.residence_city_id ?? null,
+      countryId: readResidenceCountryId(member) ?? null,
+      stateId: readResidenceStateId(member) ?? null,
+      cityId: readResidenceCityId(member) ?? null,
       countryIsoCode: 'IN',
     };
   }
   return {
     livesInKerala: false,
-    countryId: member.residence_country_id ?? null,
-    stateId: member.residence_state_id ?? null,
-    cityId: member.residence_city_id ?? null,
-    countryIsoCode: member.residence_country_name === 'India' ? 'IN' : undefined,
+    countryId: readResidenceCountryId(member) ?? null,
+    stateId: readResidenceStateId(member) ?? null,
+    cityId: readResidenceCityId(member) ?? null,
+    countryIsoCode: readResidenceCountryName(member) === 'India' ? 'IN' : undefined,
   };
 };
 
@@ -88,15 +163,19 @@ export const validateResidenceFormValue = (value: ResidenceFormValue): string | 
 };
 
 export const getMemberResidenceLabel = (member: ResidenceMemberLike): string => {
-  if (!member.residence_location) return 'Not set';
-  if (member.residence_state_name && member.residence_country_name) {
-    if (member.residence_city_name) {
-      return `${member.residence_city_name}, ${member.residence_state_name}, ${member.residence_country_name}`;
+  const residenceLocation = readResidenceLocation(member);
+  if (!residenceLocation) return 'Not set';
+  const stateName = readResidenceStateName(member);
+  const countryName = readResidenceCountryName(member);
+  const cityName = readResidenceCityName(member);
+  if (stateName && countryName) {
+    if (cityName) {
+      return `${cityName}, ${stateName}, ${countryName}`;
     }
-    return `${member.residence_state_name}, ${member.residence_country_name}`;
+    return `${stateName}, ${countryName}`;
   }
-  if (member.residence_location === 'WITHIN_KERALA') return 'Lives in Kerala';
-  if (member.residence_location === 'OUTSIDE_KERALA') return 'Outside Kerala (India)';
-  if (member.residence_location === 'OUTSIDE_INDIA') return 'Outside India';
+  if (residenceLocation === 'WITHIN_KERALA') return 'Lives in Kerala';
+  if (residenceLocation === 'OUTSIDE_KERALA') return 'Outside Kerala (India)';
+  if (residenceLocation === 'OUTSIDE_INDIA') return 'Outside India';
   return 'Not set';
 };

@@ -165,6 +165,8 @@ export const useMembers = (
       return response.data;
     },
     enabled: unitId === undefined || !!unitId,
+    staleTime: normalizedSearch ? 0 : 30_000,
+    gcTime: normalizedSearch ? 60_000 : 5 * 60_000,
   });
 };
 
