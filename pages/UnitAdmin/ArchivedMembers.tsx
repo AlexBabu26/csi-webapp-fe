@@ -661,7 +661,13 @@ export const ArchivedMembers: React.FC = () => {
         cancelText="Cancel"
         variant="warning"
         isLoading={bulkArchiveMutation.isPending}
-      />
+      >
+        <p className="rounded-lg border border-borderColor/80 bg-bgLight/50 px-3 py-2 text-xs text-textMuted leading-relaxed">
+          Seasonal archival is done before each registration season and does not change registration
+          fees or payments. To remove a member during the active season (with payment impact), use
+          Admin → View Members → Remove instead.
+        </p>
+      </ConfirmDialog>
 
       <ConfirmDialog
         isOpen={showRestoreDialog}
@@ -673,7 +679,12 @@ export const ArchivedMembers: React.FC = () => {
         cancelText="Cancel"
         variant="info"
         isLoading={restoreMutation.isPending}
-      />
+      >
+        <p className="rounded-lg border border-borderColor/80 bg-bgLight/50 px-3 py-2 text-xs text-textMuted leading-relaxed">
+          Restoring from seasonal archive does not create a registration payment or change the unit&apos;s
+          balance. The member rejoins the active roster only.
+        </p>
+      </ConfirmDialog>
     </div>
   );
 };

@@ -3,10 +3,11 @@ import { formatDateIST } from '../../utils/datetime';
 import { Card, Badge, Button } from '../../components/ui';
 import { DataTable, ColumnDef } from '../../components/DataTable';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { RemovalPaymentImpact } from '../../components/RegistrationPaymentLedger';
 import { Download, Users, Trash2 } from 'lucide-react';
 import { useToast } from '../../components/Toast';
 import { api } from '../../services/api';
-import { UnitMember, ResidenceLocation, RESIDENCE_LOCATION_OPTIONS } from '../../types';
+import { UnitMember, ResidenceLocation, RESIDENCE_LOCATION_OPTIONS, RemovalPaymentImpactPreview } from '../../types';
 import { getMemberResidenceLabel } from '../../utils/memberResidence';
 import { useMembers, useRemoveUnitMember, useBulkRemoveUnitMembers, useSiteSettings } from '../../hooks/queries';
 
@@ -46,6 +47,8 @@ export const ViewAllMembers: React.FC = () => {
   const [deleteMode, setDeleteMode] = useState<DeleteMode>(null);
   const [memberToDelete, setMemberToDelete] = useState<UnitMember | null>(null);
   const [confirmNotArchival, setConfirmNotArchival] = useState(false);
+  const [removalPreview, setRemovalPreview] = useState<RemovalPaymentImpactPreview[] | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const removeMember = useRemoveUnitMember();
   const bulkRemove = useBulkRemoveUnitMembers();
@@ -88,7 +91,33 @@ export const ViewAllMembers: React.FC = () => {
     setDeleteMode(null);
     setMemberToDelete(null);
     setConfirmNotArchival(false);
+    setRemovalPreview(null);
   };
+
+  useEffect(() => {
+    if (deleteMode === null || deleteTargets.length === 0) {
+      setRemovalPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    setPreviewLoading(true);
+    api
+      .previewMemberRemovalPaymentImpact(deleteTargets.map((m) => m.id))
+      .then((result) => {
+        if (!cancelled) setRemovalPreview(result.impacts);
+      })
+      .catch(() => {
+        if (!cancelled) setRemovalPreview(null);
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deleteMode, deleteTargets]);
 
   const handleConfirmDelete = async (remarks?: string) => {
     const reason = (remarks || '').trim();
@@ -312,7 +341,25 @@ export const ViewAllMembers: React.FC = () => {
         extraCheckboxLabel="I confirm this is an intentional admin removal, not seasonal age archiving."
         extraCheckboxChecked={confirmNotArchival}
         onExtraCheckboxChange={setConfirmNotArchival}
-      />
+      >
+        {previewLoading && (
+          <p className="text-xs text-textMuted">Loading payment impact preview…</p>
+        )}
+        {!previewLoading &&
+          removalPreview?.map((impact) => (
+            <RemovalPaymentImpact
+              key={impact.registered_user_id}
+              applies={impact.applies}
+              reason={impact.reason}
+              unitLabel={impact.unit_name ?? impact.username}
+              membersToRemove={impact.members_to_remove ?? deleteTargets.length}
+              memberFee={impact.member_fee}
+              current={impact.current}
+              projected={impact.projected}
+              feeChange={impact.fee_change}
+            />
+          ))}
+      </ConfirmDialog>
     </div>
   );
 };

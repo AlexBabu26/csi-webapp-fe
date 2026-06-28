@@ -721,6 +721,9 @@ export interface UnitPaymentStatusResponse {
   balance_amount: number | null;
   registration_total_amount?: number | null;
   registration_member_count?: number | null;
+  total_paid?: number;
+  payment_credit?: number;
+  balance_due?: number;
   latest_rejection_note: string | null;
   qr_url: string | null;
   registration_year: number;
@@ -737,10 +740,42 @@ export interface AdminRegistrationPayment {
   total_amount: number | null;
   balance_amount: number | null;
   registration_total_amount?: number | null;
+  registration_member_count?: number | null;
+  total_paid?: number | null;
+  payment_credit?: number | null;
+  balance_due?: number | null;
   status: PaymentProofStatus;
   rejection_note: string | null;
   submitted_at: string;
   reviewed_at: string | null;
+}
+
+export interface RemovalPaymentImpactPreview {
+  registered_user_id: number;
+  username: string;
+  unit_name: string | null;
+  applies: boolean;
+  reason?: string;
+  members_to_remove?: number;
+  member_fee?: number;
+  fee_change?: number;
+  delta_members?: number;
+  current?: {
+    member_count: number;
+    fee_owed: number;
+    total_paid: number;
+    balance_due: number;
+    payment_credit: number;
+    is_fully_paid: boolean;
+  };
+  projected?: {
+    member_count: number;
+    fee_owed: number;
+    total_paid: number;
+    balance_due: number;
+    payment_credit: number;
+    is_fully_paid: boolean;
+  };
 }
 
 export interface ApproveRegistrationPaymentResponse {

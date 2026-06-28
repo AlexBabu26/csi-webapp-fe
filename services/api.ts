@@ -102,6 +102,9 @@ import {
   MasterState,
   MasterStateSummary,
   MasterCity,
+  AdminRegistrationPayment,
+  ApproveRegistrationPaymentResponse,
+  RemovalPaymentImpactPreview,
 } from '../types';
 import { httpGet, httpPost, httpPut, httpDelete, httpPostFormData } from './http';
 
@@ -1961,6 +1964,15 @@ class ApiService {
       { token },
     );
     return { data, message: 'Members removed successfully', status: 200 };
+  }
+
+  async previewMemberRemovalPaymentImpact(memberIds: number[]): Promise<{
+    impacts: RemovalPaymentImpactPreview[];
+    member_count: number;
+  }> {
+    const token = this.getToken();
+    if (!token) throw new Error('Authentication required');
+    return httpPost('/admin/units/members/removal-payment-preview', { member_ids: memberIds }, { token });
   }
 
   // GET /admin/units/archived-members/export - Export archived members (Excel or CSV)

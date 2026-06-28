@@ -20,6 +20,7 @@ interface ConfirmDialogProps {
   extraCheckboxLabel?: string;
   extraCheckboxChecked?: boolean;
   onExtraCheckboxChange?: (checked: boolean) => void;
+  children?: React.ReactNode;
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -39,6 +40,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   extraCheckboxLabel = '',
   extraCheckboxChecked = false,
   onExtraCheckboxChange,
+  children,
 }) => {
   const [remarks, setRemarks] = useState('');
 
@@ -116,7 +118,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         aria-labelledby="confirm-dialog-title"
       >
         <div 
-          className="bg-white rounded-xl shadow-2xl max-w-sm w-full pointer-events-auto animate-slide-in relative"
+          className={`bg-white rounded-xl shadow-2xl w-full pointer-events-auto animate-slide-in relative ${children ? 'max-w-lg' : 'max-w-sm'}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Close button */}
@@ -141,6 +143,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           {/* Content */}
           <div className="px-5 pb-4">
             <p className="text-sm text-textMuted leading-relaxed">{message}</p>
+
+            {children && <div className="mt-3 space-y-2">{children}</div>}
             
             {showRemarksField && (
               <div className="mt-4">

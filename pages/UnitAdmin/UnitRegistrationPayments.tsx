@@ -19,6 +19,7 @@ import {
   groupPaymentsByUnit,
 } from './unitPaymentSummary';
 import { getProofPaidAmount } from '../../utils/registrationPayment';
+import { RegistrationPaymentLedger } from '../../components/RegistrationPaymentLedger';
 import {
   PAYMENT_STATUS_FILTER,
   enumMatchFilter,
@@ -382,7 +383,13 @@ export const UnitRegistrationPayments: React.FC = () => {
               </button>
             </div>
 
-            <div className="px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-3 border-b border-borderColor bg-bgLight/40">
+            <div className="px-6 py-4 grid grid-cols-2 sm:grid-cols-5 gap-3 border-b border-borderColor bg-bgLight/40">
+              <div>
+                <p className="text-xs text-textMuted">Members billed</p>
+                <p className="font-semibold text-textDark">
+                  {selectedUnit.registration_member_count ?? '—'}
+                </p>
+              </div>
               <div>
                 <p className="text-xs text-textMuted">Registration total</p>
                 <p className="font-semibold text-textDark">
@@ -394,13 +401,25 @@ export const UnitRegistrationPayments: React.FC = () => {
                 <p className="font-semibold text-success">₹{selectedUnit.paid_amount}</p>
               </div>
               <div>
-                <p className="text-xs text-textMuted">Remaining</p>
+                <p className="text-xs text-textMuted">Remaining due</p>
                 <p className="font-semibold text-warning">₹{selectedUnit.remaining_amount}</p>
               </div>
               <div>
-                <p className="text-xs text-textMuted">Payment proofs</p>
-                <p className="font-semibold text-textDark">{selectedUnit.submission_count}</p>
+                <p className="text-xs text-textMuted">Prepaid credit</p>
+                <p className="font-semibold text-primary">₹{selectedUnit.payment_credit}</p>
               </div>
+            </div>
+
+            <div className="px-6 py-3 border-b border-borderColor">
+              <RegistrationPaymentLedger
+                data={{
+                  memberCount: selectedUnit.registration_member_count,
+                  feeOwed: selectedUnit.total_amount,
+                  totalPaid: selectedUnit.paid_amount,
+                  balanceDue: selectedUnit.remaining_amount,
+                  paymentCredit: selectedUnit.payment_credit,
+                }}
+              />
             </div>
 
             <div className="overflow-y-auto px-6 py-4 space-y-3">

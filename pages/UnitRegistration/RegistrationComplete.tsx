@@ -15,6 +15,7 @@ import { Badge, Button } from '../../components/ui';
 import { useApplicationForm, useUnitPaymentStatus } from '../../hooks/queries';
 import { FeeSummary } from './components/FeeSummary';
 import { PaymentModal } from './PaymentModal';
+import { RegistrationPaymentLedger } from '../../components/RegistrationPaymentLedger';
 import { isRegistrationComplete, hasSubmittedDeclaration } from './utils';
 import { getMediaUrl } from '../../services/http';
 import { formatRegistrationSeason } from '../../services/authRouting';
@@ -69,6 +70,9 @@ export const RegistrationComplete: React.FC = () => {
       ? Math.max(0, totalAmount - unitRegistrationFee)
       : feeMemberCount * unitMemberFee;
   const balanceAmount = paymentData?.balance_amount ?? null;
+  const totalPaid = paymentData?.total_paid ?? 0;
+  const paymentCredit = paymentData?.payment_credit ?? 0;
+  const balanceDue = paymentData?.balance_due ?? balanceAmount ?? 0;
   const paidAmount =
     isPartial && balanceAmount != null ? Math.max(0, totalAmount - balanceAmount) : null;
   const amountDue = isPartial && balanceAmount != null ? balanceAmount : totalAmount;
@@ -136,7 +140,7 @@ export const RegistrationComplete: React.FC = () => {
             <p className="text-sm text-textMuted">
               Registration ID: {formData.user_data.username}
             </p>
-            <div className="mt-6 text-left">
+            <div className="mt-6 text-left space-y-4">
               <FeeSummary
                 memberCount={feeMemberCount}
                 unitRegistrationFee={unitRegistrationFee}
@@ -144,6 +148,17 @@ export const RegistrationComplete: React.FC = () => {
                 membersAmount={membersAmount}
                 totalAmount={totalAmount}
               />
+              {(totalPaid > 0 || totalAmount > 0) && (
+                <RegistrationPaymentLedger
+                  data={{
+                    memberCount: snapshotMemberCount ?? feeMemberCount,
+                    feeOwed: totalAmount,
+                    totalPaid,
+                    balanceDue,
+                    paymentCredit,
+                  }}
+                />
+              )}
             </div>
           </>
         )}
@@ -154,6 +169,16 @@ export const RegistrationComplete: React.FC = () => {
             <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
             <p className="text-sm text-success font-medium">
               Payment verified! You can now download your registration form.
+            </p>
+          </div>
+        )}
+
+        {isPaid && paymentCredit > 0 && (
+          <div className="mt-4 flex items-center gap-3 rounded-lg bg-primary/5 border border-primary/20 px-4 py-3 text-left">
+            <CreditCard className="w-5 h-5 text-primary flex-shrink-0" />
+            <p className="text-sm text-textDark">
+              You have <strong>₹{paymentCredit}</strong> in prepaid credit from prior payments.
+              This will apply automatically if members are added during the season.
             </p>
           </div>
         )}

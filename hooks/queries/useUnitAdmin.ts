@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { queryKeys } from '../../constants/queryKeys';
+import { unitRegistrationKeys } from './useUnitRegistration';
 import { useToast } from '../../components/Toast';
 import { ResidenceLocation } from '../../types';
 
@@ -285,6 +286,8 @@ export const useRemoveUnitMember = () => {
     }) => api.removeUnitMember(memberId, reason, confirmNotArchival),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
+      queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.paymentStatus() });
+      queryClient.invalidateQueries({ queryKey: [...unitRegistrationKeys.all, 'adminPayments'] });
       addToast('Member removed successfully', 'success');
     },
     onError: (error: Error) => {
@@ -306,6 +309,8 @@ export const useBulkRemoveUnitMembers = () => {
     }) => api.bulkRemoveUnitMembers(payload),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.members.all });
+      queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.paymentStatus() });
+      queryClient.invalidateQueries({ queryKey: [...unitRegistrationKeys.all, 'adminPayments'] });
       const count = (res as any)?.data?.removed_count ?? '?';
       addToast(`${count} member(s) removed successfully`, 'success');
     },

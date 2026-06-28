@@ -14,6 +14,8 @@ export interface UnitPaymentSummary {
   total_amount: number | null;
   paid_amount: number;
   remaining_amount: number;
+  payment_credit: number;
+  registration_member_count: number | null;
   display_status: UnitPaymentDisplayStatus;
   submission_count: number;
   pending_count: number;
@@ -45,9 +47,13 @@ export function buildUnitPaymentSummary(
   const approved = sorted.filter((p) => p.status === 'APPROVED');
   const pending = sorted.filter((p) => p.status === 'PENDING');
   const latestApproved = approved[approved.length - 1];
-  const registrationTotal =
-    [...sorted].reverse().find((p) => p.registration_total_amount != null)
-      ?.registration_total_amount ?? null;
+  const summarySource =
+    [...sorted].reverse().find((p) => p.registration_total_amount != null) ?? latestApproved;
+  const registrationTotal = summarySource?.registration_total_amount ?? null;
+  const registrationMemberCount = summarySource?.registration_member_count ?? null;
+  const total_paid_from_api = summarySource?.total_paid ?? null;
+  const payment_credit_from_api = summarySource?.payment_credit ?? null;
+  const balance_due_from_api = summarySource?.balance_due ?? null;
   const total_amount =
     registrationTotal ??
     latestApproved?.total_amount ??
@@ -57,12 +63,22 @@ export function buildUnitPaymentSummary(
   let display_status: UnitPaymentDisplayStatus;
   let remaining_amount = total_amount ?? 0;
   let paid_amount = 0;
+  let payment_credit = 0;
 
   if (approved.length > 0) {
-    const balance = latestApproved.balance_amount ?? 0;
+    const balance =
+      balance_due_from_api ?? latestApproved?.balance_amount ?? 0;
     remaining_amount = Math.max(0, balance);
+    payment_credit = Math.max(
+      0,
+      payment_credit_from_api ??
+        (total_paid_from_api != null && total_amount != null
+          ? total_paid_from_api - total_amount
+          : 0),
+    );
     paid_amount =
-      total_amount != null ? Math.max(0, total_amount - remaining_amount) : 0;
+      total_paid_from_api ??
+      (total_amount != null ? Math.max(0, total_amount - remaining_amount) : 0);
     display_status = remaining_amount > 0 ? 'partial' : 'fully_paid';
   } else if (pending.length > 0) {
     display_status = 'pending_review';
@@ -91,6 +107,8 @@ export function buildUnitPaymentSummary(
     total_amount,
     paid_amount,
     remaining_amount,
+    payment_credit,
+    registration_member_count: registrationMemberCount,
     display_status,
     submission_count: sorted.length,
     pending_count: pending.length,
