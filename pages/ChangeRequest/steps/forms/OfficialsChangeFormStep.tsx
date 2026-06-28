@@ -1,20 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card } from '../../../../components/ui';
 import { FileUpload } from '../../../../components/FileUpload';
+import { SearchableSelect } from '../../../../components/SearchableSelect';
 import { Shield } from 'lucide-react';
 import { useToast } from '../../../../components/Toast';
 import { api } from '../../../../services/api';
-import { UnitRegistrationOfficial } from '../../../../types';
+import { UnitCouncilor, UnitMember, UnitRegistrationOfficial } from '../../../../types';
 import { WizardFormActions } from '../../components/WizardFormActions';
+import {
+  MemberSelectPosition,
+  MEMBER_SELECT_POSITIONS,
+  buildMemberOptionsForPosition,
+  findMemberIdByNameAndPhone,
+} from '../../officialsChangeFormUtils';
 
 interface OfficialsChangeFormStepProps {
   unitOfficials: UnitRegistrationOfficial | null;
+  members: UnitMember[];
+  councilors: UnitCouncilor[];
   onPrevious: () => void;
   onSuccess: () => void;
 }
 
+const OFFICIAL_SECTIONS = [
+  { title: 'Vice President Information', key: 'vicePresident' as const, nameKey: 'vicePresidentName', phoneKey: 'vicePresidentPhone' },
+  { title: 'Secretary Information', key: 'secretary' as const, nameKey: 'secretaryName', phoneKey: 'secretaryPhone' },
+  { title: 'Joint Secretary Information', key: 'jointSecretary' as const, nameKey: 'jointSecretaryName', phoneKey: 'jointSecretaryPhone' },
+  { title: 'Treasurer Information', key: 'treasurer' as const, nameKey: 'treasurerName', phoneKey: 'treasurerPhone' },
+];
+
 export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = ({
   unitOfficials,
+  members,
+  councilors,
   onPrevious,
   onSuccess,
 }) => {
@@ -32,6 +50,12 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
     jointSecretaryPhone: '',
     treasurerName: '',
     treasurerPhone: '',
+  });
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Record<MemberSelectPosition, string>>({
+    vicePresident: '',
+    secretary: '',
+    jointSecretary: '',
+    treasurer: '',
   });
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
@@ -51,7 +75,68 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
       treasurerName: unitOfficials.treasurer_name || '',
       treasurerPhone: unitOfficials.treasurer_phone || '',
     });
-  }, [unitOfficials]);
+    setSelectedMemberIds({
+      vicePresident: findMemberIdByNameAndPhone(
+        members,
+        unitOfficials.vice_president_name || '',
+        unitOfficials.vice_president_phone || '',
+      ),
+      secretary: findMemberIdByNameAndPhone(
+        members,
+        unitOfficials.secretary_name || '',
+        unitOfficials.secretary_phone || '',
+      ),
+      jointSecretary: findMemberIdByNameAndPhone(
+        members,
+        unitOfficials.joint_secretary_name || '',
+        unitOfficials.joint_secretary_phone || '',
+      ),
+      treasurer: findMemberIdByNameAndPhone(
+        members,
+        unitOfficials.treasurer_name || '',
+        unitOfficials.treasurer_phone || '',
+      ),
+    });
+  }, [unitOfficials, members]);
+
+  const memberOptionsByPosition = useMemo(() => {
+    const options: Record<MemberSelectPosition, { value: string; label: string }[]> = {
+      vicePresident: [],
+      secretary: [],
+      jointSecretary: [],
+      treasurer: [],
+    };
+
+    for (const positionKey of MEMBER_SELECT_POSITIONS) {
+      options[positionKey] = buildMemberOptionsForPosition(
+        positionKey,
+        members,
+        selectedMemberIds,
+        unitOfficials,
+        councilors,
+      );
+    }
+
+    return options;
+  }, [members, selectedMemberIds, unitOfficials, councilors]);
+
+  const handleMemberSelect = useCallback(
+    (
+      positionKey: MemberSelectPosition,
+      nameKey: keyof typeof formData,
+      phoneKey: keyof typeof formData,
+      memberId: string,
+    ) => {
+      const member = members.find((item) => String(item.id) === memberId);
+      setSelectedMemberIds((prev) => ({ ...prev, [positionKey]: memberId }));
+      setFormData((prev) => ({
+        ...prev,
+        [nameKey]: member?.name || '',
+        [phoneKey]: member?.number || '',
+      }));
+    },
+    [members],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,9 +213,15 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
 
   const inputClass =
     'w-full px-3 py-2 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary';
+  const readOnlyInputClass = `${inputClass} bg-gray-50 text-textMuted cursor-not-allowed`;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-textMuted rounded-lg border border-borderColor bg-bgLight px-4 py-3">
+        Select unit members for Vice President, Secretary, Joint Secretary, and Treasurer.
+        President details can be edited directly.
+      </p>
+
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <Shield className="w-5 h-5 text-primary" />
@@ -160,7 +251,12 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
             <input
               type="tel"
               value={formData.presidentPhone}
-              onChange={(e) => setFormData({ ...formData, presidentPhone: e.target.value })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  presidentPhone: e.target.value.replace(/\D/g, '').slice(0, 10),
+                })
+              }
               pattern="[6-9]\d{9}"
               className={inputClass}
             />
@@ -168,32 +264,37 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
         </div>
       </Card>
 
-      {[
-        { title: 'Vice President Information', nameKey: 'vicePresidentName', phoneKey: 'vicePresidentPhone' },
-        { title: 'Secretary Information', nameKey: 'secretaryName', phoneKey: 'secretaryPhone' },
-        { title: 'Joint Secretary Information', nameKey: 'jointSecretaryName', phoneKey: 'jointSecretaryPhone' },
-        { title: 'Treasurer Information', nameKey: 'treasurerName', phoneKey: 'treasurerPhone' },
-      ].map((section) => (
+      {OFFICIAL_SECTIONS.map((section) => (
         <Card key={section.title}>
           <h3 className="text-lg font-bold text-textDark mb-4">{section.title}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-textDark mb-2">Name</label>
-              <input
-                type="text"
-                value={formData[section.nameKey as keyof typeof formData]}
-                onChange={(e) => setFormData({ ...formData, [section.nameKey]: e.target.value })}
-                className={inputClass}
+              <SearchableSelect
+                label="Name"
+                required
+                value={selectedMemberIds[section.key]}
+                onChange={(memberId) =>
+                  handleMemberSelect(section.key, section.nameKey, section.phoneKey, memberId)
+                }
+                options={memberOptionsByPosition[section.key]}
+                placeholder="Select a unit member"
+                searchPlaceholder="Search members..."
+                emptyMessage={
+                  members.length === 0
+                    ? 'No unit members found.'
+                    : 'No available members. Members already serving as officials or councilors are excluded.'
+                }
+                initiallyCollapsed
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-textDark mb-2">Phone</label>
               <input
                 type="tel"
-                value={formData[section.phoneKey as keyof typeof formData]}
-                onChange={(e) => setFormData({ ...formData, [section.phoneKey]: e.target.value })}
+                value={formData[section.phoneKey]}
+                readOnly
                 pattern="[6-9]\d{9}"
-                className={inputClass}
+                className={readOnlyInputClass}
               />
             </div>
           </div>

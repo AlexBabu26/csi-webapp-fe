@@ -65,6 +65,8 @@ export const SubmitRequestStep: React.FC<SubmitRequestStepProps> = ({
       {requestTypeId === 'officials' && (
         <OfficialsChangeFormStep
           unitOfficials={formData.unit_officials}
+          members={members}
+          councilors={councilors}
           onPrevious={onPrevious}
           onSuccess={onSuccess}
         />
