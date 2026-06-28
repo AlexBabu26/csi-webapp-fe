@@ -2380,6 +2380,7 @@ class ApiService {
     return httpGet<AdminRegistrationPayment[]>('/admin/units/registration-payments', {
       token,
       query: Object.keys(query).length ? query : undefined,
+      timeout: 120000,
     });
   }
 

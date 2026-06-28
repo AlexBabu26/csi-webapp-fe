@@ -275,7 +275,7 @@ export const useAdminRegistrationPayments = (statusFilter?: string, yearFilter?:
   return useQuery({
     queryKey: unitRegistrationKeys.adminPayments(statusFilter, yearFilter),
     queryFn: () => api.getAdminRegistrationPayments(statusFilter, yearFilter),
-    staleTime: 0,
+    staleTime: 120_000,
   });
 };
 

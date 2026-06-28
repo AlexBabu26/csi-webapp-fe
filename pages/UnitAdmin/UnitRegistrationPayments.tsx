@@ -54,7 +54,7 @@ const submissionStatusBadge = (status: AdminRegistrationPayment['status']) => {
 };
 
 export const UnitRegistrationPayments: React.FC = () => {
-  const [yearFilter, setYearFilter] = useState<string>('');
+  const [yearFilter, setYearFilter] = useState<string>(() => String(getCurrentYearIST()));
   const [selectedUnit, setSelectedUnit] = useState<UnitPaymentSummary | null>(null);
   const [rejectDialogId, setRejectDialogId] = useState<number | null>(null);
   const [approveDialogPayment, setApproveDialogPayment] = useState<AdminRegistrationPayment | null>(null);
@@ -67,6 +67,12 @@ export const UnitRegistrationPayments: React.FC = () => {
   const { data: siteSettings } = useSiteSettings();
   const activeRegistrationYear =
     siteSettings?.current_registration_year ?? getCurrentYearIST();
+
+  useEffect(() => {
+    if (siteSettings?.current_registration_year != null) {
+      setYearFilter(String(siteSettings.current_registration_year));
+    }
+  }, [siteSettings?.current_registration_year]);
 
   const { data: payments = [], isLoading } = useAdminRegistrationPayments(
     undefined,
