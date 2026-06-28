@@ -1,8 +1,8 @@
 export { mapRegistrationCouncilors, mapRegistrationMemberToUnitMember } from '../../utils/unitMembers';
 
 export const CHANGE_REQUEST_STEPS = [
-  { id: 1, label: 'Select Member', shortLabel: 'Member' },
-  { id: 2, label: 'Request Type', shortLabel: 'Request' },
+  { id: 1, label: 'Request Type', shortLabel: 'Request' },
+  { id: 2, label: 'Select Member', shortLabel: 'Member' },
   { id: 3, label: 'Submit Request', shortLabel: 'Submit' },
 ] as const;
 
@@ -71,3 +71,24 @@ export const ALL_REQUEST_TYPES: ChangeRequestTypeOption[] = [
 
 export const getRequestTypeById = (id: ChangeRequestTypeId): ChangeRequestTypeOption | undefined =>
   ALL_REQUEST_TYPES.find((request) => request.id === id);
+
+export const isMemberSelectionRequired = (requestTypeId: ChangeRequestTypeId): boolean =>
+  getRequestTypeById(requestTypeId)?.memberSpecific ?? false;
+
+export const getEligibleMembersForRequestType = <
+  TMember extends { id: number },
+  TCouncilor extends { memberId: number },
+>(
+  requestTypeId: ChangeRequestTypeId,
+  members: TMember[],
+  councilors: TCouncilor[],
+): TMember[] => {
+  if (requestTypeId === 'councilor') {
+    const councilorMemberIds = new Set(councilors.map((councilor) => councilor.memberId));
+    return members.filter((member) => councilorMemberIds.has(member.id));
+  }
+  if (requestTypeId === 'member-info' || requestTypeId === 'transfer') {
+    return members;
+  }
+  return [];
+};

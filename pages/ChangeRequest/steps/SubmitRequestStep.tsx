@@ -10,7 +10,7 @@ import { MemberAddFormStep } from './forms/MemberAddFormStep';
 
 interface SubmitRequestStepProps {
   requestTypeId: ChangeRequestTypeId;
-  selectedMember: UnitMember;
+  selectedMember: UnitMember | null;
   members: UnitMember[];
   councilors: UnitCouncilor[];
   formData: UnitApplicationForm;
@@ -31,27 +31,31 @@ export const SubmitRequestStep: React.FC<SubmitRequestStepProps> = ({
 
   if (!requestType) return null;
 
+  if (requestType.memberSpecific && !selectedMember) return null;
+
+  const member = selectedMember!;
+
   return (
     <div className="space-y-4">
       <SelectedMemberSummary member={selectedMember} requestType={requestType} />
 
       {requestTypeId === 'member-info' && (
         <MemberInfoChangeFormStep
-          selectedMember={selectedMember}
+          selectedMember={member}
           onPrevious={onPrevious}
           onSuccess={onSuccess}
         />
       )}
       {requestTypeId === 'transfer' && (
         <TransferFormStep
-          selectedMember={selectedMember}
+          selectedMember={member}
           onPrevious={onPrevious}
           onSuccess={onSuccess}
         />
       )}
       {requestTypeId === 'councilor' && (
         <CouncilorChangeFormStep
-          selectedMember={selectedMember}
+          selectedMember={member}
           councilors={councilors}
           members={members}
           onPrevious={onPrevious}

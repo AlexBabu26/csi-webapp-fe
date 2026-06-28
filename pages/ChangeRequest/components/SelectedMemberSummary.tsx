@@ -4,7 +4,7 @@ import { UnitMember } from '../../../types';
 import { ChangeRequestTypeOption } from '../utils';
 
 interface SelectedMemberSummaryProps {
-  member: UnitMember;
+  member?: UnitMember | null;
   requestType: ChangeRequestTypeOption;
 }
 
@@ -14,7 +14,7 @@ export const SelectedMemberSummary: React.FC<SelectedMemberSummaryProps> = ({
 }) => (
   <Card className="bg-primary/5 border-primary/20">
     <p className="text-sm text-textMuted">{requestType.title}</p>
-    {!requestType.memberSpecific ? (
+    {!requestType.memberSpecific || !member ? (
       <p className="text-sm text-textDark mt-1">Unit-level request for your unit</p>
     ) : (
       <>

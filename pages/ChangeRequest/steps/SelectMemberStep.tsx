@@ -1,13 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { Card, Button, Skeleton } from '../../../components/ui';
-import { Search, Users, ChevronRight } from 'lucide-react';
+import { Search, Users, ChevronRight, ChevronLeft } from 'lucide-react';
 import { UnitMember } from '../../../types';
+import { ChangeRequestTypeOption } from '../utils';
 
 interface SelectMemberStepProps {
   members: UnitMember[];
   isLoading: boolean;
   selectedMemberId: number | null;
+  requestType: ChangeRequestTypeOption;
   onSelectMember: (memberId: number) => void;
+  onPrevious: () => void;
   onNext: () => void;
 }
 
@@ -15,7 +18,9 @@ export const SelectMemberStep: React.FC<SelectMemberStepProps> = ({
   members,
   isLoading,
   selectedMemberId,
+  requestType,
   onSelectMember,
+  onPrevious,
   onNext,
 }) => {
   const [search, setSearch] = useState('');
@@ -47,13 +52,20 @@ export const SelectMemberStep: React.FC<SelectMemberStepProps> = ({
 
   return (
     <div className="space-y-4">
+      <Card className="bg-primary/5 border-primary/20">
+        <p className="text-sm text-textMuted">Request type</p>
+        <p className="text-lg font-bold text-textDark mt-0.5">{requestType.title}</p>
+        <p className="text-sm text-textMuted mt-1">{requestType.description}</p>
+      </Card>
+
       <Card>
         <div className="flex items-center gap-2 mb-1">
           <Users className="w-5 h-5 text-primary shrink-0" />
           <h3 className="text-lg font-bold text-textDark">Select Active Member</h3>
         </div>
         <p className="text-sm text-textMuted mb-4">
-          Choose the active member from your unit that this change request applies to.
+          Choose the active member from your unit that this {requestType.title.toLowerCase()}{' '}
+          request applies to.
         </p>
 
         <div className="relative mb-4">
@@ -70,7 +82,7 @@ export const SelectMemberStep: React.FC<SelectMemberStepProps> = ({
         {filteredMembers.length === 0 ? (
           <p className="text-sm text-textMuted py-6 text-center">
             {members.length === 0
-              ? 'No active members found in your unit.'
+              ? 'No eligible members found for this request type.'
               : 'No members match your search.'}
           </p>
         ) : (
@@ -137,7 +149,11 @@ export const SelectMemberStep: React.FC<SelectMemberStepProps> = ({
         </Card>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex justify-between">
+        <Button type="button" variant="outline" onClick={onPrevious}>
+          <ChevronLeft className="w-4 h-4 mr-2" />
+          Previous
+        </Button>
         <Button type="button" onClick={onNext} disabled={!selectedMemberId}>
           Next
           <ChevronRight className="w-4 h-4 ml-2" />

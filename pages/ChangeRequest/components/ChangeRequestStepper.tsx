@@ -74,7 +74,7 @@ export const ChangeRequestStepper: React.FC<ChangeRequestStepperProps> = ({
           </ol>
         </div>
         <p className="mt-3 text-center text-xs text-textMuted">
-          Select a member, choose a request type, then complete and submit the form.
+          Choose a request type, select a member if needed, then complete and submit the form.
         </p>
       </nav>
     </Card>
