@@ -67,17 +67,44 @@ export const useDistrictChartData = () => {
   });
 };
 
+export const useRefreshDashboard = () => {
+  const queryClient = useQueryClient();
+  const { addToast } = useToast();
+
+  return useMutation({
+    mutationFn: async () => {
+      const [statsResponse, chartResponse] = await Promise.all([
+        api.getUnitStats({ refresh: true }),
+        api.getDistrictWiseData({ refresh: true }),
+      ]);
+      return { stats: statsResponse.data, chartData: chartResponse.data };
+    },
+    onSuccess: ({ stats, chartData }) => {
+      queryClient.setQueryData(queryKeys.units.stats(), stats);
+      queryClient.setQueryData(queryKeys.districts.chartData(), chartData);
+      queryClient.invalidateQueries({ queryKey: queryKeys.units.list() });
+      addToast('Dashboard refreshed', 'success');
+    },
+    onError: (error: Error) => {
+      addToast(error.message || 'Failed to refresh dashboard', 'error');
+    },
+  });
+};
+
 // Combined dashboard hook for parallel fetching
 export const useDashboardData = () => {
   const stats = useUnitStats();
   const units = useUnits();
   const chartData = useDistrictChartData();
+  const refreshDashboard = useRefreshDashboard();
 
   return {
     stats: stats.data,
     units: units.data ?? [],
     chartData: chartData.data ?? [],
     isLoading: stats.isLoading || units.isLoading || chartData.isLoading,
+    isRefreshing: refreshDashboard.isPending,
+    refreshDashboard: refreshDashboard.mutate,
     error: stats.error || units.error || chartData.error,
   };
 };

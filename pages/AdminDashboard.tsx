@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import { Card, Badge, Button, Skeleton, IconButton } from '../components/ui';
 import { DataTable, ColumnDef } from '../components/DataTable';
-import { Download, AlertCircle, Eye, Users, Building, UserCheck, FileText, TrendingUp, Droplets, CreditCard, CheckCircle2 } from 'lucide-react';
+import { Download, AlertCircle, Eye, Users, Building, UserCheck, FileText, TrendingUp, Droplets, CreditCard, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useToast } from '../components/Toast';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useNavigate } from 'react-router-dom';
@@ -66,7 +66,15 @@ export const AdminDashboard: React.FC = () => {
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   
   // Use TanStack Query for data fetching
-  const { stats, units, chartData, isLoading: loading, error } = useDashboardData();
+  const {
+    stats,
+    units,
+    chartData,
+    isLoading: loading,
+    isRefreshing,
+    refreshDashboard,
+    error,
+  } = useDashboardData();
   const completeRegistration = useCompleteUnitRegistration();
 
   const handleConfirmComplete = async () => {
@@ -293,6 +301,15 @@ export const AdminDashboard: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refreshDashboard()}
+            disabled={isRefreshing || loading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
           <Button variant="primary" size="sm" onClick={() => navigate('/admin/export')}>
             <Download className="w-4 h-4 mr-2" />
             Export Data
@@ -472,10 +489,12 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Units in progress:</span>
-              <span className="font-medium text-warning">{stats.inProgressUnits}</span>
+              <span className="font-medium text-warning">
+                {stats.inProgressUnits - stats.pendingApprovalUnits}
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-textMuted">Pending for approval:</span>
+              <span className="text-textMuted">Payment Completed and Pending for Approval:</span>
               {stats.pendingApprovalUnits > 0 ? (
                 <button
                   type="button"
