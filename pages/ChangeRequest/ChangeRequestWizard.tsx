@@ -12,6 +12,7 @@ import { SelectRequestTypeStep } from './steps/SelectRequestTypeStep';
 import { SubmitRequestStep } from './steps/SubmitRequestStep';
 import { ChangeRequestStepId, ChangeRequestTypeId } from './utils';
 import { mapRegistrationMemberToUnitMember } from '../../utils/unitMembers';
+import { canSubmitAllChangeRequestTypes } from '../UnitRegistration/utils';
 
 export const ChangeRequestWizard: React.FC = () => {
   const navigate = useNavigate();
@@ -161,6 +162,9 @@ export const ChangeRequestWizard: React.FC = () => {
               councilors={councilors}
               onPrevious={handleRequestTypePrevious}
               onSelect={handleRequestTypeSelect}
+              allowAllRequestTypes={canSubmitAllChangeRequestTypes(
+                formData.registration_status,
+              )}
             />
           )}
           {activeStep === 3 && selectedMember && selectedRequestType && (

@@ -39,6 +39,19 @@ export const canAccessUnitChangeRequests = (form: UnitApplicationForm): boolean 
   return hasSubmittedDeclaration(form.registration_status);
 };
 
+/**
+ * Whether the unit can submit the full set of change request types.
+ *
+ * During registration (before the declaration is submitted / payment is
+ * completed) only "Member Info Change" and "Unit Transfer" are offered. Once the
+ * declaration is completed or the unit registration payment is approved
+ * (reflected by `Declaration Submitted` / `Registration Completed`), every
+ * change request type becomes available.
+ */
+export const canSubmitAllChangeRequestTypes = (
+  status: UnitRegistrationStatus,
+): boolean => hasSubmittedDeclaration(status);
+
 export const canNavigateToStep = (
   targetStep: WizardStepId,
   currentMaxStep: WizardStepId

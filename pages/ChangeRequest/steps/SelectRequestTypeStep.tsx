@@ -21,7 +21,15 @@ interface SelectRequestTypeStepProps {
   councilors: UnitCouncilor[];
   onPrevious: () => void;
   onSelect: (requestTypeId: ChangeRequestTypeId) => void;
+  /**
+   * When false, the unit is still in the registration phase and only a limited
+   * set of requests is offered. The full set unlocks after declaration
+   * completion / unit registration payment.
+   */
+  allowAllRequestTypes?: boolean;
 }
+
+const REGISTRATION_PHASE_REQUEST_IDS: ChangeRequestTypeId[] = ['member-info', 'transfer'];
 
 const REQUEST_ICONS: Record<string, React.ReactNode> = {
   'member-info': <FileText className="w-5 h-5 text-primary" />,
@@ -36,13 +44,22 @@ export const SelectRequestTypeStep: React.FC<SelectRequestTypeStepProps> = ({
   councilors,
   onPrevious,
   onSelect,
+  allowAllRequestTypes = true,
 }) => {
   const memberCouncilor = councilors.find((c) => c.memberId === selectedMember.id);
 
+  const isRequestAllowedInPhase = (id: ChangeRequestTypeId) =>
+    allowAllRequestTypes || REGISTRATION_PHASE_REQUEST_IDS.includes(id);
+
   const availableMemberRequests = MEMBER_REQUEST_TYPES.filter((request) => {
+    if (!isRequestAllowedInPhase(request.id)) return false;
     if (request.id === 'councilor') return Boolean(memberCouncilor);
     return true;
   });
+
+  const availableUnitRequests = UNIT_REQUEST_TYPES.filter((request) =>
+    isRequestAllowedInPhase(request.id),
+  );
 
   const handleSelect = (request: ChangeRequestTypeOption) => {
     onSelect(request.id);
@@ -81,13 +98,14 @@ export const SelectRequestTypeStep: React.FC<SelectRequestTypeStepProps> = ({
         </div>
       </Card>
 
+      {availableUnitRequests.length > 0 && (
       <Card>
         <h3 className="text-lg font-bold text-textDark mb-1">Unit Requests</h3>
         <p className="text-sm text-textMuted mb-4">
           These requests apply to your whole unit, not a specific member
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {UNIT_REQUEST_TYPES.map((request) => (
+          {availableUnitRequests.map((request) => (
             <button
               key={request.id}
               type="button"
@@ -105,6 +123,7 @@ export const SelectRequestTypeStep: React.FC<SelectRequestTypeStepProps> = ({
           ))}
         </div>
       </Card>
+      )}
 
       <div className="flex justify-start">
         <Button type="button" variant="outline" onClick={onPrevious}>
