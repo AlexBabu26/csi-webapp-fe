@@ -41,6 +41,8 @@ import {
   useSiteSettings,
   useUpdateSiteSettings,
 } from '../../hooks/queries';
+import { PhoneField } from '../../components/PhoneField';
+import { getPhoneValidationError, normalizePhone, validatePhone } from '../../utils/phoneNumber';
 
 type UserType = 'all' | 'UNIT' | 'DISTRICT_OFFICIAL' | 'BLOOD_BANK';
 
@@ -274,8 +276,12 @@ export const UserManagement: React.FC = () => {
   const openCreateOfficialModal = () => { setCreateOfficialForm({ district_id: 0, official_name: '', phone_number: '' }); setCreatedOfficialResult(null); setShowCreateOfficialModal(true); };
   const handleCreateOfficial = () => {
     if (!createOfficialForm.district_id || !createOfficialForm.official_name || !createOfficialForm.phone_number) { addToast('Please fill in all fields', 'error'); return; }
-    if (!/^\d{10}$/.test(createOfficialForm.phone_number)) { addToast('Phone number must be exactly 10 digits', 'error'); return; }
-    createOfficialMutation.mutate(createOfficialForm, {
+    const phoneError = getPhoneValidationError(createOfficialForm.phone_number);
+    if (phoneError) { addToast(phoneError, 'error'); return; }
+    createOfficialMutation.mutate({
+      ...createOfficialForm,
+      phone_number: normalizePhone(createOfficialForm.phone_number) ?? createOfficialForm.phone_number,
+    }, {
       onSuccess: (data) => { setCreatedOfficialResult({ username: data.username, district_name: data.district_name, default_password_hint: data.default_password_hint }); refetchDistrictOfficials(); },
     });
   };
@@ -304,15 +310,20 @@ export const UserManagement: React.FC = () => {
       addToast('Username, email, and password are required', 'error');
       return;
     }
-    if (bloodBankForm.phone_number && !/^\d{10}$/.test(bloodBankForm.phone_number)) {
-      addToast('Phone number must be exactly 10 digits', 'error');
-      return;
+    if (bloodBankForm.phone_number) {
+      const phoneError = getPhoneValidationError(bloodBankForm.phone_number);
+      if (phoneError) {
+        addToast(phoneError, 'error');
+        return;
+      }
     }
     createBloodBankMutation.mutate({
       username: bloodBankForm.username.trim(),
       email: bloodBankForm.email.trim(),
       first_name: bloodBankForm.first_name.trim() || undefined,
-      phone_number: bloodBankForm.phone_number || undefined,
+      phone_number: bloodBankForm.phone_number
+        ? normalizePhone(bloodBankForm.phone_number) ?? bloodBankForm.phone_number
+        : undefined,
       password: bloodBankForm.password,
     }, {
       onSuccess: () => {
@@ -328,16 +339,21 @@ export const UserManagement: React.FC = () => {
       addToast('Email is required', 'error');
       return;
     }
-    if (bloodBankForm.phone_number && !/^\d{10}$/.test(bloodBankForm.phone_number)) {
-      addToast('Phone number must be exactly 10 digits', 'error');
-      return;
+    if (bloodBankForm.phone_number) {
+      const phoneError = getPhoneValidationError(bloodBankForm.phone_number);
+      if (phoneError) {
+        addToast(phoneError, 'error');
+        return;
+      }
     }
     updateBloodBankMutation.mutate({
       userId: editingBloodBankUser.id,
       data: {
         email: bloodBankForm.email.trim(),
         first_name: bloodBankForm.first_name.trim() || undefined,
-        phone_number: bloodBankForm.phone_number || undefined,
+        phone_number: bloodBankForm.phone_number
+          ? normalizePhone(bloodBankForm.phone_number) ?? bloodBankForm.phone_number
+          : undefined,
         is_active: bloodBankForm.is_active,
         password: bloodBankForm.password || undefined,
       },
@@ -940,26 +956,14 @@ export const UserManagement: React.FC = () => {
                         className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-textDark mb-1.5">
-                        Phone Number <span className="text-danger">*</span>
-                      </label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-textMuted" />
-                        <input
-                          type="tel"
-                          value={createOfficialForm.phone_number}
-                          onChange={(e) => {
-                            const v = e.target.value.replace(/\D/g, '').slice(0, 10);
-                            setCreateOfficialForm(prev => ({ ...prev, phone_number: v }));
-                          }}
-                          placeholder="10-digit number"
-                          className="w-full pl-10 pr-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono"
-                          maxLength={10}
-                        />
-                      </div>
-                      <p className="text-xs text-textMuted mt-1.5">Used as the default password</p>
-                    </div>
+                    <PhoneField
+                      label={<>Phone Number <span className="text-danger">*</span></>}
+                      value={createOfficialForm.phone_number}
+                      onChange={(phone_number) => setCreateOfficialForm(prev => ({ ...prev, phone_number }))}
+                      showIcon
+                      required
+                    />
+                    <p className="text-xs text-textMuted mt-1.5">Used as the default password</p>
                   </div>
                   <div className="px-6 py-4 border-t border-borderColor flex justify-end gap-2">
                     <Button variant="outline" onClick={closeCreateOfficialModal}>Cancel</Button>
@@ -967,7 +971,7 @@ export const UserManagement: React.FC = () => {
                       variant="primary"
                       onClick={handleCreateOfficial}
                       isLoading={createOfficialMutation.isPending}
-                      disabled={createOfficialMutation.isPending || !createOfficialForm.district_id || !createOfficialForm.official_name || createOfficialForm.phone_number.length !== 10}
+                      disabled={createOfficialMutation.isPending || !createOfficialForm.district_id || !createOfficialForm.official_name || !validatePhone(createOfficialForm.phone_number)}
                     >
                       <Plus className="w-4 h-4 mr-1.5" />
                       Create Official
@@ -1007,10 +1011,12 @@ export const UserManagement: React.FC = () => {
                   <label className="block text-sm font-semibold text-textDark mb-1.5">Display Name</label>
                   <input type="text" value={bloodBankForm.first_name} onChange={(e) => setBloodBankForm(p => ({ ...p, first_name: e.target.value }))} placeholder="Full name (optional)" className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-textDark mb-1.5">Phone</label>
-                  <input type="tel" value={bloodBankForm.phone_number} onChange={(e) => setBloodBankForm(p => ({ ...p, phone_number: e.target.value.replace(/\D/g, '').slice(0, 10) }))} placeholder="10-digit phone (optional)" className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
-                </div>
+                <PhoneField
+                  label="Phone"
+                  value={bloodBankForm.phone_number}
+                  onChange={(phone_number) => setBloodBankForm(p => ({ ...p, phone_number }))}
+                  placeholder="10-digit phone (optional)"
+                />
                 <div>
                   <label className="block text-sm font-semibold text-textDark mb-1.5">Password <span className="text-danger">*</span></label>
                   <div className="flex gap-2">
@@ -1054,10 +1060,11 @@ export const UserManagement: React.FC = () => {
                   <label className="block text-sm font-semibold text-textDark mb-1.5">Display Name</label>
                   <input type="text" value={bloodBankForm.first_name} onChange={(e) => setBloodBankForm(p => ({ ...p, first_name: e.target.value }))} className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-textDark mb-1.5">Phone</label>
-                  <input type="tel" value={bloodBankForm.phone_number} onChange={(e) => setBloodBankForm(p => ({ ...p, phone_number: e.target.value.replace(/\D/g, '').slice(0, 10) }))} className="w-full px-3 py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
-                </div>
+                <PhoneField
+                  label="Phone"
+                  value={bloodBankForm.phone_number}
+                  onChange={(phone_number) => setBloodBankForm(p => ({ ...p, phone_number }))}
+                />
                 <div className="flex items-center justify-between py-1">
                   <div>
                     <p className="text-sm font-semibold text-textDark">Active</p>

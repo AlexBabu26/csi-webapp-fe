@@ -4,6 +4,8 @@ import { Shield } from 'lucide-react';
 import { UnitApplicationForm } from '../../../types';
 import { useSaveUnitDetails } from '../../../hooks/queries';
 import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
+import { PhoneField } from '../../../components/PhoneField';
+import { getPhoneValidationError, normalizePhone } from '../../../utils/phoneNumber';
 
 interface UnitDetailsStepProps extends WizardStepNavigationProps {
   formData: UnitApplicationForm;
@@ -37,12 +39,12 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
     e.preventDefault();
 
     if (!presidentDesignation || !presidentName.trim() || !presidentPhone.trim()) return;
-    if (!/^[6-9]\d{9}$/.test(presidentPhone)) return;
+    if (getPhoneValidationError(presidentPhone)) return;
 
     await saveDetails.mutateAsync({
       president_designation: presidentDesignation,
       president_name: presidentName.trim(),
-      president_phone: presidentPhone.trim(),
+      president_phone: normalizePhone(presidentPhone.trim()) ?? presidentPhone.trim(),
     });
     onComplete();
   };
@@ -85,18 +87,13 @@ export const UnitDetailsStep: React.FC<UnitDetailsStepProps> = ({
               required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-textDark mb-2">Phone <span className="text-danger">*</span></label>
-            <input
-              type="tel"
-              value={presidentPhone}
-              onChange={(e) => setPresidentPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              pattern="[6-9]\d{9}"
-              placeholder="10-digit number"
-              className="w-full px-3 py-2 border border-borderColor rounded-md"
-              required
-            />
-          </div>
+          <PhoneField
+            label={<>Phone <span className="text-danger">*</span></>}
+            value={presidentPhone}
+            onChange={setPresidentPhone}
+            inputClassName="px-3 py-2 rounded-md"
+            required
+          />
         </div>
         </Card>
       </form>

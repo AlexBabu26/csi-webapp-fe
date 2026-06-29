@@ -1,4 +1,5 @@
 import { UnitCouncilor, UnitMember, UnitRegistrationOfficial } from '../../types';
+import { phonesEqual } from '../../utils/phoneNumber';
 
 export const MEMBER_SELECT_POSITIONS = [
   'vicePresident',
@@ -19,7 +20,7 @@ export const findMemberIdByNameAndPhone = (
   const match = members.find(
     (member) =>
       member.name.trim().toLowerCase() === trimmedName.toLowerCase() &&
-      (!phone || member.number === phone),
+      (!phone || phonesEqual(member.number, phone)),
   );
   return match ? String(match.id) : '';
 };

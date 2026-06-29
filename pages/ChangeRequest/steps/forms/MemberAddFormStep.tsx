@@ -13,6 +13,13 @@ import {
   ResidenceFormValue,
   validateResidenceFormValue,
 } from '../../../../utils/memberResidence';
+import { PhoneField } from '../../../../components/PhoneField';
+import {
+  getPhoneCountryFromResidence,
+  getPhoneValidationError,
+  isInternationalResidence,
+  normalizePhone,
+} from '../../../../utils/phoneNumber';
 
 const MemberResidenceFields = lazyImport(() =>
   import('../../../../components/MemberResidenceFields').then((module) => ({
@@ -68,8 +75,17 @@ export const MemberAddFormStep: React.FC<MemberAddFormStepProps> = ({
       addToast('Please enter member name', 'warning');
       return;
     }
-    if (!formData.number.match(/^[6-9]\d{9}$/)) {
-      addToast('Please enter a valid 10-digit phone number', 'warning');
+    if (!formData.number.trim()) {
+      addToast('Please enter a phone number', 'warning');
+      return;
+    }
+    const phoneError = getPhoneValidationError(
+      formData.number,
+      getPhoneCountryFromResidence(residence),
+      isInternationalResidence(residence),
+    );
+    if (phoneError) {
+      addToast(phoneError, 'warning');
       return;
     }
     if (!formData.bloodGroup) {
@@ -91,6 +107,7 @@ export const MemberAddFormStep: React.FC<MemberAddFormStepProps> = ({
       const residencePayload = buildResidencePayload(residence);
       await api.submitMemberAdd({
         ...formData,
+        number: normalizePhone(formData.number, getPhoneCountryFromResidence(residence) ?? 'IN') ?? formData.number,
         reason,
         proof: proofFile || undefined,
         ...residencePayload,
@@ -139,20 +156,13 @@ export const MemberAddFormStep: React.FC<MemberAddFormStepProps> = ({
               <option value="F">Female</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-textDark mb-2">
-              Phone Number <span className="text-danger">*</span>
-            </label>
-            <input
-              type="tel"
-              value={formData.number}
-              onChange={(e) => setFormData({ ...formData, number: e.target.value })}
-              pattern="[6-9]\d{9}"
-              placeholder="10-digit mobile number"
-              className={inputClass}
-              required
-            />
-          </div>
+          <PhoneField
+            label={<>Phone Number <span className="text-danger">*</span></>}
+            value={formData.number}
+            onChange={(number) => setFormData({ ...formData, number })}
+            international={isInternationalResidence(residence)}
+            required
+          />
           <div>
             <label className="block text-sm font-medium text-textDark mb-2">
               Date of Birth <span className="text-danger">*</span>

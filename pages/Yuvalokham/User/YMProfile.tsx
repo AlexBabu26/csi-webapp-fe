@@ -5,6 +5,8 @@ import { useToast } from '../../../components/Toast';
 import { useYMProfile, useYMUpdateProfile } from '../../../hooks/queries';
 import { YMProfileUpdateForm } from '../../../types';
 import { ymAuth } from '../../../services/yuvalokham-api';
+import { PhoneField } from '../../../components/PhoneField';
+import { getPhoneValidationError, normalizePhone } from '../../../utils/phoneNumber';
 
 export const YMProfile: React.FC = () => {
   const { addToast } = useToast();
@@ -81,7 +83,16 @@ export const YMProfile: React.FC = () => {
       return;
     }
 
-    updateProfile.mutate(form, {
+    const phoneError = getPhoneValidationError(form.phone);
+    if (phoneError) {
+      addToast(phoneError, 'error');
+      return;
+    }
+
+    updateProfile.mutate({
+      ...form,
+      phone: normalizePhone(form.phone) ?? form.phone.trim(),
+    }, {
       onSuccess: () => addToast('Profile updated successfully'),
       onError: (err: any) => {
         const msg = err?.message || 'Failed to update profile';
@@ -159,12 +170,11 @@ export const YMProfile: React.FC = () => {
               className="opacity-60"
             />
 
-            <Input
-              label="Phone"
-              required
+            <PhoneField
+              label={<>Phone <span className="text-danger">*</span></>}
               value={form.phone}
-              onChange={(e) => handleChange('phone', e.target.value)}
-              placeholder="Enter phone number"
+              onChange={(phone) => handleChange('phone', phone)}
+              required
             />
 
             <Input

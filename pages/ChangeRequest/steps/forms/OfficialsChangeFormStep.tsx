@@ -13,6 +13,13 @@ import {
   buildMemberOptionsForPosition,
   findMemberIdByNameAndPhone,
 } from '../../officialsChangeFormUtils';
+import { PhoneField } from '../../../../components/PhoneField';
+import {
+  formatPhoneForDisplay,
+  getPhoneValidationError,
+  normalizePhone,
+  phonesEqual,
+} from '../../../../utils/phoneNumber';
 
 interface OfficialsChangeFormStepProps {
   unitOfficials: UnitRegistrationOfficial | null;
@@ -154,6 +161,18 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
       return;
     }
 
+    if (formData.presidentPhone.trim()) {
+      const phoneError = getPhoneValidationError(formData.presidentPhone);
+      if (phoneError) {
+        addToast(phoneError, 'warning');
+        return;
+      }
+    }
+
+    const normalizedPresidentPhone = formData.presidentPhone.trim()
+      ? normalizePhone(formData.presidentPhone) ?? formData.presidentPhone.trim()
+      : '';
+
     const changes: Record<string, string> = {};
     if (formData.presidentDesignation !== (unitOfficials.president_designation || '')) {
       changes.presidentDesignation = formData.presidentDesignation;
@@ -161,8 +180,8 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
     if (formData.presidentName !== (unitOfficials.president_name || '')) {
       changes.presidentName = formData.presidentName;
     }
-    if (formData.presidentPhone !== (unitOfficials.president_phone || '')) {
-      changes.presidentPhone = formData.presidentPhone;
+    if (!phonesEqual(normalizedPresidentPhone, unitOfficials.president_phone || '')) {
+      changes.presidentPhone = normalizedPresidentPhone;
     }
     if (formData.vicePresidentName !== (unitOfficials.vice_president_name || '')) {
       changes.vicePresidentName = formData.vicePresidentName;
@@ -246,21 +265,11 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
               className={inputClass}
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-textDark mb-2">Phone</label>
-            <input
-              type="tel"
-              value={formData.presidentPhone}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  presidentPhone: e.target.value.replace(/\D/g, '').slice(0, 10),
-                })
-              }
-              pattern="[6-9]\d{9}"
-              className={inputClass}
-            />
-          </div>
+          <PhoneField
+            label="Phone"
+            value={formData.presidentPhone}
+            onChange={(presidentPhone) => setFormData({ ...formData, presidentPhone })}
+          />
         </div>
       </Card>
 
@@ -291,9 +300,8 @@ export const OfficialsChangeFormStep: React.FC<OfficialsChangeFormStepProps> = (
               <label className="block text-sm font-medium text-textDark mb-2">Phone</label>
               <input
                 type="tel"
-                value={formData[section.phoneKey]}
+                value={formatPhoneForDisplay(formData[section.phoneKey])}
                 readOnly
-                pattern="[6-9]\d{9}"
                 className={readOnlyInputClass}
               />
             </div>

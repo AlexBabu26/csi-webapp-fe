@@ -7,6 +7,7 @@ import { setAuthTokens, setAuthUser } from '../services/auth';
 import { resolvePostLoginPath } from '../services/authRouting';
 import { resetRemovedMembersAlertDismiss } from '../utils/removedMembersAlert';
 import { UserRole } from '../types';
+import { isLoginPhone } from '../utils/phoneNumber';
 
 interface LoginProps {
   onLogin?: (role: UserRole) => void;
@@ -25,10 +26,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
   // Get the portal context from URL params (kalamela or conference)
   const portalContext = searchParams.get('portal');
 
-  // Check if input is a valid 10-digit phone number
-  const isValidPhone = (value: string): boolean => {
-    return /^\d{10}$/.test(value);
-  };
+  const isValidPhone = (value: string): boolean => isLoginPhone(value);
 
   // Check if input is a valid email
   const isValidEmail = (value: string): boolean => {

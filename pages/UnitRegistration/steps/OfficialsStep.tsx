@@ -3,8 +3,11 @@ import { Card, Button } from '../../../components/ui';
 import { Shield } from 'lucide-react';
 import { SearchableSelect } from '../../../components/SearchableSelect';
 import { UnitApplicationForm, UnitOfficialPayload, UnitRegistrationMember } from '../../../types';
+import { phonesEqual } from '../../../utils/phoneNumber';
 import { useSaveUnitOfficials } from '../../../hooks/queries';
 import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
+import { PhoneField } from '../../../components/PhoneField';
+import { getPhoneValidationError, normalizePhone } from '../../../utils/phoneNumber';
 
 interface OfficialsStepProps extends WizardStepNavigationProps {
   formData: UnitApplicationForm;
@@ -34,7 +37,7 @@ const findMemberIdByNameAndPhone = (
   const match = members.find(
     (member) =>
       member.name.trim().toLowerCase() === trimmedName.toLowerCase() &&
-      (!phone || member.number === phone),
+      (!phone || phonesEqual(member.number, phone)),
   );
   return match ? String(match.id) : '';
 };
@@ -178,11 +181,17 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({
     ];
 
     for (const p of payloads) {
-      if (!p.name || !p.phone.match(/^[6-9]\d{9}$/)) return;
+      const phoneError = getPhoneValidationError(p.phone);
+      if (!p.name || phoneError) return;
       if (p.position === 'President' && !p.designation) return;
     }
 
-    await saveOfficials.mutateAsync(payloads);
+    await saveOfficials.mutateAsync(
+      payloads.map((p) => ({
+        ...p,
+        phone: normalizePhone(p.phone) ?? p.phone,
+      })),
+    );
     onComplete();
   };
 
@@ -263,17 +272,13 @@ export const OfficialsStep: React.FC<OfficialsStepProps> = ({
                   )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-textDark mb-2">Phone *</label>
-                  <input
-                    type="tel"
+                  <PhoneField
+                    label="Phone *"
                     value={form[phoneKey]}
-                    onChange={(e) =>
-                      setForm({ ...form, [phoneKey]: e.target.value.replace(/\D/g, '').slice(0, 10) })
-                    }
-                    pattern="[6-9]\d{9}"
-                    className={usesMemberSelect ? readOnlyInputClass : inputClass}
-                    required
+                    onChange={(phone) => setForm({ ...form, [phoneKey]: phone })}
                     readOnly={usesMemberSelect}
+                    inputClassName={usesMemberSelect ? 'bg-gray-50 text-textMuted cursor-not-allowed' : ''}
+                    required
                   />
                 </div>
               </div>

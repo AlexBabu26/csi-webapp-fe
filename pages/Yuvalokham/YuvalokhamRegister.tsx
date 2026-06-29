@@ -8,6 +8,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useYMRegister } from '../../hooks/queries';
 import { ymAuth } from '../../services/yuvalokham-api';
 import { YMRegisterForm } from '../../types';
+import { PhoneField } from '../../components/PhoneField';
+import { getPhoneValidationError, normalizePhone } from '../../utils/phoneNumber';
 
 export const YuvalokhamRegister: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -70,7 +72,10 @@ export const YuvalokhamRegister: React.FC = () => {
     if (!form.email.trim()) newErrors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = 'Please enter a valid email';
     if (!form.phone.trim()) newErrors.phone = 'Phone number is required';
-    else if (!/^\d{10}$/.test(form.phone)) newErrors.phone = 'Phone must be 10 digits';
+    else {
+      const phoneError = getPhoneValidationError(form.phone);
+      if (phoneError) newErrors.phone = phoneError;
+    }
     if (!form.password) newErrors.password = 'Password is required';
     else if (form.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     setErrors(newErrors);
@@ -81,7 +86,10 @@ export const YuvalokhamRegister: React.FC = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const payload: YMRegisterForm = { ...form };
+    const payload: YMRegisterForm = {
+      ...form,
+      phone: normalizePhone(form.phone) ?? form.phone.trim(),
+    };
     if (!payload.address) delete payload.address;
     if (!payload.pincode) delete payload.pincode;
     if (!payload.district_id) delete payload.district_id;
@@ -187,31 +195,15 @@ export const YuvalokhamRegister: React.FC = () => {
                 )}
               </div>
 
-              {/* Phone */}
-              <div>
-                <label htmlFor="ym-phone" className="block text-sm font-medium text-textDark">
-                  Phone <span className="text-danger">*</span>
-                </label>
-                <div className="mt-1 relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="ym-phone"
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => updateField('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    className={inputWithIcon('phone')}
-                    placeholder="10-digit number"
-                  />
-                </div>
-                {errors.phone && (
-                  <p className="mt-1.5 text-sm text-danger flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.phone}
-                  </p>
-                )}
-              </div>
+              <PhoneField
+                id="ym-phone"
+                label={<>Phone <span className="text-danger">*</span></>}
+                value={form.phone}
+                onChange={(phone) => updateField('phone', phone)}
+                error={errors.phone}
+                showIcon
+                required
+              />
 
               {/* Password */}
               <div className="sm:col-span-2">

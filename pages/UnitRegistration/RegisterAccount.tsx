@@ -8,6 +8,8 @@ import { resetRemovedMembersAlertDismiss } from '../../utils/removedMembersAlert
 import { resolvePostLoginPath } from '../../services/authRouting';
 import { ClergyDistrict, UnitName } from '../../types';
 import { useSiteSettings } from '../../hooks/queries';
+import { PhoneField } from '../../components/PhoneField';
+import { getPhoneValidationError, normalizePhone } from '../../utils/phoneNumber';
 
 interface RegisterForm {
   phone_number: string;
@@ -108,7 +110,10 @@ export const RegisterAccount: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!form.phone_number.trim()) newErrors.phone_number = 'Phone number is required';
-    else if (!/^\d{10}$/.test(form.phone_number)) newErrors.phone_number = 'Phone must be 10 digits';
+    else {
+      const phoneError = getPhoneValidationError(form.phone_number);
+      if (phoneError) newErrors.phone_number = phoneError;
+    }
     if (!form.password) newErrors.password = 'Password is required';
     else if (form.password.length < 8) newErrors.password = 'Password must be at least 8 characters';
     if (!form.clergy_district_id) newErrors.clergy_district_id = 'District is required';
@@ -127,7 +132,7 @@ export const RegisterAccount: React.FC = () => {
 
     try {
       const user = await api.registerUnit({
-        phone_number: form.phone_number.trim(),
+        phone_number: normalizePhone(form.phone_number.trim()) ?? form.phone_number.trim(),
         unit_name_id: form.unit_name_id!,
         clergy_district_id: form.clergy_district_id!,
         password: form.password,
@@ -250,14 +255,15 @@ export const RegisterAccount: React.FC = () => {
                   <p className="mt-1 text-xs text-textMuted">Use this number to sign in after registration. Final number is assigned when your account is created.</p>
                 )}
               </div>
-              <div>
-                <label htmlFor="reg-phone" className="block text-sm font-medium text-textDark">Phone <span className="text-danger">*</span></label>
-                <div className="mt-1 relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input id="reg-phone" type="tel" value={form.phone_number} onChange={(e) => updateField('phone_number', e.target.value.replace(/\D/g, '').slice(0, 10))} className={inputWithIcon('phone_number')} placeholder="10-digit number" />
-                </div>
-                {errors.phone_number && <p className="mt-1 text-sm text-danger">{errors.phone_number}</p>}
-              </div>
+              <PhoneField
+                id="reg-phone"
+                label={<>Phone <span className="text-danger">*</span></>}
+                value={form.phone_number}
+                onChange={(value) => updateField('phone_number', value)}
+                error={errors.phone_number}
+                showIcon
+                required
+              />
               <div>
                 <label htmlFor="reg-password" className="block text-sm font-medium text-textDark">Password <span className="text-danger">*</span></label>
                 <div className="mt-1 relative">

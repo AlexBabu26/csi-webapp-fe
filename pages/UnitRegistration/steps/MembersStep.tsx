@@ -24,6 +24,15 @@ import { useSiteSettings } from '../../../hooks/queries';
 import { FeeSummary } from '../components/FeeSummary';
 import { RenewalChangeRequestNotice } from '../components/RenewalChangeRequestNotice';
 import { WizardStepActions, WizardStepNavigationProps } from '../components/WizardStepActions';
+import { PhoneField } from '../../../components/PhoneField';
+import {
+  getPhoneCountryFromResidence,
+  getPhoneValidationError,
+  isInternationalResidence,
+  normalizePhone,
+  formatPhoneForDisplay,
+  phonesEqual,
+} from '../../../utils/phoneNumber';
 
 const MemberResidenceFields = lazyImport(() =>
   import('../../../components/MemberResidenceFields').then((module) => ({
@@ -104,7 +113,16 @@ export const MembersStep: React.FC<MembersStepProps> = ({
 
   const handleAddOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!memberForm.name.trim() || !memberForm.dob || !memberForm.number.match(/^[6-9]\d{9}$/)) return;
+    const international = isInternationalResidence(memberForm.residence);
+    const phoneError = getPhoneValidationError(
+      memberForm.number,
+      getPhoneCountryFromResidence(memberForm.residence),
+      international,
+    );
+    if (!memberForm.name.trim() || !memberForm.dob || phoneError) {
+      if (phoneError) setAddFormError(phoneError);
+      return;
+    }
     const residenceError = validateResidenceFormValue(memberForm.residence);
     if (residenceError) {
       setAddFormError(residenceError);
@@ -120,7 +138,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
       name: memberForm.name.trim(),
       gender: memberForm.gender,
       dob: memberForm.dob,
-      number: memberForm.number,
+      number: normalizePhone(memberForm.number, getPhoneCountryFromResidence(memberForm.residence) ?? 'IN') ?? memberForm.number,
       qualification: memberForm.qualification || undefined,
       blood_group: memberForm.blood_group,
       ...buildResidencePayload(memberForm.residence),
@@ -182,11 +200,19 @@ export const MembersStep: React.FC<MembersStepProps> = ({
     rawValue: string,
     currentValue: string,
   ) => {
-    const normalized = rawValue.replace(/\D/g, '').slice(0, 10);
-    if (normalized === currentValue) return;
+    const member = members.find((m) => m.id === memberId);
+    const residence = member ? parseResidenceFormValue(member) : null;
+    const international = isInternationalResidence(residence);
+    const normalized = normalizePhone(rawValue, getPhoneCountryFromResidence(residence) ?? 'IN') ?? rawValue.trim();
+    if (phonesEqual(normalized, currentValue)) return;
 
-    if (!/^[6-9]\d{9}$/.test(normalized)) {
-      setInlineFieldError('Enter a valid 10-digit phone number starting with 6–9.');
+    const phoneError = getPhoneValidationError(
+      rawValue,
+      getPhoneCountryFromResidence(residence) ?? 'IN',
+      international,
+    );
+    if (phoneError) {
+      setInlineFieldError(phoneError);
       return;
     }
 
@@ -196,7 +222,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
     try {
       await updateMember.mutateAsync({
         memberId,
-        payload: { number: normalized },
+        payload: { number: normalized ?? rawValue.trim() },
       });
     } finally {
       setSavingPhoneId(null);
@@ -336,14 +362,11 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-textDark mb-1.5">Phone *</label>
-                <input
-                  type="tel"
+                <PhoneField
+                  label="Phone *"
                   value={memberForm.number}
-                  onChange={(e) =>
-                    setMemberForm({ ...memberForm, number: e.target.value.replace(/\D/g, '').slice(0, 10) })
-                  }
-                  className={inputClass}
+                  onChange={(number) => setMemberForm({ ...memberForm, number })}
+                  international={isInternationalResidence(memberForm.residence)}
                   required
                 />
               </div>
@@ -509,7 +532,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                         <input
                           type="tel"
                           key={`phone-${m.id}-${m.number ?? ''}`}
-                          defaultValue={m.number || ''}
+                          defaultValue={formatPhoneForDisplay(m.number || '')}
                           disabled={savingPhoneId === m.id || updateMember.isPending}
                           onBlur={(e) => handleInlinePhoneSave(m.id, e.target.value, m.number || '')}
                           onKeyDown={(e) => {

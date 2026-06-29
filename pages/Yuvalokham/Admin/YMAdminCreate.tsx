@@ -4,6 +4,8 @@ import { Card, Button, Input } from '../../../components/ui';
 import { useYMAdminCreateAdmin } from '../../../hooks/queries';
 import { useToast } from '../../../components/Toast';
 import { YMAdminCreateForm } from '../../../types';
+import { PhoneField } from '../../../components/PhoneField';
+import { getPhoneValidationError, normalizePhone } from '../../../utils/phoneNumber';
 
 const emptyForm: YMAdminCreateForm = { name: '', email: '', phone: '', password: '' };
 
@@ -25,7 +27,16 @@ export const YMAdminCreate: React.FC = () => {
       return;
     }
 
-    createAdmin.mutate(form, {
+    const phoneError = getPhoneValidationError(form.phone);
+    if (phoneError) {
+      addToast(phoneError, 'warning');
+      return;
+    }
+
+    createAdmin.mutate({
+      ...form,
+      phone: normalizePhone(form.phone) ?? form.phone.trim(),
+    }, {
       onSuccess: () => {
         addToast('Admin account created successfully', 'success');
         setForm(emptyForm);
@@ -66,13 +77,11 @@ export const YMAdminCreate: React.FC = () => {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="admin@example.com"
             />
-            <Input
-              label="Phone"
-              required
-              type="tel"
+            <PhoneField
+              label={<>Phone <span className="text-danger">*</span></>}
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="Enter phone number"
+              onChange={(phone) => setForm({ ...form, phone })}
+              required
             />
             <Input
               label="Password"
