@@ -290,11 +290,6 @@ export const RegistrationComplete: React.FC = () => {
                     >
                       {sub.status}
                     </Badge>
-                    {sub.status === 'PENDING' && sub.detected_paid_amount != null && (
-                      <p className="text-xs text-textMuted">
-                        Detected: ₹{sub.detected_paid_amount}
-                      </p>
-                    )}
                     {sub.status === 'APPROVED' &&
                       proofPaid != null &&
                       sub.balance_amount != null &&

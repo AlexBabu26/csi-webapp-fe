@@ -1,14 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  AlertCircle,
   CheckCircle,
   Clock,
   Upload,
   X,
   FileText,
-  Image as ImageIcon,
   QrCode,
-  Loader2,
 } from 'lucide-react';
 import { Button } from '../../components/ui';
 import { useSubmitUnitPaymentProof } from '../../hooks/queries';
@@ -39,8 +36,6 @@ interface PaymentModalProps {
 
 type Step = 'qr' | 'upload' | 'done';
 
-type OcrStatus = 'idle' | 'scanning' | 'done' | 'failed';
-
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   totalAmount,
   qrUrl,
@@ -53,12 +48,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [timerExpired, setTimerExpired] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [detectedAmount, setDetectedAmount] = useState<number | null>(null);
-  const [submittedDetectedAmount, setSubmittedDetectedAmount] = useState<number | null>(null);
-  const [ocrStatus, setOcrStatus] = useState<OcrStatus>('idle');
   const [isPdf, setIsPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const detectedAmountRef = useRef<number | null>(null);
+  const scanPromiseRef = useRef<Promise<void> | null>(null);
 
   const submitMutation = useSubmitUnitPaymentProof();
 
@@ -66,7 +60,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     preloadPaymentOcrWorker();
   }, []);
 
-  // Start countdown only on QR step
   useEffect(() => {
     if (step !== 'qr') return;
     timerRef.current = setInterval(() => {
@@ -85,22 +78,21 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const resetFileState = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
-    setDetectedAmount(null);
-    setOcrStatus('idle');
     setIsPdf(false);
+    detectedAmountRef.current = null;
+    scanPromiseRef.current = null;
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const scanImageForAmount = async (file: File) => {
-    setOcrStatus('scanning');
-    setDetectedAmount(null);
-    try {
-      const amount = await extractPaymentAmountFromImage(file);
-      setDetectedAmount(amount);
-      setOcrStatus(amount != null ? 'done' : 'failed');
-    } catch {
-      setOcrStatus('failed');
-    }
+  const scanImageForAmount = (file: File) => {
+    detectedAmountRef.current = null;
+    scanPromiseRef.current = extractPaymentAmountFromImage(file)
+      .then((amount) => {
+        detectedAmountRef.current = amount;
+      })
+      .catch(() => {
+        detectedAmountRef.current = null;
+      });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,9 +104,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     }
 
     setSelectedFile(file);
-    setDetectedAmount(null);
-    setSubmittedDetectedAmount(null);
-
     const pdf = isPdfFile(file);
     setIsPdf(pdf);
 
@@ -122,25 +111,28 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       const reader = new FileReader();
       reader.onloadend = () => setPreviewUrl(reader.result as string);
       reader.readAsDataURL(file);
-      void scanImageForAmount(file);
+      scanImageForAmount(file);
     } else {
       setPreviewUrl(null);
-      setOcrStatus('idle');
+      detectedAmountRef.current = null;
+      scanPromiseRef.current = null;
     }
   };
 
   const handleSubmit = async () => {
     if (!selectedFile) return;
+
+    if (scanPromiseRef.current) {
+      await scanPromiseRef.current;
+    }
+
     submitMutation.mutate(
       {
         file: selectedFile,
-        detectedAmount: isPdf ? undefined : detectedAmount,
+        detectedAmount: isPdf ? undefined : detectedAmountRef.current,
       },
       {
-        onSuccess: (data) => {
-          setSubmittedDetectedAmount(
-            data.detected_paid_amount ?? (isPdf ? null : detectedAmount),
-          );
+        onSuccess: () => {
           setStep('done');
         },
       },
@@ -154,15 +146,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const timerColor =
     secondsLeft <= 60 ? 'text-danger' : secondsLeft <= 120 ? 'text-warning' : 'text-primary';
-
-  const amountMatches =
-    detectedAmount != null && detectedAmount === totalAmount;
-  const amountMismatch =
-    detectedAmount != null && detectedAmount !== totalAmount;
-  const canSubmit =
-    !!selectedFile &&
-    !submitMutation.isPending &&
-    (isPdf || ocrStatus === 'done' || ocrStatus === 'failed');
 
   return (
     <div
@@ -253,8 +236,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           {step === 'upload' && (
             <>
               <p className="text-sm text-textMuted">
-                Upload a screenshot or PDF of your payment confirmation. The amount will be read
-                automatically when possible.
+                Upload a screenshot or PDF of your payment confirmation. You can submit multiple
+                proofs if your payment was split.
               </p>
 
               <div
@@ -288,64 +271,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               {selectedFile && (
                 <p className="text-xs text-textMuted text-center">
                   {(selectedFile.size / 1024).toFixed(1)} KB ·{' '}
-                  <button
-                    className="underline text-primary"
-                    onClick={resetFileState}
-                  >
+                  <button className="underline text-primary" onClick={resetFileState}>
                     Remove
                   </button>
                 </p>
-              )}
-
-              {ocrStatus === 'scanning' && (
-                <div className="flex items-center justify-center gap-2 text-sm text-textMuted py-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Reading payment amount from screenshot…
-                </div>
-              )}
-
-              {isPdf && selectedFile && (
-                <div className="p-3 bg-bgLight border border-borderColor rounded-lg text-sm text-textMuted">
-                  PDF selected. Payment amount will be detected automatically when you submit
-                  (requires server OCR).
-                </div>
-              )}
-
-              {detectedAmount != null && !isPdf && (
-                <div
-                  className={`p-4 rounded-lg border ${
-                    amountMatches
-                      ? 'bg-success/10 border-success/30'
-                      : 'bg-warning/10 border-warning/30'
-                  }`}
-                >
-                  <p className="text-sm font-medium text-textDark">Detected payment amount</p>
-                  <p className="text-2xl font-bold text-textDark mt-1">₹{detectedAmount}</p>
-                  <p className="text-sm text-textMuted mt-1">
-                    Amount due: <strong>₹{totalAmount}</strong>
-                  </p>
-                  {amountMatches && (
-                    <p className="text-sm text-success mt-2 flex items-center gap-1">
-                      <CheckCircle className="w-4 h-4" />
-                      Amounts match
-                    </p>
-                  )}
-                  {amountMismatch && (
-                    <p className="text-sm text-warning mt-2 flex items-start gap-1">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                      Detected amount differs from amount due. You can still submit for admin
-                      review.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {ocrStatus === 'failed' && selectedFile && !isPdf && (
-                <div className="p-3 bg-bgLight border border-borderColor rounded-lg text-sm text-textMuted flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  Could not read the amount from this image. You can still submit — admin will
-                  verify manually.
-                </div>
               )}
 
               <div className="flex gap-3">
@@ -360,11 +289,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <Button
                   variant="primary"
                   className="flex-1"
-                  disabled={!canSubmit}
+                  disabled={!selectedFile || submitMutation.isPending}
                   isLoading={submitMutation.isPending}
                   onClick={handleSubmit}
                 >
-                  Confirm & Submit
+                  Submit Proof
                 </Button>
               </div>
             </>
@@ -377,11 +306,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
               <div>
                 <p className="font-semibold text-textDark">Proof submitted!</p>
-                {submittedDetectedAmount != null && (
-                  <p className="text-sm text-textDark mt-2">
-                    Detected amount: <strong>₹{submittedDetectedAmount}</strong>
-                  </p>
-                )}
                 <p className="text-sm text-textMuted mt-1">
                   Your payment proof is under review. The registration form download will be
                   enabled once the full registration fee is approved.

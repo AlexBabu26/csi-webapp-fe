@@ -541,10 +541,15 @@ export const UnitRegistrationPayments: React.FC = () => {
                 Registration total: <strong>₹{approveDialogPayment.total_amount}</strong>
               </p>
             )}
-            {approveDialogPayment.detected_paid_amount != null && (
+            {approveDialogPayment.detected_paid_amount != null ? (
               <p className="text-sm text-textDark">
-                Detected from proof:{' '}
+                Extracted from proof:{' '}
                 <strong>₹{approveDialogPayment.detected_paid_amount}</strong>
+                <span className="text-textMuted"> — verify below and edit if needed</span>
+              </p>
+            ) : (
+              <p className="text-sm text-textMuted">
+                No amount could be extracted from this proof. Enter the paid amount manually.
               </p>
             )}
             <div>
