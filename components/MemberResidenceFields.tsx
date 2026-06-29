@@ -23,7 +23,7 @@ const toOption = (id: number, label: string, extra?: Partial<SearchableSelectOpt
 const LockedLocationField: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
     <label className="block text-sm font-medium text-textDark mb-1.5">{label}</label>
-    <div className="p-3 border border-borderColor rounded-lg bg-gray-50 text-sm text-textDark">{value}</div>
+    <div className="px-3 py-2.5 border border-borderColor rounded-lg bg-gray-50 text-sm text-textDark truncate">{value}</div>
   </div>
 );
 
@@ -271,7 +271,7 @@ export const MemberResidenceFields: React.FC<MemberResidenceFieldsProps> = ({
     <SearchableSelect
       key={`city-${activeStateId ?? 'none'}`}
       label="City (optional)"
-      initiallyCollapsed
+      clearable
       value={value.cityId ? String(value.cityId) : ''}
       onChange={(cityValue) =>
         onChange({

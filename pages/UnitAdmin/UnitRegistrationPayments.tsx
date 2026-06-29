@@ -20,6 +20,7 @@ import {
 } from './unitPaymentSummary';
 import { getProofPaidAmount } from '../../utils/registrationPayment';
 import { RegistrationPaymentLedger } from '../../components/RegistrationPaymentLedger';
+import { Portal } from '../../components/Portal';
 import {
   PAYMENT_STATUS_FILTER,
   enumMatchFilter,
@@ -359,8 +360,9 @@ export const UnitRegistrationPayments: React.FC = () => {
       </Card>
 
       {selectedUnit !== null && (
+        <Portal>
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 overflow-y-auto"
           onClick={() => setSelectedUnit(null)}
         >
           <div
@@ -527,10 +529,12 @@ export const UnitRegistrationPayments: React.FC = () => {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {approveDialogPayment !== null && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+        <Portal>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <h3 className="font-semibold text-textDark">Approve Payment Proof</h3>
             <p className="text-sm text-textMuted">
@@ -604,10 +608,12 @@ export const UnitRegistrationPayments: React.FC = () => {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {rejectDialogId !== null && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+        <Portal>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-4">
             <h3 className="font-semibold text-textDark">Reject Payment Proof</h3>
             <p className="text-sm text-textMuted">
@@ -640,6 +646,7 @@ export const UnitRegistrationPayments: React.FC = () => {
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );
