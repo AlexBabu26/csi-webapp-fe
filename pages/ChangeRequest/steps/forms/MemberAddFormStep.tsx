@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { Card } from '../../../../components/ui';
 import { FileUpload } from '../../../../components/FileUpload';
 import { UserPlus } from 'lucide-react';
@@ -60,6 +60,14 @@ export const MemberAddFormStep: React.FC<MemberAddFormStepProps> = ({
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [residence, setResidence] = useState<ResidenceFormValue>(emptyResidence);
+  const phoneCountry = getPhoneCountryFromResidence(residence);
+  const previousPhoneCountryRef = useRef(phoneCountry);
+
+  useEffect(() => {
+    if (previousPhoneCountryRef.current === phoneCountry) return;
+    previousPhoneCountryRef.current = phoneCountry;
+    setFormData((prev) => (prev.number ? { ...prev, number: '' } : prev));
+  }, [phoneCountry]);
 
   const inputClass =
     'w-full px-3 py-2 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary';
@@ -107,7 +115,7 @@ export const MemberAddFormStep: React.FC<MemberAddFormStepProps> = ({
       const residencePayload = buildResidencePayload(residence);
       await api.submitMemberAdd({
         ...formData,
-        number: normalizePhone(formData.number, getPhoneCountryFromResidence(residence) ?? 'IN') ?? formData.number,
+        number: normalizePhone(formData.number, getPhoneCountryFromResidence(residence)) ?? formData.number,
         reason,
         proof: proofFile || undefined,
         ...residencePayload,
@@ -160,7 +168,7 @@ export const MemberAddFormStep: React.FC<MemberAddFormStepProps> = ({
             label={<>Phone Number <span className="text-danger">*</span></>}
             value={formData.number}
             onChange={(number) => setFormData({ ...formData, number })}
-            international={isInternationalResidence(residence)}
+            defaultCountry={phoneCountry}
             required
           />
           <div>

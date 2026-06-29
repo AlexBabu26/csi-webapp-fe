@@ -1,4 +1,4 @@
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { lazyImport } from '../../../utils/chunkLoadError';
 import { Link } from 'react-router-dom';
 import { Card, Button, Skeleton } from '../../../components/ui';
@@ -104,6 +104,14 @@ export const MembersStep: React.FC<MembersStepProps> = ({
     !isRenewalRegistration || isNewThisCycle(member);
   const missingLocationCount = members.filter((m) => !isResidenceComplete(m)).length;
   const missingBloodGroupCount = members.filter((m) => !m.blood_group).length;
+  const phoneCountry = getPhoneCountryFromResidence(memberForm.residence);
+  const previousPhoneCountryRef = useRef(phoneCountry);
+
+  useEffect(() => {
+    if (previousPhoneCountryRef.current === phoneCountry) return;
+    previousPhoneCountryRef.current = phoneCountry;
+    setMemberForm((prev) => (prev.number ? { ...prev, number: '' } : prev));
+  }, [phoneCountry]);
 
   const resetForm = () => {
     setMemberForm(emptyMemberForm);
@@ -138,7 +146,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
       name: memberForm.name.trim(),
       gender: memberForm.gender,
       dob: memberForm.dob,
-      number: normalizePhone(memberForm.number, getPhoneCountryFromResidence(memberForm.residence) ?? 'IN') ?? memberForm.number,
+      number: normalizePhone(memberForm.number, getPhoneCountryFromResidence(memberForm.residence)) ?? memberForm.number,
       qualification: memberForm.qualification || undefined,
       blood_group: memberForm.blood_group,
       ...buildResidencePayload(memberForm.residence),
@@ -203,12 +211,12 @@ export const MembersStep: React.FC<MembersStepProps> = ({
     const member = members.find((m) => m.id === memberId);
     const residence = member ? parseResidenceFormValue(member) : null;
     const international = isInternationalResidence(residence);
-    const normalized = normalizePhone(rawValue, getPhoneCountryFromResidence(residence) ?? 'IN') ?? rawValue.trim();
+    const normalized = normalizePhone(rawValue, getPhoneCountryFromResidence(residence)) ?? rawValue.trim();
     if (phonesEqual(normalized, currentValue)) return;
 
     const phoneError = getPhoneValidationError(
       rawValue,
-      getPhoneCountryFromResidence(residence) ?? 'IN',
+      getPhoneCountryFromResidence(residence),
       international,
     );
     if (phoneError) {
@@ -366,7 +374,7 @@ export const MembersStep: React.FC<MembersStepProps> = ({
                   label="Phone *"
                   value={memberForm.number}
                   onChange={(number) => setMemberForm({ ...memberForm, number })}
-                  international={isInternationalResidence(memberForm.residence)}
+                  defaultCountry={getPhoneCountryFromResidence(memberForm.residence)}
                   required
                 />
               </div>

@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Button } from '../../components/ui';
 import { FileUpload } from '../../components/FileUpload';
@@ -60,9 +60,17 @@ export const SubmitMemberAdd: React.FC = () => {
   const [reason, setReason] = useState('');
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [residence, setResidence] = useState<ResidenceFormValue>(emptyResidence);
+  const phoneCountry = getPhoneCountryFromResidence(residence);
+  const previousPhoneCountryRef = useRef(phoneCountry);
 
   // Get current unit ID from authenticated user
   const currentUnitId = getCurrentUnitId();
+
+  useEffect(() => {
+    if (previousPhoneCountryRef.current === phoneCountry) return;
+    previousPhoneCountryRef.current = phoneCountry;
+    setFormData((prev) => (prev.number ? { ...prev, number: '' } : prev));
+  }, [phoneCountry]);
 
   useEffect(() => {
     if (!currentUnitId) {
@@ -120,7 +128,7 @@ export const SubmitMemberAdd: React.FC = () => {
       const residencePayload = buildResidencePayload(residence);
       await api.submitMemberAdd({
         ...formData,
-        number: normalizePhone(formData.number, getPhoneCountryFromResidence(residence) ?? 'IN') ?? formData.number,
+        number: normalizePhone(formData.number, getPhoneCountryFromResidence(residence)) ?? formData.number,
         reason,
         proof: proofFile || undefined,
         ...residencePayload,
@@ -200,7 +208,7 @@ export const SubmitMemberAdd: React.FC = () => {
               label={<>Phone Number <span className="text-danger">*</span></>}
               value={formData.number}
               onChange={(number) => setFormData({ ...formData, number })}
-              international={isInternationalResidence(residence)}
+              defaultCountry={phoneCountry}
               required
             />
 

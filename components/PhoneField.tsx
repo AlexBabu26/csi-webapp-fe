@@ -3,8 +3,10 @@ import { AlertCircle, Phone } from 'lucide-react';
 import {
   DEFAULT_PHONE_COUNTRY,
   formatPhoneForDisplay,
+  getCallingCodePrefix,
+  getPhonePlaceholder,
   normalizePhone,
-  toIndianNationalInput,
+  toNationalInput,
 } from '../utils/phoneNumber';
 import type { CountryCode } from 'libphonenumber-js';
 
@@ -22,6 +24,7 @@ export interface PhoneFieldProps {
   readOnly?: boolean;
   required?: boolean;
   showIcon?: boolean;
+  /** @deprecated Use defaultCountry instead */
   international?: boolean;
   defaultCountry?: CountryCode;
   variant?: 'default' | 'inline';
@@ -48,69 +51,56 @@ export const PhoneField: React.FC<PhoneFieldProps> = ({
   const generatedId = useId();
   const fieldId = id ?? generatedId;
   const isInline = variant === 'inline';
+  const country = defaultCountry;
+  const callingCodePrefix = getCallingCodePrefix(country);
+  const resolvedPlaceholder = placeholder ?? getPhonePlaceholder(country);
 
-  const handleIndiaChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, '').slice(0, 10);
+  const handleNationalChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, '');
     if (!digits) {
       onChange('');
       return;
     }
-    const normalized = normalizePhone(digits, defaultCountry);
+    const normalized = normalizePhone(digits, country);
     onChange(normalized ?? digits);
   };
 
-  const handleInternationalChange = (raw: string) => {
-    onChange(raw.trim());
-  };
-
-  const handleInternationalBlur = () => {
+  const handleBlur = () => {
     if (!value.trim()) return;
-    const normalized = normalizePhone(value, defaultCountry);
+    const normalized = normalizePhone(value, country);
     if (normalized) {
       onChange(normalized);
     }
   };
 
-  const indiaDisplayValue = toIndianNationalInput(formatPhoneForDisplay(value));
-  const internationalDisplayValue = value ? formatPhoneForDisplay(value) : '';
+  const nationalDisplayValue = toNationalInput(formatPhoneForDisplay(value), country);
 
   const baseInputClass = isInline
     ? `w-full px-2 py-1.5 border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono ${inputClassName}`
     : `w-full py-2.5 border border-borderColor rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono ${showIcon ? 'pl-10 pr-3' : 'px-3'} ${inputClassName}`;
 
-  const input = international ? (
-    <input
-      id={fieldId}
-      name={name}
-      type="tel"
-      value={internationalDisplayValue}
-      onChange={(e) => handleInternationalChange(e.target.value)}
-      onBlur={handleInternationalBlur}
-      placeholder={placeholder ?? '+1 555 123 4567'}
-      className={baseInputClass}
-      disabled={disabled}
-      readOnly={readOnly}
-      required={required}
-      autoComplete="tel"
-    />
-  ) : (
+  const input = (
     <div className="flex">
-      <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-borderColor bg-gray-50 text-sm text-textMuted font-mono">
-        +91
+      <span
+        className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-borderColor bg-gray-50 text-sm text-textMuted font-mono whitespace-nowrap"
+        aria-hidden="true"
+      >
+        {callingCodePrefix}
       </span>
       <input
         id={fieldId}
         name={name}
         type="tel"
         inputMode="numeric"
-        value={indiaDisplayValue}
-        onChange={(e) => handleIndiaChange(e.target.value)}
-        placeholder={placeholder ?? '10-digit mobile number'}
+        value={nationalDisplayValue}
+        onChange={(e) => handleNationalChange(e.target.value)}
+        onBlur={handleBlur}
+        placeholder={resolvedPlaceholder}
         className={`${baseInputClass} rounded-l-none flex-1`}
         disabled={disabled}
         readOnly={readOnly}
         required={required}
-        maxLength={10}
+        maxLength={country === DEFAULT_PHONE_COUNTRY && !international ? 10 : 15}
         autoComplete="tel-national"
       />
     </div>
@@ -140,7 +130,7 @@ export const PhoneField: React.FC<PhoneFieldProps> = ({
       )}
       <div className={showIcon ? 'relative' : undefined}>
         {showIcon && (
-          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none z-10" />
         )}
         {input}
       </div>

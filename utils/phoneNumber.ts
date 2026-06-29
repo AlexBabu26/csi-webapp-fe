@@ -1,22 +1,46 @@
 import {
   CountryCode,
+  getCountryCallingCode,
+  getExampleNumber,
+  isSupportedCountry,
   isValidPhoneNumber,
   parsePhoneNumberFromString,
 } from 'libphonenumber-js';
+import examples from 'libphonenumber-js/mobile/examples';
 import { ResidenceFormValue } from './memberResidence';
 
 export const DEFAULT_PHONE_COUNTRY: CountryCode = 'IN';
 
 export function isInternationalResidence(residence: ResidenceFormValue | null | undefined): boolean {
-  if (!residence || residence.livesInKerala === null) return false;
-  if (residence.livesInKerala) return false;
-  return residence.countryIsoCode !== 'IN';
+  return getPhoneCountryFromResidence(residence) !== DEFAULT_PHONE_COUNTRY;
 }
 
 export function getPhoneCountryFromResidence(
   residence: ResidenceFormValue | null | undefined,
-): CountryCode | undefined {
-  return isInternationalResidence(residence) ? undefined : DEFAULT_PHONE_COUNTRY;
+): CountryCode {
+  if (!residence || residence.livesInKerala === null) return DEFAULT_PHONE_COUNTRY;
+  if (residence.livesInKerala) return DEFAULT_PHONE_COUNTRY;
+  const isoCode = residence.countryIsoCode?.toUpperCase();
+  if (isoCode && isSupportedCountry(isoCode)) {
+    return isoCode;
+  }
+  return DEFAULT_PHONE_COUNTRY;
+}
+
+export function getCallingCodePrefix(country: CountryCode = DEFAULT_PHONE_COUNTRY): string {
+  if (!isSupportedCountry(country)) {
+    return `+${getCountryCallingCode(DEFAULT_PHONE_COUNTRY)}`;
+  }
+  return `+${getCountryCallingCode(country)}`;
+}
+
+export function getPhonePlaceholder(country: CountryCode = DEFAULT_PHONE_COUNTRY): string {
+  const resolvedCountry = isSupportedCountry(country) ? country : DEFAULT_PHONE_COUNTRY;
+  const example = getExampleNumber(resolvedCountry, examples);
+  if (example) {
+    return example.formatNational();
+  }
+  return resolvedCountry === DEFAULT_PHONE_COUNTRY ? '10-digit mobile number' : 'Phone number';
 }
 
 export function normalizePhone(
@@ -59,14 +83,15 @@ export function validatePhone(
 export function getPhoneValidationError(
   value: string,
   defaultCountry: CountryCode = DEFAULT_PHONE_COUNTRY,
-  international = false,
+  international = defaultCountry !== DEFAULT_PHONE_COUNTRY,
 ): string | null {
   if (!value.trim()) return 'Phone number is required';
 
   if (!validatePhone(value, defaultCountry, international)) {
-    return international
-      ? 'Please enter a valid phone number with country code (e.g. +1 555 123 4567)'
-      : 'Please enter a valid 10-digit mobile number';
+    if (defaultCountry === DEFAULT_PHONE_COUNTRY) {
+      return 'Please enter a valid 10-digit mobile number';
+    }
+    return `Please enter a valid phone number for ${getCallingCodePrefix(defaultCountry)}`;
   }
 
   return null;
@@ -90,15 +115,32 @@ export function formatPhoneForDisplay(value: string): string {
   return value;
 }
 
-export function toIndianNationalInput(value: string): string {
+export function toNationalInput(value: string, country: CountryCode = DEFAULT_PHONE_COUNTRY): string {
+  if (!value) return '';
+
+  const phone = parsePhoneNumberFromString(value, country);
+  if (phone?.isValid() || phone?.nationalNumber) {
+    return phone.nationalNumber;
+  }
+
   const digits = value.replace(/\D/g, '');
   if (!digits) return '';
 
-  if (digits.startsWith('91') && digits.length === 12) {
-    return digits.slice(2);
+  const callingCode = getCountryCallingCode(country);
+  if (digits.startsWith(callingCode)) {
+    return digits.slice(callingCode.length);
   }
 
-  return digits.slice(0, 10);
+  if (country === DEFAULT_PHONE_COUNTRY) {
+    return digits.slice(0, 10);
+  }
+
+  return digits;
+}
+
+/** @deprecated Use toNationalInput instead */
+export function toIndianNationalInput(value: string): string {
+  return toNationalInput(value, DEFAULT_PHONE_COUNTRY);
 }
 
 export function phoneLookupVariants(value: string): string[] {
