@@ -4,6 +4,8 @@ export interface PaymentProofRecord {
   id: number;
   total_amount: number | null;
   balance_amount: number | null;
+  approved_paid_amount?: number | null;
+  detected_paid_amount?: number | null;
   status: PaymentProofStatus;
   submitted_at: string;
 }
@@ -13,8 +15,16 @@ export function getProofPaidAmount(
   payment: PaymentProofRecord,
   allSubmissions: PaymentProofRecord[],
 ): number | null {
-  if (payment.status !== 'APPROVED' || payment.balance_amount == null) {
+  if (payment.status !== 'APPROVED') {
     return null;
+  }
+
+  if (payment.approved_paid_amount != null) {
+    return payment.approved_paid_amount;
+  }
+
+  if (payment.balance_amount == null) {
+    return payment.total_amount;
   }
 
   const sorted = [...allSubmissions].sort(

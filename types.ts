@@ -710,6 +710,8 @@ export interface UnitPaymentSubmission {
   file_url: string | null;
   total_amount: number | null;
   balance_amount: number | null;
+  approved_paid_amount?: number | null;
+  detected_paid_amount?: number | null;
   status: PaymentProofStatus;
   rejection_note: string | null;
   submitted_at: string;
@@ -744,6 +746,7 @@ export interface AdminRegistrationPayment {
   total_paid?: number | null;
   payment_credit?: number | null;
   balance_due?: number | null;
+  detected_paid_amount?: number | null;
   status: PaymentProofStatus;
   rejection_note: string | null;
   submitted_at: string;

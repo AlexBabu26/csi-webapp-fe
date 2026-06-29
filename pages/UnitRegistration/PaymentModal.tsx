@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   CheckCircle,
@@ -8,10 +8,16 @@ import {
   FileText,
   Image as ImageIcon,
   QrCode,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '../../components/ui';
 import { useSubmitUnitPaymentProof } from '../../hooks/queries';
 import { getMediaUrl } from '../../services/http';
+import {
+  extractPaymentAmountFromImage,
+  isPdfFile,
+  preloadPaymentOcrWorker,
+} from '../../utils/paymentOcr';
 
 const TIMER_SECONDS = 4 * 60; // 4 minutes
 
@@ -33,6 +39,8 @@ interface PaymentModalProps {
 
 type Step = 'qr' | 'upload' | 'done';
 
+type OcrStatus = 'idle' | 'scanning' | 'done' | 'failed';
+
 export const PaymentModal: React.FC<PaymentModalProps> = ({
   totalAmount,
   qrUrl,
@@ -45,10 +53,18 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   const [timerExpired, setTimerExpired] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [detectedAmount, setDetectedAmount] = useState<number | null>(null);
+  const [submittedDetectedAmount, setSubmittedDetectedAmount] = useState<number | null>(null);
+  const [ocrStatus, setOcrStatus] = useState<OcrStatus>('idle');
+  const [isPdf, setIsPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const submitMutation = useSubmitUnitPaymentProof();
+
+  useEffect(() => {
+    preloadPaymentOcrWorker();
+  }, []);
 
   // Start countdown only on QR step
   useEffect(() => {
@@ -66,6 +82,27 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     return () => clearInterval(timerRef.current!);
   }, [step]);
 
+  const resetFileState = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setDetectedAmount(null);
+    setOcrStatus('idle');
+    setIsPdf(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const scanImageForAmount = async (file: File) => {
+    setOcrStatus('scanning');
+    setDetectedAmount(null);
+    try {
+      const amount = await extractPaymentAmountFromImage(file);
+      setDetectedAmount(amount);
+      setOcrStatus(amount != null ? 'done' : 'failed');
+    } catch {
+      setOcrStatus('failed');
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     if (!file) return;
@@ -73,24 +110,41 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       alert('File must be under 5 MB');
       return;
     }
+
     setSelectedFile(file);
+    setDetectedAmount(null);
+    setSubmittedDetectedAmount(null);
+
+    const pdf = isPdfFile(file);
+    setIsPdf(pdf);
+
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => setPreviewUrl(reader.result as string);
       reader.readAsDataURL(file);
+      void scanImageForAmount(file);
     } else {
       setPreviewUrl(null);
+      setOcrStatus('idle');
     }
   };
 
   const handleSubmit = async () => {
     if (!selectedFile) return;
-    submitMutation.mutate(selectedFile, {
-      onSuccess: () => {
-        setStep('done');
-        onProofSubmitted();
+    submitMutation.mutate(
+      {
+        file: selectedFile,
+        detectedAmount: isPdf ? undefined : detectedAmount,
       },
-    });
+      {
+        onSuccess: (data) => {
+          setSubmittedDetectedAmount(
+            data.detected_paid_amount ?? (isPdf ? null : detectedAmount),
+          );
+          setStep('done');
+        },
+      },
+    );
   };
 
   const resetTimer = () => {
@@ -98,18 +152,24 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     setTimerExpired(false);
   };
 
-  // Colour changes when < 60 s left
   const timerColor =
     secondsLeft <= 60 ? 'text-danger' : secondsLeft <= 120 ? 'text-warning' : 'text-primary';
 
+  const amountMatches =
+    detectedAmount != null && detectedAmount === totalAmount;
+  const amountMismatch =
+    detectedAmount != null && detectedAmount !== totalAmount;
+  const canSubmit =
+    !!selectedFile &&
+    !submitMutation.isPending &&
+    (isPdf || ocrStatus === 'done' || ocrStatus === 'failed');
+
   return (
-    /* Backdrop */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-borderColor">
           <h2 className="text-lg font-bold text-textDark">
             {step === 'qr' && 'Scan & Pay'}
@@ -124,12 +184,9 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </button>
         </div>
 
-        {/* Body */}
         <div className="px-6 py-5 space-y-5">
-          {/* ─── QR step ─── */}
           {step === 'qr' && (
             <>
-              {/* Amount */}
               <div className="text-center">
                 <p className="text-sm text-textMuted">
                   {isPartialPayment ? 'Remaining balance to pay' : 'Amount to pay'}
@@ -137,7 +194,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <p className="text-3xl font-bold text-primary mt-1">₹{totalAmount}</p>
               </div>
 
-              {/* Timer */}
               <div className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-2">
                   <Clock className={`w-4 h-4 ${timerColor}`} />
@@ -148,10 +204,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 {timerExpired ? (
                   <p className="text-xs text-danger">
                     Timer expired.{' '}
-                    <button
-                      className="underline font-medium"
-                      onClick={resetTimer}
-                    >
+                    <button className="underline font-medium" onClick={resetTimer}>
                       Restart
                     </button>
                   </p>
@@ -160,7 +213,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 )}
               </div>
 
-              {/* QR Code */}
               <div className="flex justify-center">
                 {qrUrl ? (
                   <img
@@ -198,15 +250,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </>
           )}
 
-          {/* ─── Upload step ─── */}
           {step === 'upload' && (
             <>
               <p className="text-sm text-textMuted">
-                Upload a screenshot or PDF of your payment confirmation. You can submit multiple
-                proofs if your payment was split.
+                Upload a screenshot or PDF of your payment confirmation. The amount will be read
+                automatically when possible.
               </p>
 
-              {/* Drop zone */}
               <div
                 className="border-2 border-dashed border-borderColor rounded-xl p-6 flex flex-col items-center gap-3 cursor-pointer hover:border-primary/60 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
@@ -240,15 +290,62 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                   {(selectedFile.size / 1024).toFixed(1)} KB ·{' '}
                   <button
                     className="underline text-primary"
-                    onClick={() => {
-                      setSelectedFile(null);
-                      setPreviewUrl(null);
-                      if (fileInputRef.current) fileInputRef.current.value = '';
-                    }}
+                    onClick={resetFileState}
                   >
                     Remove
                   </button>
                 </p>
+              )}
+
+              {ocrStatus === 'scanning' && (
+                <div className="flex items-center justify-center gap-2 text-sm text-textMuted py-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Reading payment amount from screenshot…
+                </div>
+              )}
+
+              {isPdf && selectedFile && (
+                <div className="p-3 bg-bgLight border border-borderColor rounded-lg text-sm text-textMuted">
+                  PDF selected. Payment amount will be detected automatically when you submit
+                  (requires server OCR).
+                </div>
+              )}
+
+              {detectedAmount != null && !isPdf && (
+                <div
+                  className={`p-4 rounded-lg border ${
+                    amountMatches
+                      ? 'bg-success/10 border-success/30'
+                      : 'bg-warning/10 border-warning/30'
+                  }`}
+                >
+                  <p className="text-sm font-medium text-textDark">Detected payment amount</p>
+                  <p className="text-2xl font-bold text-textDark mt-1">₹{detectedAmount}</p>
+                  <p className="text-sm text-textMuted mt-1">
+                    Amount due: <strong>₹{totalAmount}</strong>
+                  </p>
+                  {amountMatches && (
+                    <p className="text-sm text-success mt-2 flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" />
+                      Amounts match
+                    </p>
+                  )}
+                  {amountMismatch && (
+                    <p className="text-sm text-warning mt-2 flex items-start gap-1">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      Detected amount differs from amount due. You can still submit for admin
+                      review.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {ocrStatus === 'failed' && selectedFile && !isPdf && (
+                <div className="p-3 bg-bgLight border border-borderColor rounded-lg text-sm text-textMuted flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  Could not read the amount from this image. You can still submit — admin will
+                  verify manually.
+                </div>
               )}
 
               <div className="flex gap-3">
@@ -263,17 +360,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <Button
                   variant="primary"
                   className="flex-1"
-                  disabled={!selectedFile || submitMutation.isPending}
+                  disabled={!canSubmit}
                   isLoading={submitMutation.isPending}
                   onClick={handleSubmit}
                 >
-                  Submit Proof
+                  Confirm & Submit
                 </Button>
               </div>
             </>
           )}
 
-          {/* ─── Done step ─── */}
           {step === 'done' && (
             <div className="text-center py-4 space-y-4">
               <div className="h-16 w-16 bg-success/10 rounded-full mx-auto flex items-center justify-center">
@@ -281,12 +377,24 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
               <div>
                 <p className="font-semibold text-textDark">Proof submitted!</p>
+                {submittedDetectedAmount != null && (
+                  <p className="text-sm text-textDark mt-2">
+                    Detected amount: <strong>₹{submittedDetectedAmount}</strong>
+                  </p>
+                )}
                 <p className="text-sm text-textMuted mt-1">
                   Your payment proof is under review. The registration form download will be
                   enabled once the full registration fee is approved.
                 </p>
               </div>
-              <Button variant="outline" className="w-full" onClick={onClose}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  onProofSubmitted();
+                  onClose();
+                }}
+              >
                 Close
               </Button>
             </div>

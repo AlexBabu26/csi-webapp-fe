@@ -107,7 +107,10 @@ export const UnitRegistrationPayments: React.FC = () => {
         : payment.total_amount;
     setApproveDialogPayment(payment);
     setApproveDialogBalanceDue(balanceDue ?? null);
-    setPaidAmount(balanceDue != null ? String(balanceDue) : '');
+    const prefilled =
+      payment.detected_paid_amount ??
+      (balanceDue != null ? balanceDue : payment.total_amount);
+    setPaidAmount(prefilled != null ? String(prefilled) : '');
   };
 
   const handleApproveSubmit = () => {
@@ -452,6 +455,12 @@ export const UnitRegistrationPayments: React.FC = () => {
                       {submission.rejection_note && (
                         <p className="text-xs text-danger">Note: {submission.rejection_note}</p>
                       )}
+                      {submission.status === 'PENDING' &&
+                        submission.detected_paid_amount != null && (
+                          <p className="text-xs text-textMuted">
+                            Detected from proof: ₹{submission.detected_paid_amount}
+                          </p>
+                        )}
                       {submission.status === 'APPROVED' && proofPaid != null && (
                         <p className="text-xs text-textMuted">
                           Approved paid: ₹{proofPaid}
@@ -530,6 +539,12 @@ export const UnitRegistrationPayments: React.FC = () => {
             {approveDialogPayment.total_amount != null && (
               <p className="text-sm text-textMuted">
                 Registration total: <strong>₹{approveDialogPayment.total_amount}</strong>
+              </p>
+            )}
+            {approveDialogPayment.detected_paid_amount != null && (
+              <p className="text-sm text-textDark">
+                Detected from proof:{' '}
+                <strong>₹{approveDialogPayment.detected_paid_amount}</strong>
               </p>
             )}
             <div>

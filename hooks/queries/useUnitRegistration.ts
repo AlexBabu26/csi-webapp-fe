@@ -260,7 +260,13 @@ export const useSubmitUnitPaymentProof = () => {
   const { addToast } = useToast();
 
   return useMutation({
-    mutationFn: (file: File) => api.submitUnitPaymentProof(file),
+    mutationFn: ({
+      file,
+      detectedAmount,
+    }: {
+      file: File;
+      detectedAmount?: number | null;
+    }) => api.submitUnitPaymentProof(file, detectedAmount),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: unitRegistrationKeys.paymentStatus() });
       addToast('Payment proof submitted. Awaiting admin review.', 'success');

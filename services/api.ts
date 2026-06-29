@@ -2358,11 +2358,23 @@ class ApiService {
     return httpGet<UnitPaymentStatusResponse>('/units/payment', { token });
   }
 
-  async submitUnitPaymentProof(file: File): Promise<{ id: number; status: string; submitted_at: string; message: string }> {
+  async submitUnitPaymentProof(
+    file: File,
+    detectedAmount?: number | null,
+  ): Promise<{
+    id: number;
+    status: string;
+    detected_paid_amount: number | null;
+    submitted_at: string;
+    message: string;
+  }> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
     const formData = new FormData();
     formData.append('file', file);
+    if (detectedAmount != null) {
+      formData.append('detected_amount', String(detectedAmount));
+    }
     return httpPost('/units/payment', formData, { token });
   }
 
