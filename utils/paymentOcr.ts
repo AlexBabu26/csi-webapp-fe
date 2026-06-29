@@ -18,12 +18,12 @@ function normalizeAmountDigits(raw: string): string {
   return raw.replace(/,/g, '');
 }
 
-/** ₹ misread as "2" before amounts starting with 7, 8, or 9 (2820→820, 2790→790). */
+/** ₹ misread as "2" before typical UPI amounts (2180→180, 2820→820). */
 function correctRupeeMisreadAmount(compact: string, value: number): number {
   const normalized = compact.replace(/,/g, '');
-  const decimalMatch = /^2([789]\d{2}\.\d{2})$/.exec(normalized);
-  if (decimalMatch) {
-    const corrected = Number.parseFloat(decimalMatch[1]);
+  const misreadMatch = /^2(1\d{2}|7[89]\d|8\d{2}|9\d{2})\.(\d{2})$/.exec(normalized);
+  if (misreadMatch) {
+    const corrected = Number.parseFloat(`${misreadMatch[1]}.${misreadMatch[2]}`);
     if (!Number.isNaN(corrected)) {
       return Math.round(corrected);
     }

@@ -455,12 +455,19 @@ export const UnitRegistrationPayments: React.FC = () => {
                       {submission.rejection_note && (
                         <p className="text-xs text-danger">Note: {submission.rejection_note}</p>
                       )}
-                      {submission.status === 'PENDING' &&
-                        submission.detected_paid_amount != null && (
-                          <p className="text-xs text-textMuted">
-                            Detected from proof: ₹{submission.detected_paid_amount}
-                          </p>
-                        )}
+                      {submission.status === 'PENDING' && (
+                        <p className="text-xs mt-1">
+                          {submission.detected_paid_amount != null ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 text-primary px-2 py-0.5 font-medium">
+                              Extracted: ₹{submission.detected_paid_amount}
+                            </span>
+                          ) : (
+                            <span className="text-textMuted">
+                              Extracted amount not available — enter manually on approve
+                            </span>
+                          )}
+                        </p>
+                      )}
                       {submission.status === 'APPROVED' && proofPaid != null && (
                         <p className="text-xs text-textMuted">
                           Approved paid: ₹{proofPaid}
