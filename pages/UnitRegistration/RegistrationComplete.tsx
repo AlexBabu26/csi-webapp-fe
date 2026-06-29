@@ -69,13 +69,11 @@ export const RegistrationComplete: React.FC = () => {
     totalAmount > 0 && unitRegistrationFee >= 0
       ? Math.max(0, totalAmount - unitRegistrationFee)
       : feeMemberCount * unitMemberFee;
-  const balanceAmount = paymentData?.balance_amount ?? null;
   const totalPaid = paymentData?.total_paid ?? 0;
   const paymentCredit = paymentData?.payment_credit ?? 0;
-  const balanceDue = paymentData?.balance_due ?? balanceAmount ?? 0;
-  const paidAmount =
-    isPartial && balanceAmount != null ? Math.max(0, totalAmount - balanceAmount) : null;
-  const amountDue = isPartial && balanceAmount != null ? balanceAmount : totalAmount;
+  const balanceDue = paymentData?.balance_due ?? 0;
+  const paidAmount = isPartial && totalPaid > 0 ? totalPaid : null;
+  const amountDue = isPartial && balanceDue > 0 ? balanceDue : totalAmount;
   const pendingSubmission = paymentData?.submissions.find(
     (submission) => submission.status === 'PENDING',
   );
@@ -183,7 +181,7 @@ export const RegistrationComplete: React.FC = () => {
           </div>
         )}
 
-        {isPartial && balanceAmount != null && (
+        {isPartial && balanceDue > 0 && (
           <div className="mt-4 flex items-center gap-3 rounded-lg bg-warning/10 border border-warning/30 px-4 py-3 text-left">
             <Clock className="w-5 h-5 text-warning flex-shrink-0" />
             <div className="text-sm">
@@ -194,7 +192,7 @@ export const RegistrationComplete: React.FC = () => {
                 </p>
               )}
               <p className="text-textMuted mt-0.5">
-                Remaining to pay: <strong>₹{balanceAmount}</strong>. Pay the remaining amount and
+                Remaining to pay: <strong>₹{balanceDue}</strong>. Pay the remaining amount and
                 upload another proof to complete registration.
               </p>
             </div>
@@ -324,9 +322,9 @@ export const RegistrationComplete: React.FC = () => {
               Download your registration form and submit the hard copy to the Youth Office before
               the deadline, by post or in person.
             </p>
-          ) : isPartial && balanceAmount != null ? (
+          ) : isPartial && balanceDue > 0 ? (
             <p>
-              Pay the remaining balance of <strong>₹{balanceAmount}</strong> using the QR code, then
+              Pay the remaining balance of <strong>₹{balanceDue}</strong> using the QR code, then
               upload the payment proof. The registration form will be available once the full fee
               is approved.
             </p>
