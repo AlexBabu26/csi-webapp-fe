@@ -74,3 +74,17 @@ export const isYMTokenExpiringSoon = (bufferSeconds = 60): boolean => {
     return true;
   }
 };
+
+let redirectingToYMLogin = false;
+
+/** Redirect to Yuvalokham login after session expiry (HashRouter-aware). */
+export const redirectToYMLogin = (): void => {
+  if (typeof window === 'undefined' || redirectingToYMLogin) return;
+
+  const hash = window.location.hash || '#/';
+  const route = (hash.replace(/^#/, '') || '/').split('?')[0];
+  if (route === '/yuvalokham/login') return;
+
+  redirectingToYMLogin = true;
+  window.location.replace(`${window.location.pathname}${window.location.search}#/yuvalokham/login`);
+};

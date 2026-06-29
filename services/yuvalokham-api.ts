@@ -7,7 +7,7 @@ import {
 } from '../types';
 import { API_BASE_URL } from './http';
 import { parseApiErrorBody, toUserFriendlyError } from './errorMessages';
-import { getYMAccessToken, getYMRefreshToken, setYMTokens, clearYMAuth, isYMTokenExpiringSoon } from './yuvalokham-auth';
+import { getYMAccessToken, getYMRefreshToken, setYMTokens, clearYMAuth, isYMTokenExpiringSoon, redirectToYMLogin } from './yuvalokham-auth';
 
 const YM_BASE = '/yuvalokham';
 
@@ -79,14 +79,17 @@ async function ymFetch<T>(url: string, options: RequestInit & { skipAuth?: boole
           clearTimeout(retryTid);
           if (res.status === 401) {
             clearYMAuth();
+            redirectToYMLogin();
             throw Object.assign(new Error(toUserFriendlyError('Session expired', 401)), { status: 401 });
           }
         } catch {
           clearYMAuth();
+          redirectToYMLogin();
           throw Object.assign(new Error(toUserFriendlyError('Session expired', 401)), { status: 401 });
         }
       } else {
         clearYMAuth();
+        redirectToYMLogin();
         throw Object.assign(new Error(toUserFriendlyError('Session expired', 401)), { status: 401 });
       }
     }

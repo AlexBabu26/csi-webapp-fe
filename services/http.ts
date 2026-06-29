@@ -1,4 +1,4 @@
-import { getAuthToken, getRefreshToken, setAuthTokens, clearAuth, isTokenExpiringSoon } from './auth';
+import { getAuthToken, getRefreshToken, setAuthTokens, clearAuth, isTokenExpiringSoon, redirectToLogin } from './auth';
 import { parseApiErrorBody, toUserFriendlyError } from './errorMessages';
 
 export const API_BASE_URL =
@@ -139,6 +139,14 @@ const getValidToken = async (providedToken?: string): Promise<string | null> => 
   return currentToken;
 };
 
+const sessionExpiredError = () => {
+  const error = new Error(toUserFriendlyError('Session expired. Please login again.', 401)) as Error & {
+    status?: number;
+  };
+  error.status = 401;
+  return error;
+};
+
 const handleResponse = async (res: Response, asBlob?: boolean) => {
   if (!res.ok) {
     const text = await res.text();
@@ -246,29 +254,22 @@ export const http = async <T = any>(
           if (retryResponse.status === 401) {
             console.error('[HTTP] Retry also got 401, redirecting to login');
             clearAuth();
-            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && window.location.pathname !== '/') {
-              window.location.href = '/';
-            }
-            throw new Error(toUserFriendlyError('Session expired. Please login again.', 401));
+            redirectToLogin();
+            throw sessionExpiredError();
           }
           
           return handleResponse(retryResponse, asBlob) as Promise<T>;
         } catch (refreshError) {
           console.error('[HTTP] Token refresh failed, clearing auth:', refreshError);
           clearAuth();
-          // Redirect to login
-          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && window.location.pathname !== '/') {
-            window.location.href = '/';
-          }
-          throw new Error(toUserFriendlyError('Session expired. Please login again.', 401));
+          redirectToLogin();
+          throw sessionExpiredError();
         }
       } else {
         // No refresh token, clear auth and redirect
         clearAuth();
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login') && window.location.pathname !== '/') {
-          window.location.href = '/';
-        }
-        throw new Error(toUserFriendlyError('Session expired. Please login again.', 401));
+        redirectToLogin();
+        throw sessionExpiredError();
       }
     }
 

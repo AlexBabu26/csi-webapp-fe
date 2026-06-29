@@ -189,3 +189,27 @@ export const canRefreshSession = (): boolean => {
   if (!refreshToken) return false;
   return !isTokenExpired(refreshToken);
 };
+
+/** Route path from HashRouter (e.g. "#/admin/dashboard" -> "/admin/dashboard"). */
+export const getCurrentRoutePath = (): string => {
+  if (typeof window === 'undefined') return '/';
+  const hash = window.location.hash || '#/';
+  const route = hash.replace(/^#/, '') || '/';
+  return route.split('?')[0];
+};
+
+export const isOnPublicAuthRoute = (): boolean => {
+  const route = getCurrentRoutePath();
+  return route === '/' || route === '/login';
+};
+
+let redirectingToLogin = false;
+
+/** Redirect to home/login after session expiry (HashRouter-aware). */
+export const redirectToLogin = (): void => {
+  if (typeof window === 'undefined' || redirectingToLogin) return;
+  if (isOnPublicAuthRoute()) return;
+
+  redirectingToLogin = true;
+  window.location.replace(`${window.location.pathname}${window.location.search}#/`);
+};
