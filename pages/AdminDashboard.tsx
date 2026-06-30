@@ -372,7 +372,7 @@ export const AdminDashboard: React.FC = () => {
                 </dt>
                 <dd className="mt-2 text-3xl font-bold text-textDark">{stats.totalMembers}</dd>
                 <div className="mt-2 text-sm text-textMuted">
-                  <span>{stats.maleMembers} M / {stats.femaleMembers} F</span>
+                  <span>{stats.maleMembers} M / {stats.femaleMembers} F (reg. completed units)</span>
                 </div>
               </Card>
 
@@ -536,6 +536,10 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Total Number of Members:</span>
               <span className="font-medium text-primary">{stats.totalMembers}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-textMuted">Total Number of Members (Reg. Completed):</span>
+              <span className="font-medium text-primary">{stats.totalMembersRegCompleted}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Male Members:</span>
@@ -745,7 +749,7 @@ export const AdminDashboard: React.FC = () => {
                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${(stats.maleMembers / stats.totalMembers) * 100}%` }}
+                    style={{ width: `${stats.totalMembersRegCompleted > 0 ? (stats.maleMembers / stats.totalMembersRegCompleted) * 100 : 0}%` }}
                   />
                 </div>
               </div>
@@ -760,7 +764,7 @@ export const AdminDashboard: React.FC = () => {
                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-pink-400 to-pink-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${(stats.femaleMembers / stats.totalMembers) * 100}%` }}
+                    style={{ width: `${stats.totalMembersRegCompleted > 0 ? (stats.femaleMembers / stats.totalMembersRegCompleted) * 100 : 0}%` }}
                   />
                 </div>
               </div>

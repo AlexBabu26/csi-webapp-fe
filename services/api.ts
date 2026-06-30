@@ -936,6 +936,7 @@ class ApiService {
       pending_approval_units_count?: number;
       pending_payments_count: number;
       total_unit_members: number;
+      total_unit_members_reg_completed: number;
       total_male_members: number;
       total_female_members: number;
       max_member_unit: string;
@@ -963,6 +964,7 @@ class ApiService {
       currentRegistrationYear: rawData.current_registration_year ?? getCurrentYearIST(),
       pendingPayments: rawData.pending_payments_count ?? 0,
       totalMembers: rawData.total_unit_members,
+      totalMembersRegCompleted: rawData.total_unit_members_reg_completed ?? rawData.total_unit_members,
       maleMembers: rawData.total_male_members,
       femaleMembers: rawData.total_female_members,
       pendingRequests: rawData.pending_requests || 0,

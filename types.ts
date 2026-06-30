@@ -1021,6 +1021,7 @@ export interface UnitStats {
   currentRegistrationYear: number;
   pendingPayments: number;
   totalMembers: number;
+  totalMembersRegCompleted: number;
   maleMembers: number;
   femaleMembers: number;
   pendingRequests: number;
