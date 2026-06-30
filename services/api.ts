@@ -964,7 +964,9 @@ class ApiService {
       currentRegistrationYear: rawData.current_registration_year ?? getCurrentYearIST(),
       pendingPayments: rawData.pending_payments_count ?? 0,
       totalMembers: rawData.total_unit_members,
-      totalMembersRegCompleted: rawData.total_unit_members_reg_completed ?? rawData.total_unit_members,
+      totalMembersRegCompleted:
+        rawData.total_unit_members_reg_completed ??
+        ((rawData.total_male_members ?? 0) + (rawData.total_female_members ?? 0)),
       maleMembers: rawData.total_male_members,
       femaleMembers: rawData.total_female_members,
       pendingRequests: rawData.pending_requests || 0,

@@ -100,6 +100,10 @@ export const AdminDashboard: React.FC = () => {
     ? formatRegistrationSeason(stats.currentRegistrationYear)
     : null;
 
+  const regCompletedMemberTotal = stats
+    ? (stats.totalMembersRegCompleted ?? stats.maleMembers + stats.femaleMembers)
+    : 0;
+
   // Define table columns for unit registrations
   const columns = useMemo<ColumnDef<Unit, any>[]>(
     () => [
@@ -539,7 +543,9 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Total Number of Members (Reg. Completed):</span>
-              <span className="font-medium text-primary">{stats.totalMembersRegCompleted}</span>
+              <span className="font-medium text-primary">
+                {regCompletedMemberTotal}
+              </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Male Members:</span>
@@ -749,7 +755,7 @@ export const AdminDashboard: React.FC = () => {
                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${stats.totalMembersRegCompleted > 0 ? (stats.maleMembers / stats.totalMembersRegCompleted) * 100 : 0}%` }}
+                    style={{ width: `${regCompletedMemberTotal > 0 ? (stats.maleMembers / regCompletedMemberTotal) * 100 : 0}%` }}
                   />
                 </div>
               </div>
@@ -764,7 +770,7 @@ export const AdminDashboard: React.FC = () => {
                 <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-pink-400 to-pink-600 rounded-full transition-all duration-1000"
-                    style={{ width: `${stats.totalMembersRegCompleted > 0 ? (stats.femaleMembers / stats.totalMembersRegCompleted) * 100 : 0}%` }}
+                    style={{ width: `${regCompletedMemberTotal > 0 ? (stats.femaleMembers / regCompletedMemberTotal) * 100 : 0}%` }}
                   />
                 </div>
               </div>
