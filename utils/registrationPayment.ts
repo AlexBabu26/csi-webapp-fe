@@ -6,6 +6,7 @@ export interface PaymentProofRecord {
   balance_amount: number | null;
   approved_paid_amount?: number | null;
   detected_paid_amount?: number | null;
+  registration_total_amount?: number | null;
   status: PaymentProofStatus;
   submitted_at: string;
 }
@@ -35,7 +36,11 @@ export function getProofPaidAmount(
     return null;
   }
 
-  let priorBalance = payment.total_amount ?? 0;
+  const cycleFee = allSubmissions.find(
+    (submission) => submission.registration_total_amount != null,
+  )?.registration_total_amount;
+
+  let priorBalance = cycleFee ?? payment.total_amount ?? 0;
   for (let i = 0; i < index; i++) {
     const previous = sorted[i];
     if (previous.status === 'APPROVED' && previous.balance_amount != null) {

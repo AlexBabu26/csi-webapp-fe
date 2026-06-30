@@ -141,6 +141,7 @@ export const UnitRegistrationPayments: React.FC = () => {
               ? {
                   ...submission,
                   status: 'APPROVED' as const,
+                  approved_paid_amount: data.paid_amount,
                   balance_amount: data.balance_amount,
                   rejection_note: null,
                   reviewed_at: reviewedAt,

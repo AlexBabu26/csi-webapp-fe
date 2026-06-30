@@ -746,6 +746,7 @@ export interface AdminRegistrationPayment {
   total_paid?: number | null;
   payment_credit?: number | null;
   balance_due?: number | null;
+  approved_paid_amount?: number | null;
   detected_paid_amount?: number | null;
   status: PaymentProofStatus;
   rejection_note: string | null;
