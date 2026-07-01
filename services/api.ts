@@ -36,6 +36,7 @@ import {
   UnitStats,
   MasterListUnit,
   DistrictWiseData,
+  DistrictDetailStats,
   ClergyDistrict,
   RequestStatus,
   ArchivedMember,
@@ -2015,7 +2016,10 @@ class ApiService {
 
   // GET /admin/district-wise-data - District-wise member data
   // Supports ?refresh=true to bypass cache and fetch fresh data
-  async getDistrictWiseData(options?: { refresh?: boolean }): Promise<ApiResponse<DistrictWiseData[]>> {
+  async getDistrictWiseData(options?: { refresh?: boolean }): Promise<ApiResponse<{
+    chartData: DistrictWiseData[];
+    districtDetails: DistrictDetailStats[];
+  }>> {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
 
@@ -2026,9 +2030,19 @@ class ApiService {
       total_units: number;
       registered_units: number;
       completed_units: number;
+      in_progress_units?: number;
+      pending_approval_units?: number;
+      not_started_units?: number;
+      not_onboarded_units?: number;
+      pending_payments?: number;
       total_members: number;
       male_members: number;
       female_members: number;
+      reg_completed_members?: number;
+      reg_completed_male_members?: number;
+      reg_completed_female_members?: number;
+      max_member_unit?: string;
+      max_member_unit_count?: number;
     }
 
     // API may return paginated response or direct array
@@ -2053,13 +2067,33 @@ class ApiService {
     // Handle both array and paginated response formats (API may return { data: [...] } or { items: [...] } or direct array)
     const rawData: ApiDistrictData[] = Array.isArray(rawResponse) ? rawResponse : (rawResponse.data || rawResponse.items || []);
 
-    // Transform to match DistrictWiseData interface (name + participants for the bar chart)
-    const data: DistrictWiseData[] = rawData.map(district => ({
+    const chartData: DistrictWiseData[] = rawData.map((district) => ({
       name: district.name,
       participants: district.total_members,
     }));
 
-    return { data, status: 200 };
+    const districtDetails: DistrictDetailStats[] = rawData.map((district) => ({
+      id: district.id,
+      name: district.name,
+      totalUnits: district.total_units,
+      registeredUnits: district.registered_units,
+      completedUnits: district.completed_units,
+      inProgressUnits: district.in_progress_units ?? 0,
+      pendingApprovalUnits: district.pending_approval_units ?? 0,
+      notStartedUnits: district.not_started_units ?? 0,
+      notOnboardedUnits: district.not_onboarded_units ?? 0,
+      pendingPayments: district.pending_payments ?? 0,
+      totalMembers: district.total_members,
+      maleMembers: district.male_members,
+      femaleMembers: district.female_members,
+      regCompletedMembers: district.reg_completed_members ?? 0,
+      regCompletedMaleMembers: district.reg_completed_male_members ?? 0,
+      regCompletedFemaleMembers: district.reg_completed_female_members ?? 0,
+      maxMemberUnit: district.max_member_unit ?? 'N/A',
+      maxMemberCount: district.max_member_unit_count ?? 0,
+    }));
+
+    return { data: { chartData, districtDetails }, status: 200 };
   }
 
   // ==================== SYSTEM ADMIN ENDPOINTS ====================

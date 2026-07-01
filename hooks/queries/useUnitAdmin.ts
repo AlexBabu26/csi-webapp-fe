@@ -96,17 +96,18 @@ export const useRefreshDashboard = () => {
 export const useDashboardData = () => {
   const stats = useUnitStats();
   const units = useUnits();
-  const chartData = useDistrictChartData();
+  const districtData = useDistrictChartData();
   const refreshDashboard = useRefreshDashboard();
 
   return {
     stats: stats.data,
     units: units.data ?? [],
-    chartData: chartData.data ?? [],
-    isLoading: stats.isLoading || units.isLoading || chartData.isLoading,
+    chartData: districtData.data?.chartData ?? [],
+    districtDetails: districtData.data?.districtDetails ?? [],
+    isLoading: stats.isLoading || units.isLoading || districtData.isLoading,
     isRefreshing: refreshDashboard.isPending,
     refreshDashboard: refreshDashboard.mutate,
-    error: stats.error || units.error || chartData.error,
+    error: stats.error || units.error || districtData.error,
   };
 };
 

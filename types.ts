@@ -1034,6 +1034,27 @@ export interface DistrictWiseData {
   participants: number;
 }
 
+export interface DistrictDetailStats {
+  id: number;
+  name: string;
+  totalUnits: number;
+  registeredUnits: number;
+  completedUnits: number;
+  inProgressUnits: number;
+  pendingApprovalUnits: number;
+  notStartedUnits: number;
+  notOnboardedUnits: number;
+  pendingPayments: number;
+  totalMembers: number;
+  maleMembers: number;
+  femaleMembers: number;
+  regCompletedMembers: number;
+  regCompletedMaleMembers: number;
+  regCompletedFemaleMembers: number;
+  maxMemberUnit: string;
+  maxMemberCount: number;
+}
+
 export interface ChartData {
   name: string;
   participants: number;

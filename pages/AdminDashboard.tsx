@@ -64,12 +64,14 @@ export const AdminDashboard: React.FC = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+  const [summaryDistrictFilter, setSummaryDistrictFilter] = useState('');
   
   // Use TanStack Query for data fetching
   const {
     stats,
     units,
     chartData,
+    districtDetails,
     isLoading: loading,
     isRefreshing,
     refreshDashboard,
@@ -99,6 +101,40 @@ export const AdminDashboard: React.FC = () => {
   const registrationSeason = stats
     ? formatRegistrationSeason(stats.currentRegistrationYear)
     : null;
+
+  const summaryStats = useMemo(() => {
+    if (!stats) return null;
+    if (!summaryDistrictFilter) return stats;
+
+    const district = districtDetails.find((item) => item.name === summaryDistrictFilter);
+    if (!district) return stats;
+
+    return {
+      ...stats,
+      registeredUnits: district.registeredUnits,
+      completedUnits: district.completedUnits,
+      inProgressUnits: district.inProgressUnits,
+      pendingApprovalUnits: district.pendingApprovalUnits,
+      notStartedUnits: district.notStartedUnits,
+      notOnboardedUnits: district.notOnboardedUnits,
+      pendingPayments: district.pendingPayments,
+      totalMembers: district.totalMembers,
+      totalMembersRegCompleted: district.regCompletedMembers,
+      maleMembers: district.regCompletedMaleMembers,
+      femaleMembers: district.regCompletedFemaleMembers,
+      maxMemberUnit: district.maxMemberUnit,
+      maxMemberCount: district.maxMemberCount,
+    };
+  }, [stats, summaryDistrictFilter, districtDetails]);
+
+  const summaryRegCompletedMemberTotal = summaryStats
+    ? (summaryStats.totalMembersRegCompleted ?? summaryStats.maleMembers + summaryStats.femaleMembers)
+    : 0;
+
+  const summaryDistrictOptions = useMemo(
+    () => [...districtDetails].sort((a, b) => a.name.localeCompare(b.name)),
+    [districtDetails],
+  );
 
   const regCompletedMemberTotal = stats
     ? (stats.totalMembersRegCompleted ?? stats.maleMembers + stats.femaleMembers)
@@ -489,11 +525,36 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Summary Stats */}
-      {stats && !loading && (
+      {summaryStats && !loading && (
         <Card>
-          <h3 className="text-lg font-bold text-textDark mb-4">
-            {registrationSeason ? `${registrationSeason} Registration Summary` : 'Registration Summary'}
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <h3 className="text-lg font-bold text-textDark">
+              {registrationSeason ? `${registrationSeason} Registration Summary` : 'Registration Summary'}
+              {summaryDistrictFilter && (
+                <span className="ml-2 text-sm font-normal text-textMuted">
+                  — {summaryDistrictFilter}
+                </span>
+              )}
+            </h3>
+            <div className="flex items-center gap-2">
+              <label htmlFor="summary-district-filter" className="text-xs font-medium text-textMuted whitespace-nowrap">
+                District
+              </label>
+              <select
+                id="summary-district-filter"
+                value={summaryDistrictFilter}
+                onChange={(e) => setSummaryDistrictFilter(e.target.value)}
+                className="px-3 py-2 bg-white border border-borderColor rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary min-w-[140px]"
+              >
+                <option value="">All districts</option>
+                {summaryDistrictOptions.map((district) => (
+                  <option key={district.id} value={district.name}>
+                    {district.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Current registration season:</span>
@@ -503,27 +564,27 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Registered units this season:</span>
-              <span className="font-medium text-textDark">{stats.registeredUnits}</span>
+              <span className="font-medium text-textDark">{summaryStats.registeredUnits}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Units completed this season:</span>
-              <span className="font-medium text-success">{stats.completedUnits}</span>
+              <span className="font-medium text-success">{summaryStats.completedUnits}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Units in progress:</span>
               <span className="font-medium text-warning">
-                {stats.inProgressUnits - stats.pendingApprovalUnits}
+                {summaryStats.inProgressUnits - summaryStats.pendingApprovalUnits}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Payment Completed and Pending for Approval:</span>
-              {stats.pendingApprovalUnits > 0 ? (
+              {summaryStats.pendingApprovalUnits > 0 ? (
                 <button
                   type="button"
                   onClick={() => navigate('/admin/units')}
                   className="font-medium text-info hover:underline"
                 >
-                  {stats.pendingApprovalUnits}
+                  {summaryStats.pendingApprovalUnits}
                 </button>
               ) : (
                 <span className="font-medium text-textDark">0</span>
@@ -531,17 +592,17 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Units not started:</span>
-              <span className="font-medium text-textDark">{stats.notStartedUnits}</span>
+              <span className="font-medium text-textDark">{summaryStats.notStartedUnits}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Units not onboarded:</span>
-              {stats.notOnboardedUnits > 0 ? (
+              {summaryStats.notOnboardedUnits > 0 ? (
                 <button
                   type="button"
                   onClick={() => navigate('/admin/units/not-onboarded')}
                   className="font-medium text-warning hover:underline"
                 >
-                  {stats.notOnboardedUnits}
+                  {summaryStats.notOnboardedUnits}
                 </button>
               ) : (
                 <span className="font-medium text-success">0</span>
@@ -549,29 +610,29 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Payments awaiting review:</span>
-              <span className="font-medium text-primary">{stats.pendingPayments}</span>
+              <span className="font-medium text-primary">{summaryStats.pendingPayments}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Unit with highest members:</span>
-              <span className="font-medium text-textDark">{stats.maxMemberUnit} ({stats.maxMemberCount} members)</span>
+              <span className="font-medium text-textDark">{summaryStats.maxMemberUnit} ({summaryStats.maxMemberCount} members)</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Total Number of Members:</span>
-              <span className="font-medium text-primary">{stats.totalMembers}</span>
+              <span className="font-medium text-primary">{summaryStats.totalMembers}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Total Number of Members (Reg. Completed):</span>
               <span className="font-medium text-primary">
-                {regCompletedMemberTotal}
+                {summaryRegCompletedMemberTotal}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Male Members:</span>
-              <span className="font-medium text-textDark">{stats.maleMembers}</span>
+              <span className="font-medium text-textDark">{summaryStats.maleMembers}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-textMuted">Female Members:</span>
-              <span className="font-medium text-textDark">{stats.femaleMembers}</span>
+              <span className="font-medium text-textDark">{summaryStats.femaleMembers}</span>
             </div>
           </div>
         </Card>
