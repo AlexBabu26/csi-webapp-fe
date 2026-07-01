@@ -3862,13 +3862,57 @@ class ApiService {
     const token = this.getToken();
     if (!token) throw new Error('Authentication required');
 
+    type UserListItem = {
+      id: number;
+      username: string;
+      email?: string;
+      phone_number?: string;
+      user_type: string;
+      is_active: boolean;
+      unit_name?: string;
+      district_name?: string;
+    };
+
+    interface UserListResponse {
+      data?: UserListItem[];
+      total?: number;
+      page?: number;
+      page_size?: number;
+      pages?: number;
+    }
+
     const query: Record<string, string | number | boolean | undefined> = {};
     if (params?.user_type) query.user_type = params.user_type;
     if (params?.district_id) query.district_id = params.district_id;
     if (params?.search) query.search = params.search;
     if (params?.is_active !== undefined) query.is_active = params.is_active;
 
-    return httpGet('/admin/users', { token, query });
+    const pageSize = 200;
+    let page = 1;
+    let allUsers: UserListItem[] = [];
+    let totalPages = 1;
+
+    do {
+      const rawResponse = await httpGet<UserListItem[] | UserListResponse>('/admin/users', {
+        token,
+        query: { ...query, page, page_size: pageSize },
+      });
+
+      const pageData = Array.isArray(rawResponse)
+        ? rawResponse
+        : (rawResponse.data || []);
+
+      allUsers = allUsers.concat(pageData);
+
+      if (Array.isArray(rawResponse)) {
+        break;
+      }
+
+      totalPages = rawResponse.pages ?? 1;
+      page += 1;
+    } while (page <= totalPages);
+
+    return allUsers;
   }
 
   // GET /admin/users/summary - Get users count summary
