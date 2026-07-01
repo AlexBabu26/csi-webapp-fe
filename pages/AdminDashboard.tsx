@@ -130,6 +130,8 @@ export const AdminDashboard: React.FC = () => {
         cell: ({ row }) => (
           <Badge variant="light">{row.original.clergyDistrict}</Badge>
         ),
+        filterFn: (row, columnId, filterValue) =>
+          !filterValue || row.getValue(columnId) === filterValue,
       },
       {
         accessorKey: 'membersCount',
@@ -207,6 +209,22 @@ export const AdminDashboard: React.FC = () => {
       },
     ],
     [navigate]
+  );
+
+  const districtFilter = useMemo(() => {
+    const districts = Array.from(new Set(units.map((unit) => unit.clergyDistrict))).sort();
+    if (districts.length === 0) return null;
+    return {
+      columnId: 'clergyDistrict',
+      label: 'District',
+      allLabel: 'All districts',
+      options: districts.map((district) => ({ value: district, label: district })),
+    } as const;
+  }, [units]);
+
+  const columnFiltersConfig = useMemo(
+    () => [REGISTRATION_STATUS_FILTER, ...(districtFilter ? [districtFilter] : [])],
+    [districtFilter],
   );
 
   // Enhanced Custom Tooltip with dark theme
@@ -852,7 +870,7 @@ export const AdminDashboard: React.FC = () => {
             pageSize={10}
             emptyMessage="No units found"
             emptyIcon={<Building className="w-8 h-8 text-textMuted" />}
-            columnFiltersConfig={[REGISTRATION_STATUS_FILTER]}
+            columnFiltersConfig={columnFiltersConfig}
           />
         </div>
       </Card>
